@@ -5,11 +5,19 @@ import { useEffect, useId, useState } from "react";
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** The enquiry's From header, e.g. "Sam <sam@example.com>". */
+  to: string;
   subject: string;
   body: string;
 };
 
-export function DraftReplyModal({ open, onClose, subject, body }: Props) {
+/** Bare address from a From header; empty if there isn't a usable one. */
+function replyAddress(from: string): string {
+  const email = (from.match(/<([^>]+)>/)?.[1] ?? from).trim();
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) ? email : "";
+}
+
+export function DraftReplyModal({ open, onClose, to, subject, body }: Props) {
   const titleId = useId();
   const [copied, setCopied] = useState(false);
 
@@ -33,7 +41,7 @@ export function DraftReplyModal({ open, onClose, subject, body }: Props) {
     setCopied(true);
   }
 
-  const mailto = `mailto:?subject=${encodeURIComponent(`Re: ${subject}`)}&body=${encodeURIComponent(body)}`;
+  const mailto = `mailto:${replyAddress(to)}?subject=${encodeURIComponent(`Re: ${subject}`)}&body=${encodeURIComponent(body)}`;
 
   return (
     <div

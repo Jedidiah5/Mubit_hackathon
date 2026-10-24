@@ -31,12 +31,19 @@ async function loadRooms(): Promise<Room[]> {
   return DEMO_ROOMS;
 }
 
-/** Create enquiry doc, parse via Mubit, write feasibility. */
+/**
+ * Create enquiry doc, parse via Mubit, write feasibility.
+ * A failed parse still keeps the doc (spec: null) — it waits in the inbox for
+ * "Process all", and the sender isn't told to retry, which would duplicate it.
+ */
 export async function createAndParseEnquiry(input: {
   from: string;
   subject: string;
   body: string;
-}): Promise<{ id: string; spec: Spec; requestId: string | null }> {
+}): Promise<
+  | { id: string; spec: Spec; requestId: string | null; error?: undefined }
+  | { id: string; spec: null; requestId: null; error: string }
+> {
   const db = getDb();
   const ref = await addDoc(collection(db, "enquiries"), {
     from: input.from,
@@ -46,7 +53,13 @@ export async function createAndParseEnquiry(input: {
     source: "inbound",
   });
 
-  const parsed = await runParse(input.body, { enquiryId: ref.id });
+  let parsed: Awaited<ReturnType<typeof runParse>>;
+  try {
+    parsed = await runParse(input.body, { enquiryId: ref.id });
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Parse failed";
+    return { id: ref.id, spec: null, requestId: null, error };
+  }
   const rooms = await loadRooms();
   const feasibility = evaluateRooms(rooms, parsed.spec, null);
 

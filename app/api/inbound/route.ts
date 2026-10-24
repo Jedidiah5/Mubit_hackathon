@@ -203,9 +203,19 @@ export async function POST(request: Request) {
       subject: mail.subject,
       body,
     });
+    if (!result.spec) {
+      // Stored but unparsed — 200 so the sender doesn't retry and duplicate it.
+      return NextResponse.json({
+        ok: true,
+        enquiryId: result.id,
+        parsed: false,
+        error: result.error,
+      });
+    }
     return NextResponse.json({
       ok: true,
       enquiryId: result.id,
+      parsed: true,
       requestId: result.requestId,
       guests: result.spec.guests,
       style: result.spec.style,

@@ -454,6 +454,7 @@ export function EnquiryClient() {
       <DraftReplyModal
         open={draftOpen}
         onClose={() => setDraftOpen(false)}
+        to={enquiry.from}
         subject={enquiry.subject}
         body={replyBody}
       />
