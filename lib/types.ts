@@ -94,7 +94,13 @@ export type Enquiry = EnquiryInbound & {
   status?: FeasibilityStatus;
   /** Manual room pick by name; clears when empty → bestRoom again. */
   roomOverride?: string | null;
+  /** Set when the coordinator approves; any later edit clears it (needs review). */
+  approvedAt?: string | null;
+  verdict?: Verdict | null;
 };
+
+/** good = approved as the model drafted it; corrected = edited first. */
+export type Verdict = "good" | "corrected";
 
 export type EnquiryListItem = Enquiry & { id: string };
 

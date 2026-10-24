@@ -95,6 +95,11 @@ export function PlanClient() {
             {liveQuote ? ` · ${formatGbp(liveQuote.total)} inc. VAT` : ""}
           </p>
         </div>
+        {!enquiry.approvedAt && (
+          <p className="border border-[color:var(--warning)]/35 bg-[color:var(--warning)]/8 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--warning)]">
+            Draft · not yet confirmed by the venue
+          </p>
+        )}
       </header>
       <div className="relative min-h-0 flex-1">
         <RoomCanvas

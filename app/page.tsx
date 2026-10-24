@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
+import { ReviewTag } from "@/components/inbox/ReviewTag";
+import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { StatusChip } from "@/components/inbox/StatusChip";
 import { evaluateRooms } from "@/lib/evaluate";
 import { firestoreFeasibility } from "@/lib/feasibility-serialize";
@@ -118,6 +120,7 @@ export default function InboxPage() {
             latencyMs: data.latencyMs as number | undefined,
             model: data.model as string | undefined,
             feasibility: data.feasibility,
+            approvedAt: data.approvedAt as string | null | undefined,
           };
         });
         setRows(next);
@@ -264,8 +267,11 @@ export default function InboxPage() {
             </li>
           )}
           {rows.map((row) => {
-            const guests = guestsOf(row);
-            const est = estTotalOf(row, rooms);
+            const missing = missingDetails(enquiryText(row));
+            // No count in the email → the model's number and price are guesses.
+            const guessed = missing.includes("guests") && !row.approvedAt;
+            const guests = guessed ? null : guestsOf(row);
+            const est = guessed ? null : estTotalOf(row, rooms);
             return (
               <li key={row.id}>
                 <Link
@@ -279,13 +285,20 @@ export default function InboxPage() {
                     {row.subject}
                   </span>
                   <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
-                    {guests == null ? "—" : guests}
+                    {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
                   <span>
-                    <StatusChip
-                      status={row.status}
-                      used={row.feasibility?.used}
-                      capacity={row.feasibility?.capacity}
+                    {!guessed && (
+                      <StatusChip
+                        status={row.status}
+                        used={row.feasibility?.used}
+                        capacity={row.feasibility?.capacity}
+                      />
+                    )}
+                    <ReviewTag
+                      parsed={Boolean(row.parsed)}
+                      approvedAt={row.approvedAt}
+                      needsInfo={needsInfo(missing)}
                     />
                   </span>
                   <span className="font-mono text-sm tabular-nums text-[color:var(--ink)] md:text-right">

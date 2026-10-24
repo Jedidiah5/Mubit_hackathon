@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
+import { ReviewBanner } from "@/components/enquiry/ReviewBanner";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
 import { SpecForm } from "@/components/enquiry/SpecForm";
@@ -16,7 +17,8 @@ import { getDb } from "@/lib/firebase";
 import { layout } from "@/lib/layout";
 import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
-import { draftReply } from "@/lib/reply";
+import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
+import { draftReply, followUpReply } from "@/lib/reply";
 import type { Enquiry, Feasibility, Spec } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -84,6 +86,7 @@ export function EnquiryClient() {
   const [parsing, setParsing] = useState(false);
   const [planView, setPlanView] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
+  const [draftKind, setDraftKind] = useState<"reply" | "followup">("reply");
   const [localSpec, setLocalSpec] = useState<Spec | null>(null);
   const [guestsDraft, setGuestsDraft] = useState("");
   const guestsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -182,6 +185,8 @@ export function EnquiryClient() {
         feasibility: firestoreFeasibility(feas),
         status: feas.status,
         roomOverride: override,
+        approvedAt: null,
+        verdict: null,
       });
       if (!enquiry?.parsed) return;
       // One doc per enquiry, overwritten: intermediate edits never pile up.
@@ -233,10 +238,39 @@ export function EnquiryClient() {
         roomOverride: name,
         feasibility: firestoreFeasibility(feas),
         status: feas.status,
+        approvedAt: null,
+        verdict: null,
       });
     },
     [id, rooms],
   );
+
+  const approved = Boolean(enquiry?.approvedAt);
+  const parsedSpec = enquiry?.parsed;
+
+  const subject = enquiry?.subject;
+  const body = enquiry?.body;
+  const missing = useMemo(
+    () => (body != null ? missingDetails(enquiryText({ subject: subject ?? "", body })) : []),
+    [subject, body],
+  );
+  const blocked = needsInfo(missing);
+
+  const onFollowUp = useCallback(() => {
+    setDraftKind("followup");
+    setDraftOpen(true);
+  }, []);
+
+  const onApprove = useCallback(async () => {
+    setDraftKind("reply");
+    setDraftOpen(true);
+    const current = specRef.current;
+    if (approved || !current || !parsedSpec) return;
+    await updateDoc(doc(getDb(), "enquiries", id), {
+      approvedAt: new Date().toISOString(),
+      verdict: diffSpec(parsedSpec, current).length > 0 ? "corrected" : "good",
+    });
+  }, [approved, parsedSpec, id]);
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room) return null;
@@ -251,14 +285,17 @@ export function EnquiryClient() {
   }, [spec, feasibility, rooms]);
 
   const replyBody = useMemo(() => {
-    if (!enquiry || !spec || !feasibility) return "";
+    if (!enquiry) return "";
+    if (draftKind === "followup") return followUpReply(enquiry, missing);
+    if (!spec || !feasibility) return "";
     const origin =
       typeof window !== "undefined" ? window.location.origin : "";
     return draftReply(enquiry, spec, feasibility, {
       quote: liveQuote,
       planUrl: origin ? `${origin}/p/${id}` : undefined,
+      askDate: missing.includes("date"),
     });
-  }, [enquiry, spec, feasibility, liveQuote, id]);
+  }, [enquiry, draftKind, missing, spec, feasibility, liveQuote, id]);
 
   if (loadError) {
     return (
@@ -342,6 +379,11 @@ export function EnquiryClient() {
         <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">
           {spec ? (
             <>
+              <ReviewBanner
+                approvedAt={enquiry.approvedAt ?? null}
+                verdict={enquiry.verdict ?? null}
+                missing={missing}
+              />
               <SpecForm
                 spec={spec}
                 onChange={onSpecChange}
@@ -360,13 +402,32 @@ export function EnquiryClient() {
               {liveQuote && feasibility?.room && (
                 <QuoteCard quote={liveQuote} roomName={feasibility.room.name} />
               )}
-              <button
-                type="button"
-                onClick={() => setDraftOpen(true)}
-                className="mt-auto bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
-              >
-                Approve & draft reply
-              </button>
+              {blocked && !approved ? (
+                <div className="mt-auto flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={onFollowUp}
+                    className="bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
+                  >
+                    Draft follow-up email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onApprove()}
+                    className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)] underline-offset-4 hover:underline"
+                  >
+                    I have the details · approve anyway
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void onApprove()}
+                  className="mt-auto bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
+                >
+                  {approved ? "Draft reply" : "Approve & draft reply"}
+                </button>
+              )}
             </>
           ) : (
             <p className="font-mono text-sm text-[color:var(--ink)]/45">

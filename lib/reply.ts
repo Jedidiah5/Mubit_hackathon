@@ -1,8 +1,11 @@
+import { MISSING_QUESTION, type MissingDetail } from "./missing";
 import { formatGbp, type Quote } from "./quote";
 import type { Enquiry, Feasibility, Spec } from "./types";
 
 function firstName(from: string): string {
   const name = from.split("<")[0]?.trim() ?? from;
+  // Bare address ("jedidiah@gmail.com"): no name to greet.
+  if (name.includes("@")) return "there";
   const first = name.split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, "");
   return first || "there";
 }
@@ -24,6 +27,8 @@ export type DraftReplyOpts = {
   quote?: Quote | null;
   /** Absolute URL to the public floor plan, e.g. https://host/p/enq-1 */
   planUrl?: string;
+  /** The email gave no date: ask for one instead of offering to hold it. */
+  askDate?: boolean;
 };
 
 /** Code-templated client reply — no LLM. */
@@ -76,7 +81,35 @@ The Wharf Rooms`;
 
 Thanks for your enquiry. ${room} works for ${spec.guests} guests ${style}${extras}.${quoteLine}${planLine}${caution}
 
-Happy to hold provisional dates — reply to this email to confirm.
+${
+    opts.askDate
+      ? "Which date did you have in mind? We'll check availability and hold it for you."
+      : "Happy to hold provisional dates — reply to this email to confirm."
+  }
+
+Best regards,
+The Wharf Rooms`;
+}
+
+/** Follow-up asking only for what the email left out — no LLM, no guessed quote. */
+export function followUpReply(
+  enquiry: Pick<Enquiry, "from" | "subject">,
+  missing: MissingDetail[],
+): string {
+  const name = firstName(enquiry.from);
+  const questions = missing
+    .map((m, i) => `${i + 1}. ${MISSING_QUESTION[m]}`)
+    .join("\n");
+
+  return `Hi ${name},
+
+Thanks for getting in touch about "${enquiry.subject}" — we'd love to help.
+
+To check availability and put together a quote, could you let us know:
+
+${questions}
+
+Any accessibility needs, catering or AV requirements are useful too.
 
 Best regards,
 The Wharf Rooms`;
