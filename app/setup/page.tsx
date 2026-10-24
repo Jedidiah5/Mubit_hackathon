@@ -17,9 +17,9 @@ import type { Room, Style } from "@/lib/types";
 import { STYLES } from "@/lib/types";
 
 const inputClass =
-  "w-full border border-[#f4efe6]/15 bg-transparent px-2.5 py-1.5 font-mono text-sm text-[#f4efe6] outline-none focus:border-[#c8ff00]";
+  "w-full border border-[color:var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--ink)]";
 const labelClass =
-  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/45";
+  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/45";
 
 export default function SetupPage() {
   const [rooms, setRooms] = useState<RoomDoc[]>([]);
@@ -99,20 +99,20 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-[#f4efe6]">
+    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
       <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8">
-        <header className="mb-10 space-y-4 border-b border-[#f4efe6]/12 pb-6">
+        <header className="mb-10 space-y-4 border-b border-[color:var(--line)] pb-6">
           <AppNav current="/setup" />
           <div>
             <h1 className="font-sans text-3xl tracking-tight">Venue setup</h1>
-            <p className="mt-2 font-mono text-xs text-[#f4efe6]/45">
+            <p className="mt-2 font-mono text-xs text-[color:var(--ink)]/45">
               Demo rooms · seeded once from lib/data/venue.ts
             </p>
           </div>
         </header>
 
         {error && (
-          <p className="mb-6 border border-[#f87171]/40 bg-[#f87171]/10 px-4 py-3 font-mono text-xs text-[#f87171]">
+          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
             {error}
           </p>
         )}
@@ -128,7 +128,7 @@ export default function SetupPage() {
             <button
               type="button"
               onClick={() => void saveVenueName()}
-              className="shrink-0 bg-[#c8ff00] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#0a0a0a]"
+              className="shrink-0 bg-[color:var(--ink)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--panel-2)]"
             >
               Save
             </button>
@@ -136,18 +136,18 @@ export default function SetupPage() {
         </label>
 
         {!ready && (
-          <p className="font-mono text-sm text-[#f4efe6]/40">Loading rooms…</p>
+          <p className="font-mono text-sm text-[color:var(--ink)]/40">Loading rooms…</p>
         )}
 
         <div className="space-y-8">
           {rooms.map((room) => (
             <article
               key={room.id}
-              className="border border-[#f4efe6]/12 p-5"
+              className="border border-[color:var(--line)] p-5"
             >
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-sans text-xl tracking-tight">{room.name}</h2>
-                <span className="font-mono text-[10px] text-[#f4efe6]/35">
+                <span className="font-mono text-[10px] text-[color:var(--ink)]/35">
                   {room.id}
                 </span>
               </div>
@@ -264,7 +264,7 @@ export default function SetupPage() {
                   type="button"
                   onClick={() => void saveRoom(room)}
                   disabled={savingId === room.id}
-                  className="bg-[#c8ff00] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#0a0a0a] disabled:opacity-50"
+                  className="bg-[color:var(--ink)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--panel-2)] disabled:opacity-50"
                 >
                   {savingId === room.id ? "Saving…" : "Save room"}
                 </button>

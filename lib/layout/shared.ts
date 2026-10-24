@@ -12,6 +12,8 @@ export const TABLE_SPACING_MAX_M = 4.4;
 export const CHAIRS_PER_ROUND = 10;
 export const CHAIR_RADIUS_M = TABLE_RADIUS_M + 0.55;
 export const AISLE_ACCESSIBLE_M = 1.5;
+/** Step-free route strip width (matches accessible aisle). */
+export const ACCESS_ROUTE_M = AISLE_ACCESSIBLE_M;
 export const AISLE_DEFAULT_M = 0.8;
 export const THEATRE_AISLE_M = 1.2;
 export const STAGE_DEPTH_M = 2.4;
@@ -167,7 +169,79 @@ export function buffetPlacement(
 }
 
 /**
- * Blocked rectangles: dance floor, stage, bar, booths, buffet.
+ * 1.5 m step-free route hugging the walls (so the seating grid stays open):
+ * south door → side wall → stage front, plus a wall-run to the bar and a short
+ * spur into one table cluster. Empty when accessible is off.
+ */
+export function accessibleRouteRects(room: Room, spec: Spec): Bounds[] {
+  if (!spec.accessible) return [];
+  const { hx, hz } = halfExtents(room);
+  const half = ACCESS_ROUTE_M / 2;
+  const margin = aisleMargin(true);
+  const rects: Bounds[] = [];
+
+  // Side lane on the wall that isn't carrying the bar (west by default).
+  const alongWest = spec.bar !== "west";
+  const laneX = alongWest ? -hx + margin + half : hx - margin - half;
+  const southZ = hz - margin - half;
+  let northZ = -hz + margin + half;
+  if (spec.stage === "north") northZ = -hz + STAGE_DEPTH_M + half + 0.15;
+
+  const hStrip = (x0: number, x1: number, z: number) => {
+    rects.push({
+      minX: Math.min(x0, x1) - half,
+      maxX: Math.max(x0, x1) + half,
+      minZ: z - half,
+      maxZ: z + half,
+    });
+  };
+  const vStrip = (x: number, z0: number, z1: number) => {
+    rects.push({
+      minX: x - half,
+      maxX: x + half,
+      minZ: Math.min(z0, z1) - half,
+      maxZ: Math.max(z0, z1) + half,
+    });
+  };
+
+  // Door pad.
+  hStrip(-0.1, 0.1, southZ);
+  // Along the south wall to the side lane.
+  hStrip(0, laneX, southZ);
+  // Side lane up to the stage / north apron.
+  vStrip(laneX, southZ, northZ);
+  // Across to the stage centre.
+  hStrip(laneX, 0, northZ);
+
+  // Wall-run to the bar (never cuts through the seating floor).
+  if (spec.bar === "east" || spec.bar === "west") {
+    const barX = spec.bar === "east" ? hx - margin - half : -hx + margin + half;
+    const bar = wallFootprint(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M);
+    const barCz = (bar.minZ + bar.maxZ) / 2;
+    // South wall to the bar's wall, then up/down to the bar.
+    hStrip(0, barX, southZ);
+    vStrip(barX, southZ, barCz);
+  } else if (spec.bar === "north" || spec.bar === "south") {
+    const bar = wallFootprint(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M);
+    const barCx = (bar.minX + bar.maxX) / 2;
+    const barZ =
+      spec.bar === "north" ? -hz + margin + half : hz - margin - half;
+    hStrip(laneX, barCx, barZ === southZ ? southZ : northZ);
+    if (spec.bar === "north") vStrip(barCx, northZ, barZ);
+  }
+
+  // Short spur into one table cluster from the side lane.
+  {
+    const spurZ = Math.max(northZ + 2, Math.min(southZ - 2.5, 1.2));
+    const endX = alongWest ? laneX + 2.6 : laneX - 2.6;
+    hStrip(laneX, endX, spurZ);
+  }
+
+  return rects;
+}
+
+/**
+ * Blocked rectangles: dance floor, stage, bar, booths, buffet, accessible route.
  * All table/guest placement must stay clear of these.
  */
 export function blockedRects(room: Room, spec: Spec): Bounds[] {
@@ -221,7 +295,34 @@ export function blockedRects(room: Room, spec: Spec): Bounds[] {
     );
   }
 
+  // Only the short inward spur needs to block packing — the wall-hugging
+  // lane already sits inside the accessible aisle margin.
+  rects.push(...accessibleRouteBlocks(room, spec));
+
   return rects;
+}
+
+/** Packing-only subset of the accessible route (the spur into seating). */
+export function accessibleRouteBlocks(room: Room, spec: Spec): Bounds[] {
+  if (!spec.accessible) return [];
+  const { hx, hz } = halfExtents(room);
+  const half = ACCESS_ROUTE_M / 2;
+  const margin = aisleMargin(true);
+  const alongWest = spec.bar !== "west";
+  const laneX = alongWest ? -hx + margin + half : hx - margin - half;
+  const southZ = hz - margin - half;
+  let northZ = -hz + margin + half;
+  if (spec.stage === "north") northZ = -hz + STAGE_DEPTH_M + half + 0.15;
+  const spurZ = Math.max(northZ + 2, Math.min(southZ - 2.5, 1.2));
+  const endX = alongWest ? laneX + 2.6 : laneX - 2.6;
+  return [
+    {
+      minX: Math.min(laneX, endX),
+      maxX: Math.max(laneX, endX),
+      minZ: spurZ - half,
+      maxZ: spurZ + half,
+    },
+  ];
 }
 
 /** True if a disc of radius `clearance` overlaps any blocked rect. */
@@ -649,4 +750,106 @@ export function packRoundTables(
   }
 
   return placed.slice(0, tablesNeeded);
+}
+
+/**
+ * Banquet packing: even grid across the free floor (room − blocked), centred
+ * on both axes. Widens spacing to fill the room when capacity allows.
+ */
+export function packBanquetTables(
+  room: Room,
+  spec: Spec,
+  tablesNeeded: number,
+  clearance = TABLE_RADIUS_M + 0.25,
+): Point[] {
+  if (tablesNeeded <= 0) return [];
+  const inset = CHAIR_RADIUS_M + 0.2;
+  const sb = seatingBounds(room, spec);
+  const bounds: Bounds = {
+    minX: sb.minX + inset,
+    maxX: sb.maxX - inset,
+    minZ: sb.minZ + inset,
+    maxZ: sb.maxZ - inset,
+  };
+  const blocks = blockedRects(room, spec);
+  const freeAt = (spacing: number): Point[] =>
+    gridCentres(bounds, spacing).filter(
+      (p) => !isBlocked(p.x, p.z, clearance, blocks),
+    );
+
+  const pickCentredEven = (free: Point[], n: number): Point[] => {
+    if (free.length <= n) return free.slice(0, n);
+    // Group into rows (constant z).
+    const rows = new Map<number, Point[]>();
+    for (const p of free) {
+      const k = Math.round(p.z * 100) / 100;
+      const row = rows.get(k);
+      if (row) row.push(p);
+      else rows.set(k, [p]);
+    }
+    const ordered = [...rows.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
+    if (ordered.length === 0) return free.slice(0, n);
+
+    const avgCols =
+      ordered.reduce((s, r) => s + r.length, 0) / ordered.length;
+    // Prefer enough rows to cover depth, but not more than we can fill.
+    let numRows = Math.min(
+      ordered.length,
+      Math.max(1, Math.round(n / Math.max(1, avgCols))),
+    );
+    // Grow rows if a single row would be overstuffed.
+    while (
+      numRows < ordered.length &&
+      Math.ceil(n / numRows) > Math.max(...ordered.map((r) => r.length))
+    ) {
+      numRows += 1;
+    }
+    const start = Math.max(0, Math.floor((ordered.length - numRows) / 2));
+    const chosenRows = ordered.slice(start, start + numRows);
+
+    // Spread n across chosen rows as evenly as possible.
+    const base = Math.floor(n / chosenRows.length);
+    let extra = n % chosenRows.length;
+    const out: Point[] = [];
+    for (const row of chosenRows) {
+      const take = Math.min(row.length, base + (extra > 0 ? 1 : 0));
+      if (extra > 0) extra -= 1;
+      if (take <= 0) continue;
+      if (take >= row.length) {
+        out.push(...row);
+        continue;
+      }
+      // Centred subset of this row.
+      const origin = Math.floor((row.length - take) / 2);
+      out.push(...row.slice(origin, origin + take));
+    }
+    // Top up from leftover free cells if a stub row ran short.
+    if (out.length < n) {
+      const used = new Set(out.map((p) => `${p.x},${p.z}`));
+      for (const p of free) {
+        if (out.length >= n) break;
+        const key = `${p.x},${p.z}`;
+        if (used.has(key)) continue;
+        out.push(p);
+        used.add(key);
+      }
+    }
+    return out.slice(0, n);
+  };
+
+  for (
+    let spacing = TABLE_SPACING_MAX_M;
+    spacing >= TABLE_SPACING_MIN_M - 0.001;
+    spacing -= 0.1
+  ) {
+    const free = freeAt(spacing);
+    if (free.length >= tablesNeeded) {
+      return pickCentredEven(free, tablesNeeded);
+    }
+  }
+
+  // Fall back to the denser stage-aware packer.
+  return packRoundTables(room, spec, tablesNeeded, clearance);
 }

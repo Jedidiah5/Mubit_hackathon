@@ -19,9 +19,9 @@ type Props = {
 };
 
 const fieldClass =
-  "w-full border border-[#f4efe6]/15 bg-transparent px-2.5 py-1.5 font-mono text-sm text-[#f4efe6] outline-none focus:border-[#c8ff00]";
+  "w-full border border-[color:var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--ink)]";
 const labelClass =
-  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/45";
+  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/45";
 
 export function SpecForm({
   spec,
@@ -39,7 +39,7 @@ export function SpecForm({
 
   return (
     <div className="space-y-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#c8ff00]">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
         Spec
       </p>
 
@@ -51,7 +51,7 @@ export function SpecForm({
           onChange={(e) => onChange("style", e.target.value as Style)}
         >
           {STYLES.map((s) => (
-            <option key={s} value={s} className="bg-[#0a0a0a]">
+            <option key={s} value={s} className="bg-[color:var(--background)]">
               {s}
             </option>
           ))}
@@ -78,7 +78,7 @@ export function SpecForm({
           onChange={(e) => onChange("stage", e.target.value as Wall)}
         >
           {WALLS.map((w) => (
-            <option key={w} value={w} className="bg-[#0a0a0a]">
+            <option key={w} value={w} className="bg-[color:var(--background)]">
               {w}
             </option>
           ))}
@@ -93,7 +93,7 @@ export function SpecForm({
           onChange={(e) => onChange("bar", e.target.value as Wall)}
         >
           {WALLS.map((w) => (
-            <option key={w} value={w} className="bg-[#0a0a0a]">
+            <option key={w} value={w} className="bg-[color:var(--background)]">
               {w}
             </option>
           ))}
@@ -106,13 +106,13 @@ export function SpecForm({
           {EXTRAS.map((extra) => (
             <label
               key={extra}
-              className="flex cursor-pointer items-center gap-2 font-sans text-sm text-[#f4efe6]/85"
+              className="flex cursor-pointer items-center gap-2 font-sans text-sm text-[color:var(--ink)]/85"
             >
               <input
                 type="checkbox"
                 checked={spec.extras.includes(extra)}
                 onChange={() => toggleExtra(extra)}
-                className="accent-[#c8ff00]"
+                className="accent-[color:var(--ink)]"
               />
               {EXTRA_LABEL[extra]}
             </label>
@@ -120,15 +120,15 @@ export function SpecForm({
         </div>
       </fieldset>
 
-      <label className="flex cursor-pointer items-center justify-between gap-3 border border-[#f4efe6]/12 px-2.5 py-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/45">
+      <label className="flex cursor-pointer items-center justify-between gap-3 border border-[color:var(--line)] px-2.5 py-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/45">
           Accessible
         </span>
         <input
           type="checkbox"
           checked={spec.accessible}
           onChange={(e) => onChange("accessible", e.target.checked)}
-          className="accent-[#c8ff00]"
+          className="accent-[color:var(--ink)]"
         />
       </label>
     </div>

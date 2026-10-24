@@ -1,3 +1,4 @@
+import { isTight } from "@/lib/feasibility";
 import type { FeasibilityStatus } from "@/lib/types";
 
 const LABEL: Record<FeasibilityStatus, string> = {
@@ -7,25 +8,33 @@ const LABEL: Record<FeasibilityStatus, string> = {
 };
 
 const COLOR: Record<FeasibilityStatus, string> = {
-  fits: "#4ade80",
-  warning: "#fbbf24",
-  cannot: "#f87171",
+  fits: "#0f7d4c",
+  warning: "#9a5b00",
+  cannot: "#a3222f",
 };
 
 type Props = {
   status?: FeasibilityStatus;
+  used?: number;
+  capacity?: number;
 };
 
-export function StatusChip({ status }: Props) {
+export function StatusChip({ status, used, capacity }: Props) {
   if (!status) {
     return (
-      <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#f4efe6]/55">
+      <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)]">
         Not processed
       </span>
     );
   }
 
   const color = COLOR[status];
+  const tight =
+    status === "fits" &&
+    used != null &&
+    capacity != null &&
+    isTight(used, capacity);
+
   return (
     <span
       className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
@@ -37,6 +46,11 @@ export function StatusChip({ status }: Props) {
         aria-hidden
       />
       {LABEL[status]}
+      {tight && (
+        <span style={{ color: COLOR.warning }} aria-label="near capacity">
+          · tight
+        </span>
+      )}
     </span>
   );
 }

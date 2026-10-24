@@ -1,5 +1,6 @@
 "use client";
 
+import { isTight } from "@/lib/feasibility";
 import type { FeasibilityStatus, Room } from "@/lib/types";
 
 export type SceneHudProps = {
@@ -45,6 +46,11 @@ export function SceneHud({
     used != null && capacity != null && capacity > 0
       ? Math.min(100, Math.round((used / capacity) * 100))
       : null;
+  const tight =
+    status === "fits" &&
+    used != null &&
+    capacity != null &&
+    isTight(used, capacity);
 
   return (
     <div className="btf-hud" aria-hidden={false}>
@@ -63,7 +69,10 @@ export function SceneHud({
               style={{ animationDelay: "60ms" }}
             >
               <span className="btf-dot" />
-              <span>{STATUS_LABEL[status]}</span>
+              <span>
+                {STATUS_LABEL[status]}
+                {tight && <span className="btf-pill__tight"> · tight</span>}
+              </span>
               {pct != null && (
                 <span className="btf-pill__gauge">
                   <span className="btf-pill__gauge-bar">
@@ -140,6 +149,7 @@ export function SceneHud({
             <span><i style={{ background: "#c9ccd1", border: "1px solid #999" }} /> Buffet</span>
             <span><i className="btf-legend__checker" /> Dance</span>
             <span><i style={{ background: "#d04545" }} /> Overflow</span>
+            <span><i style={{ background: "#7eb6d9" }} /> Access</span>
           </div>
         </div>
       )}

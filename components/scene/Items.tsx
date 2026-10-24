@@ -1,20 +1,26 @@
 ﻿"use client";
 
+import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useMemo, useRef } from "react";
 import type { Group } from "three";
-import { stageWidth } from "@/lib/layout/shared";
-import type { LayoutItem, LayoutKind, Room, Wall } from "@/lib/types";
+import { accessibleRouteRects, stageWidth } from "@/lib/layout/shared";
+import type { LayoutItem, LayoutKind, Room, Spec, Wall } from "@/lib/types";
 import { popScale, unitNoise } from "./buildAnim";
 import { AnimatedInstance, Pool, seedFor } from "./instancing";
 import { palette } from "./palette";
 import { People } from "./People";
 
-type Props = { items: LayoutItem[]; time: () => number; room: Room };
+type Props = {
+  items: LayoutItem[];
+  time: () => number;
+  room: Room;
+  spec?: Spec;
+};
 
 const GUEST_KINDS = ["guest_seated", "guest_standing", "guest_overflow"] as const;
 
-export function Items({ items, time, room }: Props) {
+export function Items({ items, time, room, spec }: Props) {
   const byKind = useMemo(() => {
     const map = new Map<LayoutKind, LayoutItem[]>();
     for (const it of items) {
@@ -27,6 +33,7 @@ export function Items({ items, time, room }: Props) {
 
   return (
     <group>
+      {spec?.accessible && <AccessibleRoute room={room} spec={spec} />}
       <RoundTables items={byKind.get("table_round") ?? []} time={time} />
       <HighTables items={byKind.get("high_table") ?? []} time={time} />
       <Chairs items={byKind.get("chair") ?? []} time={time} />
@@ -527,6 +534,88 @@ function FeatureStage({ item, index, time, width }: FeatureProps & { width: numb
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+/** 1.5 m step-free floor strip + ♿ marker at the south door. */
+function AccessibleRoute({ room, spec }: { room: Room; spec: Spec }) {
+  const rects = useMemo(() => accessibleRouteRects(room, spec), [room, spec]);
+  if (rects.length === 0) return null;
+  const hz = room.lengthM / 2;
+  return (
+    <group>
+      {rects.map((r, i) => {
+        const w = r.maxX - r.minX;
+        const d = r.maxZ - r.minZ;
+        const cx = (r.minX + r.maxX) / 2;
+        const cz = (r.minZ + r.maxZ) / 2;
+        return (
+          <mesh
+            key={i}
+            position={[cx, 0.014, cz]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[w, d]} />
+            <meshStandardMaterial
+              color={palette.accessRoute}
+              roughness={0.85}
+              transparent
+              opacity={0.72}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+      {/* Edge lines so the strip reads at a glance */}
+      {rects.map((r, i) => {
+        const w = r.maxX - r.minX;
+        const d = r.maxZ - r.minZ;
+        const cx = (r.minX + r.maxX) / 2;
+        const cz = (r.minZ + r.maxZ) / 2;
+        return (
+          <mesh
+            key={`e-${i}`}
+            position={[cx, 0.016, cz]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[Math.max(0.04, w - 0.12), Math.max(0.04, d - 0.12)]} />
+            <meshStandardMaterial
+              color={palette.accessRouteInner}
+              roughness={0.9}
+              transparent
+              opacity={0.55}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+      <Html
+        position={[0, 0.02, hz - 0.35]}
+        center
+        sprite
+        style={{ pointerEvents: "none", userSelect: "none" }}
+        zIndexRange={[40, 0]}
+      >
+        <div
+          aria-label="Step-free entrance"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.96)",
+            border: "1px solid rgba(29,36,51,0.12)",
+            boxShadow: "0 2px 8px rgba(29,36,51,0.18)",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 18,
+            lineHeight: 1,
+          }}
+        >
+          ♿
+        </div>
+      </Html>
     </group>
   );
 }

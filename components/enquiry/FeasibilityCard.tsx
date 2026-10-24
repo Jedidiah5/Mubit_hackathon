@@ -1,17 +1,18 @@
 "use client";
 
+import { isTight } from "@/lib/feasibility";
 import type { Feasibility, FeasibilityStatus } from "@/lib/types";
 
 const COLOR: Record<FeasibilityStatus, string> = {
-  fits: "#4ade80",
-  warning: "#fbbf24",
-  cannot: "#f87171",
+  fits: "#0f7d4c",
+  warning: "#9a5b00",
+  cannot: "#a3222f",
 };
 
-const ICON: Record<FeasibilityStatus, string> = {
-  fits: "✅",
-  warning: "⚠️",
-  cannot: "❌",
+const LABEL: Record<FeasibilityStatus, string> = {
+  fits: "Fits",
+  warning: "Needs a change",
+  cannot: "Can't host",
 };
 
 type Props = {
@@ -34,30 +35,38 @@ export function FeasibilityCard({
     feasibility.capacity > 0
       ? Math.min(100, (feasibility.used / feasibility.capacity) * 100)
       : 100;
+  const tight =
+    feasibility.status === "fits" &&
+    isTight(feasibility.used, feasibility.capacity);
 
   return (
-    <div className="space-y-3 border border-[#f4efe6]/12 p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#c8ff00]">
+    <div className="space-y-3 border border-[color:var(--line)] bg-[color:var(--panel)] p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)]">
         Feasibility
       </p>
 
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-sans text-lg tracking-tight" style={{ color }}>
-          <span className="mr-1.5" aria-hidden>
-            {ICON[feasibility.status]}
-          </span>
+          {LABEL[feasibility.status]}
+          {tight && (
+            <span className="ml-1 font-medium" style={{ color: COLOR.warning }}>
+              · tight
+            </span>
+          )}
+        </p>
+        <p className="font-sans text-sm text-[color:var(--ink)]">
           {feasibility.room?.name ?? "No room"}
         </p>
       </div>
 
       <div>
-        <div className="mb-1 flex justify-between font-mono text-[11px] text-[#f4efe6]/55">
+        <div className="mb-1 flex justify-between font-mono text-[11px] text-[color:var(--muted)]">
           <span>
             {feasibility.used} / {feasibility.capacity} {styleLabel}
           </span>
           <span>{Math.round(pct)}%</span>
         </div>
-        <div className="h-1.5 w-full bg-[#f4efe6]/10">
+        <div className="h-1.5 w-full bg-[color:var(--line)]">
           <div
             className="h-full transition-[width] duration-300"
             style={{ width: `${pct}%`, background: color }}
@@ -66,7 +75,7 @@ export function FeasibilityCard({
       </div>
 
       {feasibility.notes.length > 0 && (
-        <ul className="space-y-1 font-mono text-[11px] leading-snug text-[#f4efe6]/55">
+        <ul className="space-y-1 font-mono text-[11px] leading-snug text-[color:var(--muted)]">
           {feasibility.notes.map((note) => (
             <li key={note}>· {note}</li>
           ))}
@@ -74,21 +83,19 @@ export function FeasibilityCard({
       )}
 
       <label className="block">
-        <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/45">
+        <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">
           Room override
         </span>
         <select
-          className="w-full border border-[#f4efe6]/15 bg-transparent px-2.5 py-1.5 font-mono text-sm text-[#f4efe6] outline-none focus:border-[#c8ff00]"
+          className="w-full border border-[color:var(--line)] bg-[color:var(--panel)] px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--accent)]"
           value={roomOverride ?? ""}
           onChange={(e) =>
             onRoomOverride(e.target.value === "" ? null : e.target.value)
           }
         >
-          <option value="" className="bg-[#0a0a0a]">
-            Auto (best fit)
-          </option>
+          <option value="">Auto (best fit)</option>
           {rooms.map((r) => (
-            <option key={r.name} value={r.name} className="bg-[#0a0a0a]">
+            <option key={r.name} value={r.name}>
               {r.name}
             </option>
           ))}

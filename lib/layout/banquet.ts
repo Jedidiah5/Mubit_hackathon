@@ -5,14 +5,15 @@ import {
   CHAIR_RADIUS_M,
   blockedRects,
   item,
-  packRoundTables,
+  packBanquetTables,
   placeFeatures,
   placeOverflow,
 } from "./shared";
 
 /**
  * 10-seat round tables. Seats everyone feasibility says fits
- * (ceil(min(guests, capacity) / 10) tables). Spacing 3 m → 2.6 m.
+ * (ceil(min(guests, capacity) / 10) tables). Tables are spread evenly
+ * across the free floor and centred on both axes.
  * Overflow only when guests > capacity, queued at the south door.
  */
 export function layoutBanquet(room: Room, spec: Spec): LayoutItem[] {
@@ -23,7 +24,7 @@ export function layoutBanquet(room: Room, spec: Spec): LayoutItem[] {
     seated <= 0 ? 0 : Math.max(1, Math.ceil(seated / CHAIRS_PER_ROUND));
   const blocks = blockedRects(room, spec);
 
-  const tableCentres = packRoundTables(room, spec, tablesNeeded);
+  const tableCentres = packBanquetTables(room, spec, tablesNeeded);
   let remaining = seated;
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
 

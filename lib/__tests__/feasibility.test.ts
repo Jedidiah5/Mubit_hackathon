@@ -84,11 +84,18 @@ describe("bestRoom", () => {
     assert.ok(result.room);
   });
 
-  it("warns when a stage needs floor space in Garden Room", () => {
+  it("notes floor-space stage but still fits when capacity is OK", () => {
     const garden = DEMO_ROOMS.filter((r) => r.name === "Garden Room");
     const result = check(garden[0]!, baseSpec({ guests: 40, stage: "north" }));
-    assert.equal(result.status, "warning");
+    assert.equal(result.status, "fits");
     assert.ok(result.notes.some((n) => /floor space/i.test(n)));
+  });
+
+  it("stays fits (not warning) when above 95% capacity", () => {
+    // Thames banquet capacity 140; 134 > 95% but ≤ capacity.
+    const result = check(DEMO_ROOMS[0]!, baseSpec({ guests: 134 }));
+    assert.equal(result.status, "fits");
+    assert.ok(result.notes.some((n) => /near capacity/i.test(n)));
   });
 
   it("suggests another room when soft-over on the chosen hall", () => {

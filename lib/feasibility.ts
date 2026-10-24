@@ -12,6 +12,13 @@ const STAGE_DEPTH_M = 2.5;
 const STAGE_MIN_SPAN_M = 6;
 /** Soft over-capacity band: warn instead of cannot. */
 const SOFT_OVER_FRAC = 0.15;
+/** used / capacity above this still "fits", but UI shows "· tight". */
+export const TIGHT_FRAC = 0.95;
+
+/** True when the booking fits but is above 95% of capacity. */
+export function isTight(used: number, capacity: number): boolean {
+  return capacity > 0 && used <= capacity && used > capacity * TIGHT_FRAC;
+}
 
 function hasExtra(extras: Extra[], extra: Extra): boolean {
   return extras.includes(extra);
@@ -103,8 +110,8 @@ export function check(
   if (spec.stage !== "none") {
     if (!room.hasStage) {
       if (stageFloorOk(room)) {
+        // Informational — still fits if capacity is OK.
         notes.push("no built-in stage — using floor space");
-        warning = true;
       } else {
         notes.push("no stage and not enough floor space");
         hardFail = true;
@@ -113,10 +120,11 @@ export function check(
   }
 
   if (spec.bar !== "none" && !room.hasBar) {
+    // Informational — portable bar, still fits.
     notes.push("bar requested — portable bar");
-    warning = true;
   }
 
+  // "Needs a change" only when used > capacity (soft band ≤15% over).
   if (used > cap) {
     if (softOverCapacity(used, cap)) {
       notes.push(`reduce to ${cap} guests`);
@@ -132,9 +140,8 @@ export function check(
       notes.push(`${used} guests over capacity ${cap}`);
       hardFail = true;
     }
-  } else if (used > cap * 0.9) {
+  } else if (isTight(used, cap)) {
     notes.push("near capacity");
-    warning = true;
   }
 
   const status: FeasibilityStatus = hardFail

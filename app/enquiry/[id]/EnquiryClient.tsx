@@ -249,64 +249,65 @@ export function EnquiryClient() {
 
   if (loadError) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-8 text-[#f4efe6]">
-        <p className="font-mono text-sm text-[#f87171]">{loadError}</p>
+      <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-8 text-[color:var(--ink)]">
+        <p className="font-mono text-sm text-[color:var(--cannot)]">{loadError}</p>
       </main>
     );
   }
 
   if (!enquiry) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-8 text-[#f4efe6]">
-        <p className="font-mono text-sm text-[#f4efe6]/50">Loading enquiry…</p>
+      <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-8 text-[color:var(--ink)]">
+        <p className="font-mono text-sm text-[color:var(--ink)]/50">Loading enquiry…</p>
       </main>
     );
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[#0a0a0a] text-[#f4efe6]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#f4efe6]/12 px-4 py-3">
+    <main className="flex h-screen flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--ink)]">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[color:var(--line)] px-4 py-3">
         <div className="min-w-0">
           <Link
             href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8ff00] hover:underline"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink)] hover:underline"
           >
             ← Inbox
           </Link>
           <h1 className="truncate font-sans text-lg tracking-tight sm:text-xl">
             {enquiry.subject}
           </h1>
-          <p className="truncate font-mono text-[11px] text-[#f4efe6]/45">
+          <p className="truncate font-mono text-[11px] text-[color:var(--ink)]/45">
             {enquiry.from}
           </p>
         </div>
         {parsing && (
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#fbbf24]">
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--warning)]">
             Parsing via Mubit…
           </span>
         )}
         {parseError && (
-          <span className="max-w-xs truncate font-mono text-[11px] text-[#f87171]">
+          <span className="max-w-xs truncate font-mono text-[11px] text-[color:var(--cannot)]">
             {parseError}
           </span>
         )}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.6fr)_minmax(280px,0.95fr)]">
-        <section className="min-h-0 overflow-auto border-b border-[#f4efe6]/12 p-4 lg:border-b-0 lg:border-r">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#c8ff00]">
+        <section className="min-h-0 overflow-auto border-b border-[color:var(--line)] p-4 lg:border-b-0 lg:border-r">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
             Email
           </p>
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-[#f4efe6]/80">
+          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]/80">
             {enquiry.body}
           </pre>
         </section>
 
-        <section className="relative min-h-[360px] border-b border-[#f4efe6]/12 lg:min-h-0 lg:border-b-0 lg:border-r">
+        <section className="relative min-h-[360px] border-b border-[color:var(--line)] lg:min-h-0 lg:border-b-0 lg:border-r">
           <div className="absolute inset-0">
             <RoomCanvas
               room={previewRoom}
               items={items}
+              spec={spec ?? undefined}
               planView={planView}
               onPlanViewChange={setPlanView}
               loading={parsing || !spec}
@@ -346,13 +347,13 @@ export function EnquiryClient() {
               <button
                 type="button"
                 onClick={() => setDraftOpen(true)}
-                className="mt-auto bg-[#c8ff00] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[#0a0a0a]"
+                className="mt-auto bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
               >
                 Approve & draft reply
               </button>
             </>
           ) : (
-            <p className="font-mono text-sm text-[#f4efe6]/45">
+            <p className="font-mono text-sm text-[color:var(--ink)]/45">
               {parsing
                 ? "Extracting room setup…"
                 : "No spec yet — open again after parse."}
@@ -361,7 +362,7 @@ export function EnquiryClient() {
         </section>
       </div>
 
-      <footer className="shrink-0 border-t border-[#f4efe6]/12 px-4 py-2 font-mono text-[11px] text-[#f4efe6]/40">
+      <footer className="shrink-0 border-t border-[color:var(--line)] px-4 py-2 font-mono text-[11px] text-[color:var(--ink)]/40">
         {enquiry.model
           ? `parsed by ${enquiry.model} via Mubit · ${enquiry.latencyMs ?? "—"} ms · ${enquiry.requestId || "no request id"}`
           : parsing

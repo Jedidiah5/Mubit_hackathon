@@ -1,12 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #f4efe6;
-  --accent: #c8ff00;
-  --fits: #4ade80;
-  --warning: #fbbf24;
-  --cannot: #f87171;
+  /* Warm cream / sand chrome — matches the 3D room, not a dark editorial UI */
+  --background: #ebe2d0;
+  --foreground: #1d2433;
+  --ink: #1d2433;
+  --muted: #5b6478;
+  --panel: #f7f2e8;
+  --panel-2: #fbf8f1;
+  --line: rgba(29, 36, 51, 0.12);
+  --accent: #6a8f2a;
+  --accent-bright: #c8ff00;
+  --fits: #0f7d4c;
+  --warning: #9a5b00;
+  --cannot: #a3222f;
 
   /* Scene HUD (light glass over the warm 3D) */
   --hud-ink: #1d2433;
@@ -182,6 +189,10 @@ body {
 .btf-pill--cannot {
   color: #a3222f;
   background: rgba(255, 238, 240, 0.94);
+}
+.btf-pill__tight {
+  color: #9a5b00;
+  font-weight: 600;
 }
 .btf-pill__gauge {
   display: inline-flex;

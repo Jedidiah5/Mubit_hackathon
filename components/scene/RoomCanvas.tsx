@@ -16,7 +16,7 @@ import {
   OrthographicCamera as ThreeOrthoCamera,
   Vector3,
 } from "three";
-import type { LayoutItem, Room } from "@/lib/types";
+import type { LayoutItem, Room, Spec } from "@/lib/types";
 import { BUILD_DURATION_S } from "./buildAnim";
 import { Items } from "./Items";
 import { RoomShell, WALL_H } from "./RoomShell";
@@ -39,6 +39,8 @@ const QUARTER = Math.PI / 2;
 type Props = {
   room: Room;
   items: LayoutItem[];
+  /** Used for the step-free route strip when `spec.accessible`. */
+  spec?: Spec;
   planView?: boolean;
   onPlanViewChange?: (plan: boolean) => void;
   /** Show in-canvas loading label (shell still renders immediately). */
@@ -51,6 +53,7 @@ type Props = {
 export function RoomCanvas({
   room,
   items,
+  spec,
   planView = false,
   onPlanViewChange,
   loading = false,
@@ -108,6 +111,7 @@ export function RoomCanvas({
         <SceneBody
           room={room}
           items={items}
+          spec={spec}
           planView={planView}
           loading={loading}
           yaw={yaw}
@@ -193,6 +197,7 @@ function Lighting({ room }: { room: Room }) {
 function SceneBody({
   room,
   items,
+  spec,
   planView,
   loading,
   yaw,
@@ -200,6 +205,7 @@ function SceneBody({
 }: {
   room: Room;
   items: LayoutItem[];
+  spec?: Spec;
   planView: boolean;
   loading: boolean;
   yaw: number;
@@ -230,7 +236,7 @@ function SceneBody({
     <>
       <CameraRig room={room} planView={planView} yaw={yaw} fitNonce={fitNonce} />
       <RoomShell room={room} yaw={yaw} planView={planView} />
-      <Items items={items} time={time} room={room} />
+      <Items items={items} time={time} room={room} spec={spec} />
       {showLoading && (
         <Html center style={{ pointerEvents: "none" }}>
           <div className="btf-pill btf-pill--dark btf-shimmer">

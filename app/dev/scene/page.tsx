@@ -91,10 +91,10 @@ export default function DevScenePage() {
   const items = useMemo(() => layout(room, spec), [room, spec]);
 
   return (
-    <main className="flex h-dvh flex-col bg-[#0a0a0a] text-[#f4efe6]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#f4efe6]/12 px-5 py-3">
+    <main className="flex h-dvh flex-col bg-[color:var(--background)] text-[color:var(--ink)]">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[color:var(--line)] px-5 py-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8ff00]">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink)]">
             /dev/scene
           </div>
           <div className="font-sans text-lg tracking-tight">
@@ -109,8 +109,8 @@ export default function DevScenePage() {
               onClick={() => setPresetKey(k)}
               className={`border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
                 k === presetKey
-                  ? "border-[#c8ff00] bg-[#c8ff00] text-[#0a0a0a]"
-                  : "border-[#f4efe6]/20 text-[#f4efe6]/70 hover:border-[#c8ff00]/60"
+                  ? "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--panel-2)]"
+                  : "border-[color:var(--line)] text-[color:var(--ink)]/70 hover:border-[color:var(--ink)]/60"
               }`}
             >
               {k}
@@ -123,6 +123,7 @@ export default function DevScenePage() {
         <RoomCanvas
           room={room}
           items={items}
+          spec={spec}
           planView={planView}
           onPlanViewChange={setPlanView}
           hud={{

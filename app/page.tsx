@@ -172,20 +172,20 @@ export default function InboxPage() {
   }, [rows, rooms, processing]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-[#f4efe6]">
+    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
       <div className="mx-auto flex w-full max-w-5xl flex-col px-5 py-8 sm:px-8">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-[#f4efe6]/12 pb-6">
+        <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-6">
           <div className="space-y-4">
             <AppNav current="/" />
             <div>
               <h1 className="font-sans text-3xl tracking-tight sm:text-4xl">
                 Inbox
               </h1>
-              <p className="mt-2 font-mono text-xs text-[#f4efe6]/45">
+              <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
                 The Wharf Rooms · {countLabel}
               </p>
               {processProgress && (
-                <p className="mt-1 font-mono text-[11px] text-[#fbbf24]">
+                <p className="mt-1 font-mono text-[11px] text-[color:var(--warning)]">
                   {processProgress}
                 </p>
               )}
@@ -196,7 +196,7 @@ export default function InboxPage() {
               type="button"
               onClick={() => void processAll()}
               disabled={processing || unprocessed.length === 0}
-              className="border border-[#c8ff00] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[#c8ff00] transition hover:bg-[#c8ff00]/10 disabled:opacity-40"
+              className="border border-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)] transition hover:bg-[color:var(--panel)] disabled:opacity-40"
             >
               {processing
                 ? "Processing…"
@@ -205,7 +205,7 @@ export default function InboxPage() {
             <button
               type="button"
               onClick={() => setPasteOpen(true)}
-              className="bg-[#c8ff00] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[#0a0a0a] transition hover:brightness-110"
+              className="bg-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] transition hover:opacity-90"
             >
               Paste new enquiry
             </button>
@@ -213,12 +213,12 @@ export default function InboxPage() {
         </header>
 
         {error && (
-          <p className="mb-6 border border-[#f87171]/40 bg-[#f87171]/10 px-4 py-3 font-mono text-xs text-[#f87171]">
+          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
             {error}
           </p>
         )}
 
-        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/35 md:grid">
+        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
           <span>From</span>
           <span>Subject</span>
           <span className="text-right">Guests</span>
@@ -226,16 +226,16 @@ export default function InboxPage() {
           <span className="text-right">Received</span>
         </div>
 
-        <ul className="divide-y divide-[#f4efe6]/10 border-y border-[#f4efe6]/12">
+        <ul className="divide-y divide-[color:var(--line)] border-y border-[color:var(--line)] bg-[color:var(--panel)]/60">
           {loading && rows.length === 0 && (
-            <li className="px-3 py-10 font-mono text-sm text-[#f4efe6]/40">
+            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
               Listening for enquiries…
             </li>
           )}
           {!loading && rows.length === 0 && !error && (
-            <li className="px-3 py-10 font-mono text-sm text-[#f4efe6]/40">
+            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
               Inbox empty. Seed with{" "}
-              <code className="text-[#c8ff00]">npm run seed:inbox</code> or
+              <code className="text-[color:var(--ink)]">npm run seed:inbox</code> or
               paste a new enquiry.
             </li>
           )}
@@ -245,21 +245,25 @@ export default function InboxPage() {
               <li key={row.id}>
                 <Link
                   href={`/enquiry/${row.id}`}
-                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[#f4efe6]/04 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] md:items-center md:gap-4"
+                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] md:items-center md:gap-4"
                 >
                   <span className="truncate font-sans text-sm">
                     {senderName(row.from)}
                   </span>
-                  <span className="truncate text-sm text-[#f4efe6]/75">
+                  <span className="truncate text-sm text-[color:var(--muted)]">
                     {row.subject}
                   </span>
-                  <span className="font-mono text-sm tabular-nums text-[#f4efe6]/70 md:text-right">
+                  <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
                     {guests == null ? "—" : guests}
                   </span>
                   <span>
-                    <StatusChip status={row.status} />
+                    <StatusChip
+                      status={row.status}
+                      used={row.feasibility?.used}
+                      capacity={row.feasibility?.capacity}
+                    />
                   </span>
-                  <span className="font-mono text-[11px] text-[#f4efe6]/40 md:text-right">
+                  <span className="font-mono text-[11px] text-[color:var(--muted)] md:text-right">
                     {formatWhen(row.receivedAt)}
                   </span>
                 </Link>

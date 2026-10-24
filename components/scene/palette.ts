@@ -35,6 +35,8 @@ export const palette = {
   dance: "#141414",
   danceGloss: "#f2eee6",
   danceEdge: "#c8ff00",
+  accessRoute: "#7eb6d9",
+  accessRouteInner: "#a9d0e8",
   booth: "#4a3f38",
   speaker: "#1e1e1e",
   curtain: "#7a2d3a",

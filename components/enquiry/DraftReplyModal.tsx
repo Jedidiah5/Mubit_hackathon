@@ -44,30 +44,30 @@ export function DraftReplyModal({ open, onClose, subject, body }: Props) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-xl flex-col border border-[#f4efe6]/15 bg-[#0a0a0a] p-6"
+        className="flex max-h-[90vh] w-full max-w-xl flex-col border border-[color:var(--line)] bg-[color:var(--panel-2)] p-6 shadow-[0_12px_40px_rgba(29,36,51,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-baseline justify-between gap-4">
           <h2
             id={titleId}
-            className="font-sans text-xl tracking-tight text-[#f4efe6]"
+            className="font-sans text-xl tracking-tight text-[color:var(--ink)]"
           >
             Draft reply
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="font-mono text-xs uppercase tracking-[0.16em] text-[#f4efe6]/50 hover:text-[#c8ff00]"
+            className="font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)]/50 hover:text-[color:var(--ink)]"
           >
             Close
           </button>
         </div>
 
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#f4efe6]/40">
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/40">
           Template only · no LLM
         </p>
 
-        <pre className="mb-5 flex-1 overflow-auto whitespace-pre-wrap border border-[#f4efe6]/12 bg-[#111] p-4 font-mono text-sm leading-relaxed text-[#f4efe6]/90">
+        <pre className="mb-5 flex-1 overflow-auto whitespace-pre-wrap border border-[color:var(--line)] bg-[color:var(--panel)] p-4 font-mono text-sm leading-relaxed text-[color:var(--ink)]">
           {body}
         </pre>
 
@@ -75,13 +75,13 @@ export function DraftReplyModal({ open, onClose, subject, body }: Props) {
           <button
             type="button"
             onClick={copy}
-            className="border border-[#c8ff00] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[#c8ff00]"
+            className="border border-[color:var(--ink)] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)]"
           >
             {copied ? "Copied" : "Copy"}
           </button>
           <a
             href={mailto}
-            className="bg-[#c8ff00] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[#0a0a0a]"
+            className="bg-[color:var(--ink)] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
           >
             Open in mail
           </a>
