@@ -7,6 +7,19 @@
   --fits: #4ade80;
   --warning: #fbbf24;
   --cannot: #f87171;
+
+  /* Scene HUD (light glass over the warm 3D) */
+  --hud-ink: #1d2433;
+  --hud-soft: #5b6478;
+  --hud-bg: rgba(255, 255, 255, 0.92);
+  --hud-line: rgba(29, 36, 51, 0.08);
+  --hud-shadow:
+    0 0 0 1px rgba(29, 36, 51, 0.06),
+    0 2px 4px rgba(17, 24, 39, 0.06),
+    0 8px 24px rgba(17, 24, 39, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --hud-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --hud-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @theme inline {
@@ -20,4 +33,284 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* ---------- Scene HUD (light glass pills over the warm 3D) ---------- */
+
+.btf-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-family: var(--font-sans);
+  color: var(--hud-ink);
+  container-type: inline-size;
+}
+/* Narrow canvases: the footnote and legend would collide, keep the legend. */
+@container (max-width: 720px) {
+  .btf-hud__bl {
+    display: none;
+  }
+}
+@container (max-width: 420px) {
+  .btf-hud__bc {
+    display: none;
+  }
+}
+.btf-hud > * {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+}
+.btf-hud__tl {
+  top: 12px;
+  left: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.btf-hud__br {
+  right: 12px;
+  bottom: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.btf-hud__bl {
+  left: 64px;
+  bottom: 12px;
+}
+.btf-hud__bc {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+}
+.btf-hud__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btf-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--hud-bg);
+  color: var(--hud-ink);
+  box-shadow: var(--hud-shadow);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+  transition:
+    transform 0.12s var(--hud-ease),
+    box-shadow 0.15s var(--hud-ease),
+    background-color 0.15s var(--hud-ease);
+}
+.btf-pill--lg {
+  padding: 8px 14px 8px 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border-radius: 16px;
+}
+.btf-pill--sm {
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--hud-soft);
+}
+.btf-pill--dark {
+  background: rgba(17, 19, 24, 0.92);
+  color: #f4efe6;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 8px 28px rgba(0, 0, 0, 0.35);
+}
+.btf-pill--btn {
+  cursor: pointer;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 9px 14px;
+}
+.btf-pill--btn:hover {
+  transform: translateY(-1px);
+}
+.btf-pill--btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.btf-pill--btn.is-active {
+  background: var(--hud-ink);
+  color: #fff;
+}
+.btf-pill__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.btf-pill__meta {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--hud-soft);
+}
+
+.btf-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 18%, transparent);
+  flex: none;
+}
+.btf-pill--status {
+  font-weight: 700;
+}
+.btf-pill--fits {
+  color: #0f7d4c;
+  background: rgba(236, 253, 243, 0.94);
+}
+.btf-pill--warning {
+  color: #9a5b00;
+  background: rgba(255, 247, 230, 0.94);
+}
+.btf-pill--cannot {
+  color: #a3222f;
+  background: rgba(255, 238, 240, 0.94);
+}
+.btf-pill__gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--hud-line);
+}
+.btf-pill__gauge-bar {
+  position: relative;
+  width: 64px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 14%, transparent);
+  overflow: hidden;
+}
+.btf-pill__gauge-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: currentColor;
+  transition: width 0.7s var(--hud-ease);
+}
+.btf-pill__gauge-text {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+.btf-icon {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hud-bg);
+  color: var(--hud-ink);
+  box-shadow: var(--hud-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition:
+    transform 0.12s var(--hud-ease),
+    background-color 0.15s var(--hud-ease);
+}
+.btf-icon:hover {
+  transform: translateY(-1px);
+  background: #fff;
+}
+.btf-icon:active {
+  transform: scale(0.94);
+}
+
+.btf-legend {
+  gap: 12px;
+}
+.btf-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btf-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.btf-legend__checker {
+  background:
+    linear-gradient(45deg, #141414 25%, transparent 25%, transparent 75%, #141414 75%),
+    linear-gradient(45deg, #141414 25%, #f2eee6 25%, #f2eee6 75%, #141414 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
+}
+
+/* Motion */
+@keyframes btf-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.btf-pop {
+  animation: btf-pop 0.42s var(--hud-spring) both;
+}
+
+@keyframes btf-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.btf-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  background-size: 200% 100%;
+  animation: btf-shimmer 1.6s linear infinite;
+}
+
+@keyframes btf-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 18%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, currentColor 6%, transparent);
+  }
+}
+.btf-pill--status .btf-dot {
+  animation: btf-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btf-pop,
+  .btf-shimmer,
+  .btf-pill--status .btf-dot {
+    animation: none;
+  }
 }

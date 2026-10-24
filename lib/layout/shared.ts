@@ -7,6 +7,8 @@ export const TABLE_RADIUS_M = TABLE_DIAMETER_M / 2;
 export const TABLE_SPACING_M = 3;
 /** Tightest table centres before we drop a table. */
 export const TABLE_SPACING_MIN_M = 2.6;
+/** Widest we spread tables when the room has space to spare. */
+export const TABLE_SPACING_MAX_M = 4.4;
 export const CHAIRS_PER_ROUND = 10;
 export const CHAIR_RADIUS_M = TABLE_RADIUS_M + 0.55;
 export const AISLE_ACCESSIBLE_M = 1.5;
@@ -18,6 +20,8 @@ export const BAR_DEPTH_M = 1.2;
 export const BAR_WIDTH_M = 3.5;
 export const DANCE_SIZE_M = 6;
 export const BOOTH_SIZE_M = 1.6;
+export const BUFFET_WIDTH_M = 4.8;
+export const BUFFET_DEPTH_M = 0.9;
 export const LECTERN_SIZE_M = 0.7;
 export const PROJECTOR_SIZE_M = 2.2;
 
@@ -122,26 +126,48 @@ export function wallFootprint(
   };
 }
 
-/** Centre-front of the room (just inboard of the stage). */
+/**
+ * Dance floor directly in front of the stage (stage depth + half an aisle in
+ * from that wall, centred along it). With no stage it sits in the room centre.
+ */
 export function danceFloorPosition(
   room: Room,
   spec: Spec,
 ): { x: number; z: number } {
   const { hx, hz } = halfExtents(room);
-  const stageWall: Wall = spec.stage === "none" ? "north" : spec.stage;
-  const n = wallNormal(stageWall);
-  const margin = aisleMargin(spec.accessible);
-  const inset = STAGE_DEPTH_M + DANCE_SIZE_M / 2 + margin * 0.5;
-  let x = -n.x * Math.min(inset, Math.max(hx, hz) * 0.35);
-  let z = -n.z * Math.min(inset, Math.max(hx, hz) * 0.35);
   const half = DANCE_SIZE_M / 2;
+  if (spec.stage === "none") return { x: 0, z: 0 };
+  const n = wallNormal(spec.stage);
+  const margin = aisleMargin(spec.accessible);
+  const inset = STAGE_DEPTH_M + margin * 0.5 + half;
+  // Start on the stage wall and step into the room by `inset`.
+  let x = n.x * (hx - inset);
+  let z = n.z * (hz - inset);
   x = Math.max(-hx + half + 0.2, Math.min(hx - half - 0.2, x));
   z = Math.max(-hz + half + 0.2, Math.min(hz - half - 0.2, z));
   return { x, z };
 }
 
 /**
- * Blocked rectangles: dance floor, stage, bar, booths.
+ * Buffet runs along a side wall the stage and bar aren't using (west first),
+ * offset along the wall so it clears the south door / east photo booth.
+ */
+export function buffetPlacement(
+  room: Room,
+  spec: Spec,
+): { wall: Wall; along: number } {
+  const { hx, hz } = halfExtents(room);
+  const used = new Set<Wall>([spec.stage, spec.bar]);
+  const order: Wall[] = ["west", "east", "south", "north"];
+  const wall = order.find((w) => !used.has(w)) ?? "west";
+  let along = 0;
+  if (wall === "east" && spec.extras.includes("photo_booth")) along = -hz * 0.3;
+  if (wall === "south") along = -hx * 0.3; // keep the door clear
+  return { wall, along };
+}
+
+/**
+ * Blocked rectangles: dance floor, stage, bar, booths, buffet.
  * All table/guest placement must stay clear of these.
  */
 export function blockedRects(room: Room, spec: Spec): Bounds[] {
@@ -184,6 +210,14 @@ export function blockedRects(room: Room, spec: Spec): Bounds[] {
   if (spec.extras.includes("photo_booth")) {
     rects.push(
       wallFootprint(room, "east", BOOTH_SIZE_M, BOOTH_SIZE_M, hz * 0.25),
+    );
+  }
+
+  if (spec.extras.includes("buffet")) {
+    const { wall, along } = buffetPlacement(room, spec);
+    // Extra depth so guests can queue along the serving side.
+    rects.push(
+      wallFootprint(room, wall, BUFFET_DEPTH_M + 1.0, BUFFET_WIDTH_M, along),
     );
   }
 
@@ -309,6 +343,19 @@ export function placeFeatures(
       hz * 0.25,
     );
     if (booth) items.push(booth);
+  }
+
+  if (spec.extras.includes("buffet")) {
+    const { wall, along } = buffetPlacement(room, spec);
+    const buffet = placeOnWall(
+      room,
+      wall,
+      BUFFET_DEPTH_M,
+      BUFFET_WIDTH_M,
+      "buffet",
+      along,
+    );
+    if (buffet) items.push(buffet);
   }
 
   if (spec.extras.includes("lectern")) {
@@ -472,9 +519,11 @@ export function overlapsDance(
 }
 
 /**
- * Place `tablesNeeded` round-table centres: try 3.0 m spacing, step down to
- * 2.6 m, then denser greedy fill. Never drops below tablesNeeded if any free
- * cell exists. Avoids blocked feature rectangles.
+ * Place `tablesNeeded` round-table centres. Spacing adapts to the room: start
+ * wide (4.4 m) and tighten until the free grid just fits the count, so tables
+ * spread across the usable floor instead of clustering in the middle; then
+ * step down to 2.6 m and finally a denser greedy fill. Never drops below
+ * tablesNeeded if any free cell exists. Avoids blocked feature rectangles.
  */
 export function packRoundTables(
   room: Room,
@@ -483,7 +532,15 @@ export function packRoundTables(
   clearance = TABLE_RADIUS_M + 0.25,
 ): Point[] {
   if (tablesNeeded <= 0) return [];
-  const bounds = seatingBounds(room, spec);
+  // Table centres must leave room for the chairs plus the wall aisle.
+  const inset = CHAIR_RADIUS_M + 0.2;
+  const sb = seatingBounds(room, spec);
+  const bounds: Bounds = {
+    minX: sb.minX + inset,
+    maxX: sb.maxX - inset,
+    minZ: sb.minZ + inset,
+    maxZ: sb.maxZ - inset,
+  };
   const blocks = blockedRects(room, spec);
   const midX = (bounds.minX + bounds.maxX) / 2;
   const midZ = (bounds.minZ + bounds.maxZ) / 2;
@@ -493,33 +550,72 @@ export function packRoundTables(
       (p) => !isBlocked(p.x, p.z, clearance, blocks),
     );
 
-  const pickClosest = (free: Point[], n: number): Point[] => {
-    const sorted = [...free].sort((a, b) => {
-      const da = (a.x - midX) ** 2 + (a.z - midZ) ** 2;
-      const db = (b.x - midX) ** 2 + (b.z - midZ) ** 2;
-      return da - db;
-    });
-    const pick = sorted.slice(0, n);
-    if (pick.length === 0) return pick;
-    const meanX = pick.reduce((s, p) => s + p.x, 0) / pick.length;
-    const meanZ = pick.reduce((s, p) => s + p.z, 0) / pick.length;
-    const dx = midX - meanX;
-    const dz = midZ - meanZ;
-    const shifted = pick.map((p) => ({ x: p.x + dx, z: p.z + dz }));
-    if (shifted.every((p) => !isBlocked(p.x, p.z, clearance, blocks))) {
-      return shifted;
+  // Rows run parallel to the stage wall (or east-west with no stage) and are
+  // filled from the stage outwards; the last partial row is centred.
+  const stage: Wall = spec.stage;
+  const rowsAlongX = stage !== "east" && stage !== "west";
+  const rowKey = (p: Point) => (rowsAlongX ? p.z : p.x);
+  const alongKey = (p: Point) => (rowsAlongX ? p.x : p.z);
+  const rowOrder = (k: number): number => {
+    switch (stage) {
+      case "north":
+        return k; // nearest the north wall (most negative z) first
+      case "south":
+        return -k;
+      case "west":
+        return k;
+      case "east":
+        return -k;
+      default:
+        return Math.abs(k - (rowsAlongX ? midZ : midX)); // middle rows first
     }
-    return pick;
+  };
+
+  const pickBalanced = (free: Point[], n: number): Point[] => {
+    const rows = new Map<number, Point[]>();
+    for (const p of free) {
+      const k = Math.round(rowKey(p) * 100) / 100;
+      const row = rows.get(k);
+      if (row) row.push(p);
+      else rows.set(k, [p]);
+    }
+    const ordered = [...rows.entries()].sort(
+      (a, b) => rowOrder(a[0]) - rowOrder(b[0]),
+    );
+    // Stub rows (a cell or two wedged beside the stage) go last.
+    const fullest = Math.max(...ordered.map(([, r]) => r.length));
+    ordered.sort((a, b) => {
+      const stubA = a[1].length <= Math.max(1, fullest / 3) ? 1 : 0;
+      const stubB = b[1].length <= Math.max(1, fullest / 3) ? 1 : 0;
+      return stubA - stubB;
+    });
+    const out: Point[] = [];
+    for (const [, row] of ordered) {
+      const remaining = n - out.length;
+      if (remaining <= 0) break;
+      if (row.length <= remaining) {
+        out.push(...row);
+        continue;
+      }
+      // Partial row: keep the cells nearest the row's own centre.
+      const centre = row.reduce((s, p) => s + alongKey(p), 0) / row.length;
+      const nearest = [...row].sort(
+        (a, b) =>
+          Math.abs(alongKey(a) - centre) - Math.abs(alongKey(b) - centre),
+      );
+      out.push(...nearest.slice(0, remaining));
+    }
+    return out;
   };
 
   for (
-    let spacing = TABLE_SPACING_M;
+    let spacing = TABLE_SPACING_MAX_M;
     spacing >= TABLE_SPACING_MIN_M - 0.001;
     spacing -= 0.1
   ) {
     const free = freeAt(spacing);
     if (free.length >= tablesNeeded) {
-      return pickClosest(free, tablesNeeded);
+      return pickBalanced(free, tablesNeeded);
     }
   }
 

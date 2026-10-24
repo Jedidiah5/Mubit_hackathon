@@ -1,0 +1,5 @@
+Kenney Furniture Kit, City Kit Commercial, City Kit Suburban, and Nature Kit.
+CC0. https://kenney.nl
+
+people/: Quaternius Ultimate Modular Men Pack and Ultimate Modular Women Pack, trimmed by scripts/slim-chars.mjs.
+CC0. https://quaternius.com (downloaded via https://poly.pizza)

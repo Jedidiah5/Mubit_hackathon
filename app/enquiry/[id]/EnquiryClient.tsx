@@ -28,8 +28,10 @@ const RoomCanvas = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="flex h-full w-full items-center justify-center font-mono text-xs uppercase tracking-[0.14em] text-[#0a0a0a]/70"
-        style={{ background: "#cfc4b0" }}
+        className="absolute inset-0 grid place-items-center font-mono text-xs uppercase tracking-[0.14em] text-[#1d2433]/70"
+        style={{
+          background: "linear-gradient(180deg,#9ec5e8,#e6eef5 55%,#cfc4b0)",
+        }}
       >
         Loading scene…
       </div>
@@ -121,10 +123,10 @@ export function EnquiryClient() {
     if (!enquiry || enquiry.parsed || parseInFlight.has(id)) return;
 
     parseInFlight.add(id);
-    setParsing(true);
-    setParseError(null);
 
     void (async () => {
+      setParsing(true);
+      setParseError(null);
       try {
         const res = await fetch("/api/parse", {
           method: "POST",
@@ -300,21 +302,27 @@ export function EnquiryClient() {
           </pre>
         </section>
 
-        <section className="relative min-h-[320px] border-b border-[#f4efe6]/12 lg:min-h-0 lg:border-b-0 lg:border-r">
-          <button
-            type="button"
-            onClick={() => setPlanView((v) => !v)}
-            className="absolute right-3 top-3 z-10 border border-[#c8ff00] bg-[#0a0a0a]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8ff00] backdrop-blur"
-          >
-            {planView ? "Isometric" : "Plan view"}
-          </button>
-          <RoomCanvas
-            room={previewRoom}
-            items={items}
-            planView={planView}
-            loading={parsing || !spec}
-            className="h-full w-full"
-          />
+        <section className="relative min-h-[360px] border-b border-[#f4efe6]/12 lg:min-h-0 lg:border-b-0 lg:border-r">
+          <div className="absolute inset-0">
+            <RoomCanvas
+              room={previewRoom}
+              items={items}
+              planView={planView}
+              onPlanViewChange={setPlanView}
+              loading={parsing || !spec}
+              hud={{
+                subtitle: spec
+                  ? `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`
+                  : undefined,
+                status: feasibility?.status,
+                used: feasibility?.used,
+                capacity: feasibility?.capacity,
+                footnote: enquiry.model
+                  ? `${enquiry.model} · ${enquiry.latencyMs ?? "—"} ms`
+                  : undefined,
+              }}
+            />
+          </div>
         </section>
 
         <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">

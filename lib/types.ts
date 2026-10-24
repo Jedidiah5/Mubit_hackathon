@@ -97,6 +97,7 @@ export const LAYOUT_KINDS = [
   "dance_floor",
   "dj_booth",
   "photo_booth",
+  "buffet",
   "lectern",
   "projector",
   "guest_seated",

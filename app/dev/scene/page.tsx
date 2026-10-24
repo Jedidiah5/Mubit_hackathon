@@ -3,8 +3,9 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { DEMO_ROOMS } from "@/lib/data/venue";
+import { bestRoom } from "@/lib/feasibility";
 import { layout } from "@/lib/layout";
-import type { Spec } from "@/lib/types";
+import type { Spec, Style } from "@/lib/types";
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
@@ -13,15 +14,16 @@ const RoomCanvas = dynamic(
     loading: () => (
       <div
         style={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#cfc4b0",
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          background: "linear-gradient(180deg,#9ec5e8,#e6eef5 55%,#cfc4b0)",
           fontFamily: "ui-monospace, monospace",
           fontSize: 12,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
+          color: "#1d2433",
         }}
       >
         Loading scene…
@@ -30,74 +32,108 @@ const RoomCanvas = dynamic(
   },
 );
 
-const SPEC: Spec = {
-  style: "banquet",
-  guests: 120,
-  stage: "north",
-  bar: "east",
-  extras: ["dance_floor"],
-  accessible: true,
+const PRESETS: Record<string, Spec> = {
+  "Banquet 120": {
+    style: "banquet",
+    guests: 120,
+    stage: "north",
+    bar: "east",
+    extras: ["dance_floor", "dj_booth"],
+    accessible: true,
+  },
+  "Cabaret 60": {
+    style: "cabaret",
+    guests: 60,
+    stage: "north",
+    bar: "none",
+    extras: ["projector", "lectern", "buffet"],
+    accessible: false,
+  },
+  "Theatre 180": {
+    style: "theatre",
+    guests: 180,
+    stage: "north",
+    bar: "none",
+    extras: ["projector", "lectern"],
+    accessible: true,
+  },
+  "Reception 150": {
+    style: "reception",
+    guests: 150,
+    stage: "none",
+    bar: "west",
+    extras: ["dj_booth", "photo_booth"],
+    accessible: false,
+  },
+  "Overflow 170": {
+    style: "banquet",
+    guests: 170,
+    stage: "north",
+    bar: "east",
+    extras: ["dance_floor"],
+    accessible: false,
+  },
+};
+
+const STYLE_LABEL: Record<Style, string> = {
+  banquet: "Banquet",
+  cabaret: "Cabaret",
+  theatre: "Theatre",
+  reception: "Reception",
 };
 
 export default function DevScenePage() {
-  const room = DEMO_ROOMS[0]!;
-  const items = useMemo(() => layout(room, SPEC), [room]);
+  const [presetKey, setPresetKey] = useState<string>("Banquet 120");
   const [planView, setPlanView] = useState(false);
+  const spec = PRESETS[presetKey]!;
+  const feasibility = useMemo(() => bestRoom(DEMO_ROOMS, spec), [spec]);
+  const room = feasibility.room ?? DEMO_ROOMS[0]!;
+  const items = useMemo(() => layout(room, spec), [room, spec]);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#0a0a0a",
-        color: "#f4efe6",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "1rem",
-          padding: "0.85rem 1.25rem",
-          borderBottom: "1px solid #222",
-        }}
-      >
+    <main className="flex h-dvh flex-col bg-[#0a0a0a] text-[#f4efe6]">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#f4efe6]/12 px-5 py-3">
         <div>
-          <div style={{ fontSize: "0.75rem", opacity: 0.55 }}>/dev/scene</div>
-          <div style={{ fontWeight: 600 }}>
-            {room.name} · banquet · {SPEC.guests} guests
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8ff00]">
+            /dev/scene
+          </div>
+          <div className="font-sans text-lg tracking-tight">
+            {room.name} · {STYLE_LABEL[spec.style]} · {spec.guests} guests
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setPlanView((v) => !v)}
-          style={{
-            background: planView ? "#c8ff00" : "transparent",
-            color: planView ? "#0a0a0a" : "#f4efe6",
-            border: "1px solid #c8ff00",
-            padding: "0.45rem 0.9rem",
-            cursor: "pointer",
-            fontSize: "0.85rem",
-          }}
-        >
-          {planView ? "Isometric" : "Plan view"}
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.keys(PRESETS).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setPresetKey(k)}
+              className={`border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+                k === presetKey
+                  ? "border-[#c8ff00] bg-[#c8ff00] text-[#0a0a0a]"
+                  : "border-[#f4efe6]/20 text-[#f4efe6]/70 hover:border-[#c8ff00]/60"
+              }`}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
       </header>
-      <div style={{ flex: 1, minHeight: "70vh" }}>
-        <RoomCanvas room={room} items={items} planView={planView} />
+
+      <div className="relative min-h-0 flex-1">
+        <RoomCanvas
+          room={room}
+          items={items}
+          planView={planView}
+          onPlanViewChange={setPlanView}
+          hud={{
+            subtitle: `${STYLE_LABEL[spec.style]} · ${spec.guests} guests`,
+            status: feasibility.status,
+            used: feasibility.used,
+            capacity: feasibility.capacity,
+            footnote: `${items.length} items · drag to orbit · shift-drag to pan · scroll to zoom`,
+          }}
+        />
       </div>
-      <footer
-        style={{
-          padding: "0.55rem 1.25rem",
-          fontSize: "0.75rem",
-          opacity: 0.5,
-          borderTop: "1px solid #222",
-        }}
-      >
-        Drag horizontally to snap-rotate · scroll to zoom · {items.length} items
-      </footer>
     </main>
   );
 }
