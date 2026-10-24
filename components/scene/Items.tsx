@@ -1,9 +1,14 @@
 ﻿"use client";
 
-import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useMemo, useRef } from "react";
-import type { Group } from "three";
+import {
+  CanvasTexture,
+  DoubleSide,
+  type Group,
+  LinearFilter,
+  SRGBColorSpace,
+} from "three";
 import { accessibleRouteRects, stageWidth } from "@/lib/layout/shared";
 import type { LayoutItem, LayoutKind, Room, Spec, Wall } from "@/lib/types";
 import { popScale, unitNoise } from "./buildAnim";
@@ -538,9 +543,40 @@ function FeatureStage({ item, index, time, width }: FeatureProps & { width: numb
   );
 }
 
+/** Canvas texture for the door marker — avoids drei Html (unmount race in R3F). */
+function accessMarkerTexture(): CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext("2d");
+  if (!ctx) return null;
+  ctx.clearRect(0, 0, size, size);
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(29,36,51,0.18)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.font = "bold 72px system-ui, Segoe UI Symbol, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#1d2433";
+  ctx.fillText("♿", size / 2, size / 2 + 4);
+  const tex = new CanvasTexture(c);
+  tex.colorSpace = SRGBColorSpace;
+  tex.minFilter = LinearFilter;
+  tex.magFilter = LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 /** 1.5 m step-free floor strip + ♿ marker at the south door. */
 function AccessibleRoute({ room, spec }: { room: Room; spec: Spec }) {
   const rects = useMemo(() => accessibleRouteRects(room, spec), [room, spec]);
+  const marker = useMemo(() => accessMarkerTexture(), []);
   if (rects.length === 0) return null;
   const hz = room.lengthM / 2;
   return (
@@ -591,31 +627,21 @@ function AccessibleRoute({ room, spec }: { room: Room; spec: Spec }) {
           </mesh>
         );
       })}
-      <Html
-        position={[0, 0.02, hz - 0.35]}
-        center
-        sprite
-        style={{ pointerEvents: "none", userSelect: "none" }}
-        zIndexRange={[40, 0]}
-      >
-        <div
-          aria-label="Step-free entrance"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.96)",
-            border: "1px solid rgba(29,36,51,0.12)",
-            boxShadow: "0 2px 8px rgba(29,36,51,0.18)",
-            display: "grid",
-            placeItems: "center",
-            fontSize: 18,
-            lineHeight: 1,
-          }}
+      {marker && (
+        <mesh
+          position={[0, 0.04, hz - 0.35]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          renderOrder={2}
         >
-          ♿
-        </div>
-      </Html>
+          <planeGeometry args={[0.55, 0.55]} />
+          <meshBasicMaterial
+            map={marker}
+            transparent
+            depthWrite={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
