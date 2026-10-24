@@ -80,6 +80,7 @@ type ParseResponse = {
   requestId: string | null;
   latencyMs: number;
   model: string;
+  notesUsed: number;
   error?: string;
 };
 
@@ -171,6 +172,7 @@ export default function InboxPage() {
           requestId: data.requestId ?? "",
           latencyMs: data.latencyMs,
           model: data.model,
+          notesUsed: data.notesUsed,
           feasibility: firestoreFeasibility(feasibility),
           status: feasibility.status,
           roomOverride: null,

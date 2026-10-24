@@ -46,7 +46,7 @@ export async function createAndParseEnquiry(input: {
     source: "inbound",
   });
 
-  const parsed = await runParse(input.body);
+  const parsed = await runParse(input.body, { enquiryId: ref.id });
   const rooms = await loadRooms();
   const feasibility = evaluateRooms(rooms, parsed.spec, null);
 
@@ -56,6 +56,7 @@ export async function createAndParseEnquiry(input: {
     requestId: parsed.requestId ?? "",
     latencyMs: parsed.latencyMs,
     model: parsed.model,
+    notesUsed: parsed.notesUsed,
     feasibility: firestoreFeasibility(feasibility),
     status: feasibility.status,
     roomOverride: null,

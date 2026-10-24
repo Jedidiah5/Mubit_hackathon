@@ -1,4 +1,6 @@
 import "server-only";
+import { buildUserMessage, pickCorrections } from "./corrections";
+import { loadCorrections } from "./corrections-store";
 import { mubit } from "./mubit";
 import { PARSE_MODEL, PARSE_SYSTEM_PROMPT, trimEnquiry } from "./parse";
 import { parseModelSpec } from "./parse-response";
@@ -10,12 +12,22 @@ export type ParseResult = {
   latencyMs: number;
   model: string;
   raw: string;
+  /** Past corrections put above the email as notes. */
+  notesUsed: number;
   error?: string;
 };
 
 /** Single LLM call path — used by /api/parse and /api/inbound. */
-export async function runParse(text: string): Promise<ParseResult> {
+export async function runParse(
+  text: string,
+  opts: { enquiryId?: string } = {},
+): Promise<ParseResult> {
   const trimmed = trimEnquiry(text);
+  const notes = pickCorrections(
+    await loadCorrections(),
+    trimmed,
+    opts.enquiryId,
+  );
   const started = performance.now();
 
   const { data, response } = await mubit.chat.completions
@@ -23,7 +35,7 @@ export async function runParse(text: string): Promise<ParseResult> {
       model: PARSE_MODEL,
       messages: [
         { role: "system", content: PARSE_SYSTEM_PROMPT },
-        { role: "user", content: trimmed },
+        { role: "user", content: buildUserMessage(trimmed, notes) },
       ],
     })
     .withResponse();
@@ -42,6 +54,7 @@ export async function runParse(text: string): Promise<ParseResult> {
     latencyMs,
     model: PARSE_MODEL,
     raw,
+    notesUsed: notes.length,
     ...(error ? { error } : {}),
   };
 }

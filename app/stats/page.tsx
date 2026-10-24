@@ -2,7 +2,6 @@
 
 import {
   collection,
-  getCountFromServer,
   limit,
   onSnapshot,
   orderBy,
@@ -12,17 +11,11 @@ import { useEffect, useState } from "react";
 import adapterResults from "@/data/adapter-results.json";
 import evalResults from "@/data/eval-results.json";
 import { AppNav } from "@/components/AppNav";
+import { isCorrection } from "@/lib/corrections";
 import { getDb } from "@/lib/firebase";
+import type { Correction } from "@/lib/types";
 
-type CorrectionRow = {
-  id: string;
-  enquiryId: string;
-  requestId: string;
-  field: string;
-  from: unknown;
-  to: unknown;
-  at: string;
-};
+type CorrectionRow = Correction & { id: string };
 
 function pct(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "—";
@@ -53,27 +46,18 @@ export default function StatsPage() {
 
   useEffect(() => {
     const db = getDb();
-    void getCountFromServer(collection(db, "corrections"))
-      .then((agg) => setCount(agg.data().count))
-      .catch((err: Error) => setError(err.message));
-
+    // Same window as the parse call reads; legacy per-keystroke rows are skipped.
     const unsub = onSnapshot(
-      query(collection(db, "corrections"), orderBy("at", "desc"), limit(20)),
+      query(collection(db, "corrections"), orderBy("at", "desc"), limit(200)),
       (snap) => {
-        setCorrections(
-          snap.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              enquiryId: String(data.enquiryId ?? ""),
-              requestId: String(data.requestId ?? ""),
-              field: String(data.field ?? ""),
-              from: data.from,
-              to: data.to,
-              at: String(data.at ?? ""),
-            };
-          }),
-        );
+        const rows = snap.docs.flatMap((d) => {
+          const data = d.data();
+          return isCorrection(data) && data.changes.length > 0
+            ? [{ id: d.id, ...data }]
+            : [];
+        });
+        setCount(rows.length);
+        setCorrections(rows.slice(0, 20));
       },
       (err) => setError(err.message),
     );
@@ -193,7 +177,7 @@ export default function StatsPage() {
               Corrections
             </h2>
             <p className="font-mono text-xs text-[color:var(--ink)]/45">
-              {count == null ? "…" : `${count} total`} · latest 20
+              {count == null ? "…" : `${count} enquiries corrected`} · latest 20
             </p>
           </div>
 
@@ -206,13 +190,22 @@ export default function StatsPage() {
               {corrections.map((c) => (
                 <li
                   key={c.id}
-                  className="grid gap-1 px-1 py-3 font-mono text-xs sm:grid-cols-[7rem_1fr_auto]"
+                  className="grid gap-1 px-1 py-3 font-mono text-xs sm:grid-cols-[1fr_auto]"
                 >
-                  <span className="text-[color:var(--ink)]">{c.field}</span>
-                  <span className="text-[color:var(--ink)]/70">
-                    <span className="text-[color:var(--cannot)]">{fmtVal(c.from)}</span>
-                    {" → "}
-                    <span className="text-[#4ade80]">{fmtVal(c.to)}</span>
+                  <span className="min-w-0 text-[color:var(--ink)]/70">
+                    <span className="mb-1 block truncate font-sans text-[13px] text-[color:var(--ink)]">
+                      {c.email}
+                    </span>
+                    {c.changes.map((ch) => (
+                      <span key={ch.field} className="block">
+                        <span className="inline-block w-24 text-[color:var(--ink)]">
+                          {ch.field}
+                        </span>
+                        <span className="text-[color:var(--cannot)]">{fmtVal(ch.from)}</span>
+                        {" → "}
+                        <span className="text-[#4ade80]">{fmtVal(ch.to)}</span>
+                      </span>
+                    ))}
                     <span className="mt-0.5 block text-[10px] text-[color:var(--ink)]/35">
                       {c.enquiryId}
                       {c.requestId ? ` · ${c.requestId}` : ""}

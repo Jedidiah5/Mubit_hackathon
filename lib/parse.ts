@@ -70,13 +70,6 @@ function stripCourtesy(text: string): string {
   return kept.join(" ").replace(/\s+/g, " ").trim();
 }
 
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
-}
-
 function truncate(text: string): string {
   if (text.length <= MAX_CHARS) return text;
   const slice = text.slice(0, MAX_CHARS);
@@ -85,11 +78,11 @@ function truncate(text: string): string {
   return slice.trim();
 }
 
-/** Drop greetings and sign-offs, keep setup sentences, cap at about 700 characters. */
+/**
+ * Drop greetings and sign-offs, cap at about 700 characters.
+ * Every other sentence is kept: indirect clues ("my nan uses a walker",
+ * "there'll be a DJ") don't match any keyword list.
+ */
 export function trimEnquiry(text: string): string {
-  const body = stripCourtesy(text);
-  const relevant = splitSentences(body).filter((sentence) =>
-    KEEP_SENTENCE.test(sentence),
-  );
-  return truncate(relevant.length > 0 ? relevant.join(" ") : body);
+  return truncate(stripCourtesy(text));
 }

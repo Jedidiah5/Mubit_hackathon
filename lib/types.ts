@@ -87,6 +87,8 @@ export type Enquiry = EnquiryInbound & {
   requestId?: string;
   latencyMs?: number;
   model?: string;
+  /** Past corrections sent as notes with the parse call. */
+  notesUsed?: number;
   final?: Spec;
   feasibility?: Feasibility;
   status?: FeasibilityStatus;
@@ -96,17 +98,25 @@ export type Enquiry = EnquiryInbound & {
 
 export type EnquiryListItem = Enquiry & { id: string };
 
-/** corrections/{id} — from/to are the previous and next value of `field`. */
-export type Correction = {
-  [K in keyof Spec]: {
-    enquiryId: string;
-    requestId: string;
-    field: K;
-    from: Spec[K];
-    to: Spec[K];
-    at: string;
-  };
+/** One changed field: model value → coordinator value. */
+export type SpecChange = {
+  [K in keyof Spec]: { field: K; from: Spec[K]; to: Spec[K] };
 }[keyof Spec];
+
+/**
+ * corrections/{enquiryId} — one doc per enquiry, overwritten on every edit,
+ * so it always holds model answer vs coordinator's current answer.
+ */
+export type Correction = {
+  enquiryId: string;
+  requestId: string;
+  /** Trimmed email, as the model saw it. */
+  email: string;
+  parsed: Spec;
+  final: Spec;
+  changes: SpecChange[];
+  at: string;
+};
 
 export const LAYOUT_KINDS = [
   "table_round",

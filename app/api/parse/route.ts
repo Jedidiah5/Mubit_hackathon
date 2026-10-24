@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await runParse(body.text);
+    const result = await runParse(body.text, { enquiryId: body.enquiryId });
     return NextResponse.json(result);
   } catch (err) {
     const message =

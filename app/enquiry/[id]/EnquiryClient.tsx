@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -15,10 +9,12 @@ import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
 import { SpecForm } from "@/components/enquiry/SpecForm";
+import { diffSpec } from "@/lib/corrections";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
 import { layout } from "@/lib/layout";
+import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { draftReply } from "@/lib/reply";
 import type { Enquiry, Feasibility, Spec } from "@/lib/types";
@@ -48,6 +44,7 @@ type ParseResponse = {
   requestId: string | null;
   latencyMs: number;
   model: string;
+  notesUsed: number;
   error?: string;
 };
 
@@ -147,6 +144,7 @@ export function EnquiryClient() {
           requestId: data.requestId ?? "",
           latencyMs: data.latencyMs,
           model: data.model,
+          notesUsed: data.notesUsed,
           feasibility: firestoreFeasibility(feasibility),
           status: feasibility.status,
           roomOverride: null,
@@ -176,13 +174,7 @@ export function EnquiryClient() {
   }, [spec, feasibility]);
 
   const persistSpec = useCallback(
-    async (
-      next: Spec,
-      field: keyof Spec,
-      from: Spec[keyof Spec],
-      to: Spec[keyof Spec],
-      override: string | null = roomOverride,
-    ) => {
+    async (next: Spec, override: string | null = roomOverride) => {
       skipRemoteSpec.current = true;
       const feas = evaluateRooms(rooms, next, override);
       await updateDoc(doc(getDb(), "enquiries", id), {
@@ -191,16 +183,19 @@ export function EnquiryClient() {
         status: feas.status,
         roomOverride: override,
       });
-      await addDoc(collection(getDb(), "corrections"), {
+      if (!enquiry?.parsed) return;
+      // One doc per enquiry, overwritten: intermediate edits never pile up.
+      await setDoc(doc(getDb(), "corrections", id), {
         enquiryId: id,
-        requestId: enquiry?.requestId ?? "",
-        field,
-        from,
-        to,
+        requestId: enquiry.requestId ?? "",
+        email: trimEnquiry(enquiry.body),
+        parsed: enquiry.parsed,
+        final: next,
+        changes: diffSpec(enquiry.parsed, next),
         at: new Date().toISOString(),
       });
     },
-    [id, enquiry?.requestId, roomOverride, rooms],
+    [id, enquiry, roomOverride, rooms],
   );
 
   const onSpecChange = useCallback(
@@ -208,11 +203,10 @@ export function EnquiryClient() {
       const current = specRef.current;
       if (!current) return;
       if (JSON.stringify(current[field]) === JSON.stringify(value)) return;
-      const from = current[field];
       const next = { ...current, [field]: value };
       specRef.current = next;
       setLocalSpec(next);
-      void persistSpec(next, field, from, value);
+      void persistSpec(next);
     },
     [persistSpec],
   );
@@ -386,7 +380,11 @@ export function EnquiryClient() {
 
       <footer className="shrink-0 border-t border-[color:var(--line)] px-4 py-2 font-mono text-[11px] text-[color:var(--ink)]/40">
         {enquiry.model
-          ? `parsed by ${enquiry.model} via Mubit · ${enquiry.latencyMs ?? "—"} ms · ${enquiry.requestId || "no request id"}`
+          ? `parsed by ${enquiry.model} via Mubit · ${enquiry.latencyMs ?? "—"} ms · ${
+              enquiry.notesUsed
+                ? `${enquiry.notesUsed} past correction${enquiry.notesUsed === 1 ? "" : "s"} applied · `
+                : ""
+            }${enquiry.requestId || "no request id"}`
           : parsing
             ? "calling Mubit…"
             : "not parsed yet"}
