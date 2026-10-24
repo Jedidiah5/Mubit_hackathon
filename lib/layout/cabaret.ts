@@ -7,6 +7,7 @@ import {
   packRoundTables,
   placeFeatures,
   placeOverflow,
+  wallFacingOut,
   wallNormal,
 } from "./shared";
 
@@ -43,7 +44,7 @@ export function layoutCabaret(room: Room, spec: Spec): LayoutItem[] {
       const angle = base - Math.PI / 2 + t * Math.PI;
       const cx = x + Math.sin(angle) * CHAIR_RADIUS_M;
       const cz = z + Math.cos(angle) * CHAIR_RADIUS_M;
-      const rotY = Math.atan2(-n.x, -n.z);
+      const rotY = wallFacingOut(wall);
       items.push(item("chair", cx, cz, rotY));
       if (guestLeft > 0) {
         items.push(item("guest_seated", cx, cz, rotY));

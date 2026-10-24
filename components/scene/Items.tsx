@@ -91,8 +91,8 @@ function wallFromRot(rotY: number): Wall {
   const r = ((rotY % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
   if (Math.abs(r) < 0.1 || Math.abs(r - Math.PI * 2) < 0.1) return "north";
   if (Math.abs(r - Math.PI) < 0.1) return "south";
-  if (Math.abs(r - Math.PI / 2) < 0.1) return "east";
-  return "west";
+  if (Math.abs(r - Math.PI / 2) < 0.1) return "west";
+  return "east";
 }
 
 type Timed = { items: LayoutItem[]; time: () => number };

@@ -27,10 +27,36 @@ function ms(n: number | null | undefined): string {
   return `${Math.round(n)} ms`;
 }
 
-function money(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n)) return "—";
-  return `$${n.toFixed(2)}`;
-}
+type EvalRun = {
+  mode: "plain" | "notes" | "rules";
+  ranAt: string;
+  n: number;
+  exact: number;
+  accuracy: { overall: number };
+  medianLatencyMs: number;
+  avgNotes: number;
+};
+
+type AdapterRun = {
+  label: string;
+  exact: number | null;
+  accuracy: number | null;
+  medianLatencyMs: number | null;
+};
+
+/** The held-out set built around the venue's house rules. */
+const EVAL_SET = "test-house";
+
+const EVAL_ROWS: { mode: EvalRun["mode"]; label: string; hint: string }[] = [
+  { mode: "plain", label: "GPT, no corrections", hint: "frozen prompt, email only" },
+  { mode: "notes", label: "GPT + coordinator corrections", hint: "what the app sends today" },
+  { mode: "rules", label: "GPT + rules written in the prompt", hint: "baseline: someone writes the rules down" },
+];
+
+const evalRuns =
+  (evalResults as { sets: Record<string, Partial<Record<EvalRun["mode"], EvalRun>>> })
+    .sets[EVAL_SET] ?? {};
+const adapterRuns = adapterResults as AdapterRun[];
 
 function fmtVal(v: unknown): string {
   if (typeof v === "boolean") return v ? "true" : "false";
@@ -64,9 +90,10 @@ export default function StatsPage() {
     return unsub;
   }, []);
 
-  const providerAcc = evalResults.accuracy?.overall ?? null;
-  const providerLatency = evalResults.medianLatencyMs ?? null;
-  const providerCost = evalResults.costPer1000 ?? null;
+  const lastRun = Object.values(evalRuns)
+    .map((r) => r.ranAt)
+    .sort()
+    .at(-1);
 
   return (
     <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
@@ -76,9 +103,9 @@ export default function StatsPage() {
           <div>
             <h1 className="font-sans text-3xl tracking-tight">Stats</h1>
             <p className="mt-2 font-mono text-xs text-[color:var(--ink)]/45">
-              Track 2 · provider vs adapter
-              {evalResults.ranAt
-                ? ` · eval ${new Date(evalResults.ranAt).toLocaleString("en-GB")}`
+              Does correcting the drafts make them right?
+              {lastRun
+                ? ` · eval ${new Date(lastRun).toLocaleString("en-GB")}`
                 : " · run npm run eval"}
             </p>
           </div>
@@ -92,82 +119,59 @@ export default function StatsPage() {
 
         <section className="mb-12 overflow-x-auto">
           <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
-            Track 2 proof
+            Held-out emails that depend on house rules
           </h2>
-          <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ink)]/40">
-                <th className="py-2 pr-4 font-normal">Metric</th>
-                <th className="py-2 pr-4 font-normal">
-                  Provider ({evalResults.model ?? "gpt-6-luna"})
-                </th>
-                <th className="py-2 font-normal">
-                  {adapterResults.label ?? "Our adapter"}
-                </th>
+                <th className="py-2 pr-4 font-normal">Setup</th>
+                <th className="py-2 pr-4 text-right font-normal">All fields right</th>
+                <th className="py-2 pr-4 text-right font-normal">Field accuracy</th>
+                <th className="py-2 text-right font-normal">Median latency</th>
               </tr>
             </thead>
             <tbody className="font-sans">
-              <tr className="border-b border-[color:var(--line)]">
-                <td className="py-3 pr-4 font-mono text-xs text-[color:var(--ink)]/55">
-                  Accuracy on the test set
-                </td>
-                <td className="py-3 pr-4 tabular-nums">{pct(providerAcc)}</td>
-                <td className="py-3 tabular-nums">
-                  {pct(adapterResults.accuracy)}
-                </td>
-              </tr>
-              <tr className="border-b border-[color:var(--line)]">
-                <td className="py-3 pr-4 font-mono text-xs text-[color:var(--ink)]/55">
-                  Median latency
-                </td>
-                <td className="py-3 pr-4 tabular-nums">
-                  {ms(providerLatency)}
-                </td>
-                <td className="py-3 tabular-nums">
-                  {ms(adapterResults.medianLatencyMs)}
-                </td>
-              </tr>
-              <tr className="border-b border-[color:var(--line)]">
-                <td className="py-3 pr-4 font-mono text-xs text-[color:var(--ink)]/55">
-                  Cost per 1,000 enquiries
-                </td>
-                <td className="py-3 pr-4 tabular-nums">
-                  {money(providerCost)}
-                </td>
-                <td className="py-3 tabular-nums">
-                  {money(adapterResults.costPer1000)}
-                </td>
-              </tr>
+              {EVAL_ROWS.map(({ mode, label, hint }) => {
+                const run = evalRuns[mode];
+                return (
+                  <tr key={mode} className="border-b border-[color:var(--line)]">
+                    <td className="py-3 pr-4">
+                      {label}
+                      <span className="block font-mono text-[11px] text-[color:var(--ink)]/45">
+                        {hint}
+                        {run && mode === "notes"
+                          ? ` · ${run.avgNotes.toFixed(1)} notes per email`
+                          : ""}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-right tabular-nums">{pct(run?.exact)}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums">
+                      {pct(run?.accuracy.overall)}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">{ms(run?.medianLatencyMs)}</td>
+                  </tr>
+                );
+              })}
+              {adapterRuns.map((a) => (
+                <tr key={a.label} className="border-b border-[color:var(--line)]">
+                  <td className="py-3 pr-4">
+                    {a.label}
+                    <span className="block font-mono text-[11px] text-[color:var(--ink)]/45">
+                      trained by Mubit on the kept answers · no notes
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-right tabular-nums">{pct(a.exact)}</td>
+                  <td className="py-3 pr-4 text-right tabular-nums">{pct(a.accuracy)}</td>
+                  <td className="py-3 text-right tabular-nums">{ms(a.medianLatencyMs)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
-          {evalResults.accuracy && evalResults.n > 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-[11px] text-[color:var(--ink)]/45 sm:grid-cols-3 md:grid-cols-6">
-              {(
-                [
-                  ["style", evalResults.accuracy.style],
-                  ["stage", evalResults.accuracy.stage],
-                  ["bar", evalResults.accuracy.bar],
-                  ["access", evalResults.accuracy.accessible],
-                  ["guests", evalResults.accuracy.guests],
-                  ["extras", evalResults.accuracy.extras],
-                ] as const
-              ).map(([k, v]) => (
-                <div key={k} className="border border-[color:var(--line)] px-2 py-2">
-                  <div className="uppercase tracking-[0.12em]">{k}</div>
-                  <div className="mt-1 text-[color:var(--ink)]">{pct(v)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <p className="mt-3 font-mono text-[11px] text-[color:var(--ink)]/35">
-            n={evalResults.n ?? 0}
-            {evalResults.totalTokens != null
-              ? ` · ${evalResults.totalTokens} tokens`
-              : ""}
-            {" · "}
-            adapter values from data/adapter-results.json
+            n={Object.values(evalRuns)[0]?.n ?? 0} · guests within ±5% · eval
+            calls are never recorded as training data · adapter rows from
+            data/adapter-results.json
           </p>
         </section>
 

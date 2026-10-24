@@ -8,7 +8,7 @@ import {
   placeFeatures,
   placeOverflow,
   seatingBounds,
-  wallFacingIn,
+  wallFacingOut,
   wallNormal,
   type Bounds,
 } from "./shared";
@@ -26,7 +26,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
   const seated = Math.min(spec.guests, cap);
   const overflow = Math.max(0, spec.guests - cap);
   const wall = stageWall(spec);
-  const face = wallFacingIn(wall);
+  const face = wallFacingOut(wall);
   const n = wallNormal(wall);
   const bounds = seatingBounds(room, spec);
   const blocks = blockedRects(room, spec);

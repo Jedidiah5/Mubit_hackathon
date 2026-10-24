@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "tsx --test lib/__tests__/**/*.test.ts",
     "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts",
-    "eval": "tsx --env-file=.env.local scripts/eval.ts"
+    "eval": "tsx --env-file=.env.local scripts/eval.ts",
+    "ratings": "tsx --env-file=.env.local scripts/ratings.ts",
+    "replay": "tsx --env-file=.env.local scripts/replay.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

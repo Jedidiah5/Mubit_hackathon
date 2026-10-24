@@ -69,7 +69,7 @@
     "subject": "Wedding breakfast enquiry",
     "body": "Hi!\n\nWe're getting married next August and love your venue. We're thinking 90 guests for the wedding breakfast, speeches, then a band and first dance. Sam's grandad is on crutches after a hip op.\n\nPriya x",
     "receivedAt": "2026-10-24T08:03:00.000Z",
-    "expected": { "style": "banquet", "guests": 90, "stage": "north", "bar": "east", "extras": ["lectern", "dance_floor"], "accessible": true }
+    "expected": { "style": "banquet", "guests": 90, "stage": "north", "bar": "none", "extras": ["lectern", "dance_floor"], "accessible": true }
   },
   {
     "id": "b2-training-24",
