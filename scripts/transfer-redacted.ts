@@ -93,10 +93,26 @@ async function main() {
       }).withResponse();
       const requestId = response.headers.get("x-middleware-request-id") ?? response.headers.get("x-request-id") ?? response.headers.get("request-id") ?? "";
       const { spec, error } = parseModelSpec(data.choices[0]?.message?.content ?? "");
-      const changes = error ? ["unparseable"] : diffSpec(spec, row.final!);
+      const changed = error
+        ? ["unparseable"]
+        : diffSpec(spec, row.final!).map((c) => c.field);
       const prefix = requestId.replace(/^mreq_/, "").slice(0, 8);
-      result.push({ prefix, time: startedAt, good: !error && changes.length === 0, changed: changes.map((c) => c.field), ...(error ? { error } : {}) });
-      console.log(JSON.stringify({ index: i + 1, total: candidates.length, prefix, good: !error && changes.length === 0, changed: changes.map((c) => c.field) }));
+      result.push({
+        prefix,
+        time: startedAt,
+        good: !error && changed.length === 0,
+        changed,
+        ...(error ? { error } : {}),
+      });
+      console.log(
+        JSON.stringify({
+          index: i + 1,
+          total: candidates.length,
+          prefix,
+          good: !error && changed.length === 0,
+          changed,
+        }),
+      );
     } catch (error) {
       result.push({ prefix: "", time: startedAt, good: false, changed: [], error: error instanceof Error ? error.message : String(error) });
       console.error(JSON.stringify({ index: i + 1, total: candidates.length, error: error instanceof Error ? error.message : String(error) }));
