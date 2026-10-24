@@ -47,6 +47,8 @@ describe("missingDetails", () => {
       "Launch for 200, music and mingling",
       "70 people, somewhere to gather and a bite to eat",
       "Prize-giving for 110",
+      "Founders mixer for 75",
+      "10 trustees, the CEO presents in the morning",
     ]) {
       assert.ok(!missingDetails(text).includes("format"), text);
     }
