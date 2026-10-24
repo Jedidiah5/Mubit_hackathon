@@ -1,0 +1,62 @@
+[
+  {
+    "text": "Golf society annual dinner. About 70 members, three courses, then the captain hands out the season's trophies.",
+    "label": { "style": "cabaret", "guests": 70, "stage": "north", "bar": "none", "extras": ["lectern"], "accessible": false }
+  },
+  {
+    "text": "Tenants' association annual meeting, usually around 55 of us. Reports from the committee and a vote. Two of our members use walkers.",
+    "label": { "style": "theatre", "guests": 55, "stage": "north", "bar": "none", "extras": ["lectern"], "accessible": true }
+  },
+  {
+    "text": "Office quiz, 48 of us split into teams. Someone from HR will be quizmaster.",
+    "label": { "style": "cabaret", "guests": 48, "stage": "north", "bar": "none", "extras": [], "accessible": false }
+  },
+  {
+    "text": "Our Christmas party this year will be 75 staff. Dinner first and then the party gets going.",
+    "label": { "style": "banquet", "guests": 75, "stage": "none", "bar": "east", "extras": ["dance_floor", "dj_booth"], "accessible": false }
+  },
+  {
+    "text": "Looking for somewhere for the wake after my aunt's funeral. About 50 people, sandwiches and tea.",
+    "label": { "style": "reception", "guests": 50, "stage": "none", "bar": "none", "extras": ["buffet"], "accessible": false }
+  },
+  {
+    "text": "Gin tasting evening for 30 guests. The distiller will talk them through five gins from the front.",
+    "label": { "style": "cabaret", "guests": 30, "stage": "north", "bar": "none", "extras": [], "accessible": false }
+  },
+  {
+    "text": "Startup mixer for around 110 people, founders and a few VCs.",
+    "label": { "style": "reception", "guests": 110, "stage": "none", "bar": "east", "extras": [], "accessible": false }
+  },
+  {
+    "text": "Burns night supper for 90 with a ceilidh afterwards.",
+    "label": { "style": "banquet", "guests": 90, "stage": "north", "bar": "none", "extras": ["dance_floor"], "accessible": false }
+  },
+  {
+    "text": "Volunteer recognition evening, 60 volunteers. Our chief exec hands out certificates. Buffet food.",
+    "label": { "style": "cabaret", "guests": 60, "stage": "north", "bar": "none", "extras": ["lectern", "buffet"], "accessible": false }
+  },
+  {
+    "text": "Pension scheme members' meeting, roughly 120. The trustees present slides. Some members have limited mobility.",
+    "label": { "style": "theatre", "guests": 120, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": true }
+  },
+  {
+    "text": "Engagement drinks for about 65 friends.",
+    "label": { "style": "reception", "guests": 65, "stage": "none", "bar": "east", "extras": [], "accessible": false }
+  },
+  {
+    "text": "Ruby wedding anniversary dinner for 60. Grandma isn't steady on her feet any more.",
+    "label": { "style": "banquet", "guests": 60, "stage": "none", "bar": "none", "extras": [], "accessible": true }
+  },
+  {
+    "text": "Business awards lunch, 140 guests.",
+    "label": { "style": "cabaret", "guests": 140, "stage": "north", "bar": "none", "extras": ["lectern"], "accessible": false }
+  },
+  {
+    "text": "Fundraising ball for 200 guests. Dinner first, then a live band.",
+    "label": { "style": "banquet", "guests": 200, "stage": "north", "bar": "none", "extras": ["dance_floor"], "accessible": false }
+  },
+  {
+    "text": "Product launch, 150 guests. Short demo from our CEO, then drinks.",
+    "label": { "style": "reception", "guests": 150, "stage": "north", "bar": "east", "extras": ["lectern"], "accessible": false }
+  }
+]

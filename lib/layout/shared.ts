@@ -59,7 +59,10 @@ export function wallNormal(wall: Wall): { x: number; z: number } {
   }
 }
 
-/** Yaw so +z local faces into the room from that wall. */
+/**
+ * Yaw so +z local faces into the room from that wall. three.js yaw θ turns
+ * local +z to world (sin θ, cos θ), so the east wall (+x) faces in at −π/2.
+ */
 export function wallFacingIn(wall: Wall): number {
   switch (wall) {
     case "north":
@@ -67,12 +70,18 @@ export function wallFacingIn(wall: Wall): number {
     case "south":
       return Math.PI;
     case "east":
-      return Math.PI / 2;
-    case "west":
       return -Math.PI / 2;
+    case "west":
+      return Math.PI / 2;
     default:
       return 0;
   }
+}
+
+/** Yaw so +z local (chair / guest front) faces that wall, e.g. seats facing the stage. */
+export function wallFacingOut(wall: Wall): number {
+  const n = wallNormal(wall);
+  return Math.atan2(n.x, n.z);
 }
 
 export function item(
