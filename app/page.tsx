@@ -88,6 +88,29 @@ type ParseResponse = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Inbox = still with the coordinator. Once approved (any edit clears it, so it
+ * moves back), a "can't host" enquiry is a signed-off decline, not a booking.
+ */
+type Tab = "inbox" | "accepted" | "declined";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "inbox", label: "Inbox" },
+  { id: "accepted", label: "Accepted" },
+  { id: "declined", label: "Declined" },
+];
+
+function tabOf(row: EnquiryListItem): Tab {
+  if (!row.approvedAt) return "inbox";
+  return row.status === "cannot" ? "declined" : "accepted";
+}
+
+const EMPTY: Record<Tab, string> = {
+  inbox: "Inbox clear. Every enquiry has been approved.",
+  accepted: "Nothing accepted yet. Approve an enquiry and it lands here.",
+  declined: "No declines. Approved enquiries the venue can't host land here.",
+};
+
 export default function InboxPage() {
   const rooms = useVenueRooms();
   const [rows, setRows] = useState<EnquiryListItem[]>([]);
@@ -96,6 +119,7 @@ export default function InboxPage() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("inbox");
 
   useEffect(() => {
     const q = query(
@@ -139,6 +163,17 @@ export default function InboxPage() {
     () => rows.filter((r) => !r.parsed),
     [rows],
   );
+
+  const byTab = useMemo(() => {
+    const groups: Record<Tab, EnquiryListItem[]> = {
+      inbox: [],
+      accepted: [],
+      declined: [],
+    };
+    for (const row of rows) groups[tabOf(row)].push(row);
+    return groups;
+  }, [rows]);
+  const visible = byTab[tab];
 
   const countLabel = useMemo(() => {
     if (loading) return "Loading…";
@@ -244,6 +279,34 @@ export default function InboxPage() {
           </p>
         )}
 
+        <div
+          role="tablist"
+          className="mb-6 flex gap-6 border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.16em]"
+        >
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(t.id)}
+                className={`-mb-px border-b-2 pb-2.5 transition ${
+                  active
+                    ? "border-[color:var(--ink)] text-[color:var(--ink)]"
+                    : "border-transparent text-[color:var(--muted)] hover:text-[color:var(--ink)]"
+                }`}
+              >
+                {t.label}
+                <span className="ml-1.5 tabular-nums opacity-60">
+                  {loading ? "·" : byTab[t.id].length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
           <span>From</span>
           <span>Subject</span>
@@ -266,7 +329,12 @@ export default function InboxPage() {
               paste a new enquiry.
             </li>
           )}
-          {rows.map((row) => {
+          {!loading && rows.length > 0 && visible.length === 0 && (
+            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+              {EMPTY[tab]}
+            </li>
+          )}
+          {visible.map((row) => {
             const missing = missingDetails(enquiryText(row));
             // No count in the email → the model's number and price are guesses.
             const guessed = missing.includes("guests") && !row.approvedAt;
