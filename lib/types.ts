@@ -80,9 +80,27 @@ export type Correction = {
   };
 }[keyof Spec];
 
-/** Placed item from lib/layout. Metres, y rotation in radians. */
+export const LAYOUT_KINDS = [
+  "table_round",
+  "chair",
+  "high_table",
+  "stage",
+  "bar",
+  "dance_floor",
+  "dj_booth",
+  "photo_booth",
+  "lectern",
+  "projector",
+  "guest_seated",
+  "guest_standing",
+  "guest_overflow",
+] as const;
+
+export type LayoutKind = (typeof LAYOUT_KINDS)[number];
+
+/** Placed item from lib/layout. Metres, y rotation in radians. Origin = room centre, north = −z. */
 export type LayoutItem = {
-  kind: string;
+  kind: LayoutKind;
   x: number;
   z: number;
   rotY: number;
