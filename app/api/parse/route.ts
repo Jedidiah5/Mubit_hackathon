@@ -4,8 +4,6 @@ import { PARSE_MODEL, PARSE_SYSTEM_PROMPT, trimEnquiry } from "@/lib/parse";
 import { SpecSchema } from "@/lib/schema";
 import type { Spec } from "@/lib/types";
 
-export const runtime = "nodejs";
-
 const DEFAULT_SPEC: Spec = {
   style: "banquet",
   guests: 50,
@@ -66,27 +64,43 @@ export async function POST(request: Request) {
   const trimmed = trimEnquiry(body.text);
   const started = performance.now();
 
-  const { data, response } = await mubit.chat.completions
-    .create({
+  try {
+    const { data, response } = await mubit.chat.completions
+      .create({
+        model: PARSE_MODEL,
+        messages: [
+          { role: "system", content: PARSE_SYSTEM_PROMPT },
+          { role: "user", content: trimmed },
+        ],
+      })
+      .withResponse();
+
+    const latencyMs = Math.round(performance.now() - started);
+    const requestId =
+      response.headers.get("x-middleware-request-id") ??
+      response.headers.get("x-request-id") ??
+      response.headers.get("request-id");
+    const raw = data.choices[0]?.message?.content ?? "";
+    const { spec, error } = parseSpec(raw);
+
+    return NextResponse.json({
+      spec,
+      requestId,
+      latencyMs,
       model: PARSE_MODEL,
-      messages: [
-        { role: "system", content: PARSE_SYSTEM_PROMPT },
-        { role: "user", content: trimmed },
-      ],
-    })
-    .withResponse();
-
-  const latencyMs = Math.round(performance.now() - started);
-  const requestId = response.headers.get("x-middleware-request-id");
-  const raw = data.choices[0]?.message?.content ?? "";
-  const { spec, error } = parseSpec(raw);
-
-  return NextResponse.json({
-    spec,
-    requestId,
-    latencyMs,
-    model: PARSE_MODEL,
-    raw,
-    ...(error ? { error } : {}),
-  });
+      raw,
+      ...(error ? { error } : {}),
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Mubit request failed";
+    const status =
+      err &&
+      typeof err === "object" &&
+      "status" in err &&
+      typeof (err as { status: unknown }).status === "number"
+        ? (err as { status: number }).status
+        : 502;
+    return NextResponse.json({ error: message }, { status });
+  }
 }

@@ -70,6 +70,8 @@ export type Enquiry = EnquiryInbound & {
   final?: Spec;
   feasibility?: Feasibility;
   status?: FeasibilityStatus;
+  /** Manual room pick by name; clears when empty → bestRoom again. */
+  roomOverride?: string | null;
 };
 
 export type EnquiryListItem = Enquiry & { id: string };

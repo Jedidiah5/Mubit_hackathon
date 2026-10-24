@@ -134,6 +134,10 @@ function scoreRoom(room: Room, spec: Spec): number {
   const statusRank =
     result.status === "fits" ? 0 : result.status === "warning" ? 1 : 2;
   const headroom = Math.abs(result.capacity - spec.guests);
+  // Fits/warning: smallest room. Cannot: closest capacity (not the tiniest hall).
+  if (result.status === "cannot") {
+    return statusRank * 1e9 + headroom * 1e3 + area(room) * 0.01;
+  }
   return statusRank * 1e9 + area(room) * 1e3 + headroom;
 }
 
