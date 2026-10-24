@@ -53,20 +53,26 @@ export type Feasibility = {
   notes: string[];
 };
 
-/** enquiries/{id} */
-export type Enquiry = {
+/** Raw inbound fields — written before /api/parse runs. */
+export type EnquiryInbound = {
   from: string;
   subject: string;
   body: string;
   receivedAt: string;
-  parsed: Spec;
-  requestId: string;
-  latencyMs: number;
-  model: string;
-  final: Spec;
-  feasibility: Feasibility;
-  status: FeasibilityStatus;
 };
+
+/** enquiries/{id} — parse fields appear once processed. */
+export type Enquiry = EnquiryInbound & {
+  parsed?: Spec;
+  requestId?: string;
+  latencyMs?: number;
+  model?: string;
+  final?: Spec;
+  feasibility?: Feasibility;
+  status?: FeasibilityStatus;
+};
+
+export type EnquiryListItem = Enquiry & { id: string };
 
 /** corrections/{id} — from/to are the previous and next value of `field`. */
 export type Correction = {

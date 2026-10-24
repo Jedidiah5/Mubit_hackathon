@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/__tests__/**/*.test.ts"
+    "test": "tsx --test lib/__tests__/**/*.test.ts",
+    "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "firebase": "11.10.0",
     "next": "16.4.3",
     "openai": "^7.43.0",
     "react": "19.3.0",

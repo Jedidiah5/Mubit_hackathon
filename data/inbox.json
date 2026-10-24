@@ -1,0 +1,58 @@
+[
+  {
+    "id": "enq-wedding-120",
+    "from": "Sarah Chen <sarah.chen@example.com>",
+    "subject": "Wedding reception — Saturday June 14",
+    "body": "Hi,\n\nWe're getting married in June and looking for a reception space for around 120 guests. We'd like a sit-down dinner, then speeches, then dancing into the evening. One of our guests uses a wheelchair so we'll need step-free access throughout.\n\nCould you let us know availability and a rough quote?\n\nThanks,\nSarah",
+    "receivedAt": "2026-10-23T09:12:00.000Z"
+  },
+  {
+    "id": "enq-workshop-40",
+    "from": "Priya Nair <priya@northstack.io>",
+    "subject": "Tech workshop hire — 40 people",
+    "body": "Hello,\n\nWe need a room for a half-day technical workshop for about 40 people. Everyone will be on laptops — theatre-style or classroom seating facing a screen/projector would be ideal. No food required beyond tea and coffee if you can arrange it.\n\nBest,\nPriya",
+    "receivedAt": "2026-10-23T10:05:00.000Z"
+  },
+  {
+    "id": "enq-md-leaving-80",
+    "from": "James Okonkwo <j.okonkwo@brightline.co.uk>",
+    "subject": "MD leaving party",
+    "body": "Hi there,\n\nWe're hosting a leaving party for our MD. Expecting around 80 people. The plan is drinks and canapés then sit down for dinner. Speeches at some point. East-side bar would be lovely if you have one.\n\nCheers,\nJames",
+    "receivedAt": "2026-10-23T11:40:00.000Z"
+  },
+  {
+    "id": "enq-awards-200",
+    "from": "Amelia Frost <amelia@cityawards.org>",
+    "subject": "Awards night — everyone seated",
+    "body": "Good morning,\n\nWe are planning our annual awards night for approximately 200 guests. Everyone should be seated for the ceremony (cabaret or banquet), with a stage for presenters and a lectern. AV / projector for the winner slides please.\n\nKind regards,\nAmelia Frost",
+    "receivedAt": "2026-10-23T13:18:00.000Z"
+  },
+  {
+    "id": "enq-networking-150",
+    "from": "Tom Hale <tom@harbourvc.com>",
+    "subject": "Networking evening",
+    "body": "Hi,\n\nLooking to book a networking evening for about 150 people — standing reception with high tables, a bar, and space to mingle. No sit-down meal.\n\nThanks,\nTom",
+    "receivedAt": "2026-10-23T14:02:00.000Z"
+  },
+  {
+    "id": "enq-gala-300",
+    "from": "Olivia Grant <olivia@rivertrust.org>",
+    "subject": "Charity gala dinner — 300 guests",
+    "body": "Dear Events Team,\n\nWe would like to host our charity gala with 300 guests for a formal banquet dinner, stage for speeches, dancing afterwards, and full step-free access. Please advise if you can accommodate.\n\nYours sincerely,\nOlivia Grant",
+    "receivedAt": "2026-10-23T15:27:00.000Z"
+  },
+  {
+    "id": "enq-birthday-25",
+    "from": "Mark Ellis <mark.ellis@gmail.com>",
+    "subject": "Kids birthday party",
+    "body": "Hi,\n\nBirthday party for our daughter — about 25 kids and a few parents. Soft drinks, a cake table, maybe space for games. Nothing too formal. Saturday afternoon if possible.\n\nThanks,\nMark",
+    "receivedAt": "2026-10-23T16:10:00.000Z"
+  },
+  {
+    "id": "enq-launch-90",
+    "from": "Nina Vogel <nina@lumen.app>",
+    "subject": "Product launch with panel talk",
+    "body": "Hello,\n\nWe're launching a new product and need space for around 90 people. Format is networking on arrival, then a panel talk with seating facing the stage, plus a projector for slides. Drinks after.\n\nBest regards,\nNina",
+    "receivedAt": "2026-10-23T17:45:00.000Z"
+  }
+]
