@@ -47,28 +47,28 @@ export function ChangeRequestBanner({
   const bits = summarize(changeRequest.spec, current);
 
   return (
-    <div className="border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/10 p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--warning)]">
+    <div className="nb-banner nb-banner-warn">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
         Client change request
       </p>
       {bits.length > 0 && (
-        <ul className="mt-2 space-y-0.5 font-mono text-[12px] text-[color:var(--ink)]">
+        <ul className="mt-2 space-y-0.5 font-mono text-[12px] font-bold text-[color:var(--ink)]">
           {bits.map((b) => (
             <li key={b}>{b}</li>
           ))}
         </ul>
       )}
       {changeRequest.note?.trim() && (
-        <p className="mt-2 font-mono text-[12px] leading-relaxed text-[color:var(--ink)]/80">
+        <p className="mt-2 font-mono text-[12px] leading-relaxed text-[color:var(--ink)]">
           “{changeRequest.note.trim()}”
         </p>
       )}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <button
           type="button"
           disabled={busy}
           onClick={onAccept}
-          className="bg-[color:var(--ink)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--panel-2)] disabled:opacity-50"
+          className="nb-btn nb-btn-teal"
         >
           Accept
         </button>
@@ -76,7 +76,7 @@ export function ChangeRequestBanner({
           type="button"
           disabled={busy}
           onClick={onDismiss}
-          className="border border-[color:var(--line)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)] disabled:opacity-50"
+          className="nb-btn"
         >
           Dismiss
         </button>

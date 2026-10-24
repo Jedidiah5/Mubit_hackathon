@@ -349,45 +349,40 @@ export function EnquiryClient() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--ink)]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[color:var(--line)] px-4 py-3">
+    <main className="flex h-[100dvh] flex-col overflow-hidden text-[color:var(--ink)]">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-[color:var(--ink)] bg-[color:var(--panel)] px-4 py-3">
         <div className="min-w-0">
-          <Link
-            href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink)] hover:underline"
-          >
+          <Link href="/" className="nb-chip mb-1 inline-flex">
             ← Inbox
           </Link>
-          <h1 className="truncate font-sans text-lg tracking-tight sm:text-xl">
+          <h1 className="truncate font-sans text-lg font-bold tracking-tight sm:text-xl">
             {enquiry.subject}
           </h1>
-          <p className="truncate font-mono text-[11px] text-[color:var(--ink)]/45">
+          <p className="truncate font-mono text-[11px] text-[color:var(--muted)]">
             {enquiry.from}
           </p>
         </div>
         {parsing && (
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--warning)]">
-            Parsing via Mubit…
-          </span>
+          <span className="nb-chip nb-chip-yellow">Parsing via Mubit…</span>
         )}
         {parseError && (
-          <span className="max-w-xs truncate font-mono text-[11px] text-[color:var(--cannot)]">
+          <span className="nb-chip nb-chip-red max-w-xs truncate">
             {parseError}
           </span>
         )}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.6fr)_minmax(280px,0.95fr)]">
-        <section className="min-h-0 overflow-auto border-b border-[color:var(--line)] p-4 lg:border-b-0 lg:border-r">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
+        <section className="min-h-0 overflow-auto border-b-2 border-[color:var(--ink)] bg-[color:var(--panel)]/80 p-4 lg:border-b-0 lg:border-r-2">
+          <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--ink)]">
             Email
           </p>
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]/80">
+          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]">
             {enquiry.body}
           </pre>
         </section>
 
-        <section className="relative min-h-[360px] border-b border-[color:var(--line)] lg:min-h-0 lg:border-b-0 lg:border-r">
+        <section className="relative min-h-[280px] border-b-2 border-[color:var(--ink)] sm:min-h-[360px] lg:min-h-0 lg:border-b-0 lg:border-r-2">
           <div className="absolute inset-0">
             <RoomCanvas
               room={previewRoom}
@@ -411,7 +406,7 @@ export function EnquiryClient() {
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">
+        <section className="flex min-h-0 flex-col gap-4 overflow-auto bg-[color:var(--panel-2)]/60 p-4">
           {spec ? (
             <>
               <ReviewBanner
@@ -450,14 +445,14 @@ export function EnquiryClient() {
                   <button
                     type="button"
                     onClick={onFollowUp}
-                    className="bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
+                    className="nb-btn nb-btn-ink"
                   >
                     Draft follow-up email
                   </button>
                   <button
                     type="button"
                     onClick={() => void onApprove()}
-                    className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)] underline-offset-4 hover:underline"
+                    className="nb-btn"
                   >
                     I have the details · approve anyway
                   </button>
@@ -466,14 +461,14 @@ export function EnquiryClient() {
                 <button
                   type="button"
                   onClick={() => void onApprove()}
-                  className="mt-auto bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
+                  className="nb-btn nb-btn-ink mt-auto"
                 >
                   {approved ? "Draft reply" : "Approve & draft reply"}
                 </button>
               )}
             </>
           ) : (
-            <p className="font-mono text-sm text-[color:var(--ink)]/45">
+            <p className="font-mono text-sm text-[color:var(--muted)]">
               {parsing
                 ? "Extracting room setup…"
                 : "No spec yet — open again after parse."}
@@ -482,7 +477,7 @@ export function EnquiryClient() {
         </section>
       </div>
 
-      <footer className="shrink-0 border-t border-[color:var(--line)] px-4 py-2 font-mono text-[11px] text-[color:var(--ink)]/40">
+      <footer className="shrink-0 border-t-2 border-[color:var(--ink)] bg-[color:var(--panel)] px-4 py-2 font-mono text-[11px] text-[color:var(--muted)]">
         {enquiry.model
           ? `parsed by ${enquiry.model} via Mubit · ${enquiry.latencyMs ?? "—"} ms · ${
               enquiry.notesUsed

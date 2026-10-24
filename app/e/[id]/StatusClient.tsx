@@ -14,7 +14,6 @@ const STEPS = [
   "Accepted",
 ] as const;
 
-/** Map pipeline → which timeline step is current (0–3). */
 function currentStep(pipeline: PipelineStatus, hasParsed: boolean): number {
   if (pipeline === "accepted") return 3;
   if (pipeline === "proposed" || pipeline === "client_changes") return 2;
@@ -59,15 +58,17 @@ export function StatusClient() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-6">
-        <p className="font-mono text-sm text-[color:var(--cannot)]">{error}</p>
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <p className="nb-banner nb-banner-bad font-mono text-sm font-bold text-[color:var(--cannot)]">
+          {error}
+        </p>
       </main>
     );
   }
 
   if (!enquiry || !pipeline) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-6">
+      <main className="flex min-h-screen items-center justify-center p-6">
         <p className="font-mono text-sm text-[color:var(--muted)]">
           Loading your enquiry…
         </p>
@@ -78,93 +79,97 @@ export function StatusClient() {
   const active = currentStep(pipeline, Boolean(enquiry.parsed));
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto w-full max-w-lg px-5 py-10 sm:px-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted)]">
-          The Wharf Rooms · your enquiry
-        </p>
-        <h1 className="mt-2 font-sans text-2xl tracking-tight sm:text-3xl">
-          {enquiry.subject}
-        </h1>
-        <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
-          Ref {id.slice(0, 8)}
-        </p>
+    <main className="min-h-screen text-[color:var(--ink)]">
+      <div className="mx-auto w-full max-w-lg px-4 py-8 sm:px-6 sm:py-12">
+        <div className="nb-frame p-5 sm:p-7">
+          <div className="mb-2 flex items-center gap-3">
+            <span className="nb-mark" aria-hidden>
+              ✦
+            </span>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+              The Wharf Rooms · your enquiry
+            </p>
+          </div>
+          <h1 className="font-sans text-2xl font-bold tracking-tight sm:text-3xl">
+            {enquiry.subject}
+          </h1>
+          <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
+            Ref {id.slice(0, 8)}
+          </p>
 
-        <ol className="mt-10">
-          {STEPS.map((label, i) => {
-            const done = i < active || (i === active && i === 3);
-            const current = i === active;
-            const proposalLit = i === 2 && proposalReady;
-            const lit = i < active || proposalLit || (i === 3 && done);
+          <ol className="mt-8">
+            {STEPS.map((label, i) => {
+              const done = i < active || (i === active && i === 3);
+              const current = i === active;
+              const proposalLit = i === 2 && proposalReady;
+              const lit = i < active || proposalLit || (i === 3 && done);
 
-            return (
-              <li key={label} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-[11px] ${
-                      lit || current
-                        ? "bg-[color:var(--ink)] text-[color:var(--panel-2)]"
-                        : "border border-[color:var(--line)] text-[color:var(--muted)]"
-                    }`}
-                  >
-                    {lit && !current ? "✓" : i + 1}
-                  </span>
-                  {i < STEPS.length - 1 && (
+              return (
+                <li key={label} className="flex gap-4">
+                  <div className="flex flex-col items-center">
                     <span
-                      className={`my-1 w-px min-h-[1.25rem] flex-1 ${
-                        i < active
-                          ? "bg-[color:var(--ink)]"
-                          : "bg-[color:var(--line)]"
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[color:var(--ink)] font-mono text-[11px] font-bold shadow-[2px_2px_0_0_#111] ${
+                        lit || current
+                          ? "bg-[color:var(--accent-3)] text-[color:var(--ink)]"
+                          : "bg-white text-[color:var(--muted)]"
                       }`}
-                    />
-                  )}
-                </div>
-                <div className="pb-6 pt-1">
-                  <p
-                    className={`font-sans text-base ${
-                      current || proposalLit
-                        ? "text-[color:var(--ink)]"
-                        : "text-[color:var(--muted)]"
-                    }`}
-                  >
-                    {label}
-                  </p>
-                  {i === 1 && current && (
-                    <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
-                      We&apos;re checking rooms and putting a quote together
+                    >
+                      {lit && !current ? "✓" : i + 1}
+                    </span>
+                    {i < STEPS.length - 1 && (
+                      <span
+                        className={`my-1 w-0.5 min-h-[1.25rem] flex-1 ${
+                          i < active
+                            ? "bg-[color:var(--ink)]"
+                            : "bg-[color:var(--ink)]/20"
+                        }`}
+                      />
+                    )}
+                  </div>
+                  <div className="pb-6 pt-1">
+                    <p
+                      className={`font-sans text-base font-bold ${
+                        current || proposalLit
+                          ? "text-[color:var(--ink)]"
+                          : "text-[color:var(--muted)]"
+                      }`}
+                    >
+                      {label}
                     </p>
-                  )}
-                  {i === 2 && proposalReady && (
-                    <p className="mt-1 font-mono text-[11px] text-[color:var(--fits)]">
-                      Your proposal is ready to view
-                    </p>
-                  )}
-                  {i === 3 && pipeline === "accepted" && (
-                    <p className="mt-1 font-mono text-[11px] text-[color:var(--fits)]">
-                      Date held — the venue will confirm shortly
-                    </p>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                    {i === 1 && current && (
+                      <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
+                        We&apos;re checking rooms and putting a quote together
+                      </p>
+                    )}
+                    {i === 2 && proposalReady && (
+                      <p className="mt-1 font-mono text-[11px] font-bold text-[color:var(--fits)]">
+                        Your proposal is ready to view
+                      </p>
+                    )}
+                    {i === 3 && pipeline === "accepted" && (
+                      <p className="mt-1 font-mono text-[11px] font-bold text-[color:var(--fits)]">
+                        Date held — the venue will confirm shortly
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
 
-        {proposalReady && (
-          <Link
-            href={`/p/${id}`}
-            className="mt-2 flex w-full items-center justify-center bg-[color:var(--ink)] px-4 py-4 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] transition hover:opacity-90"
-          >
-            View your proposal
-          </Link>
-        )}
+          {proposalReady && (
+            <Link href={`/p/${id}`} className="nb-btn nb-btn-ink mt-2 w-full">
+              View your proposal
+            </Link>
+          )}
+        </div>
 
         {summary && (
-          <section className="mt-10 border-t border-[color:var(--line)] pt-8">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">
+          <section className="nb-panel mt-5 p-5">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
               Your request
             </p>
-            <p className="mt-3 whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]/80">
+            <p className="mt-3 whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]">
               {summary}
             </p>
           </section>

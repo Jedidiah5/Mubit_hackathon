@@ -9,8 +9,8 @@ type Props = {
 
 export function QuoteCard({ quote, roomName }: Props) {
   return (
-    <div className="space-y-3 border border-[color:var(--line)] bg-[color:var(--panel)] p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)]">
+    <div className="nb-panel space-y-3 p-4">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
         Quote · {roomName}
       </p>
 
@@ -23,12 +23,14 @@ export function QuoteCard({ quote, roomName }: Props) {
             <span className="min-w-0 truncate text-[color:var(--muted)]">
               {line.label}
             </span>
-            <span className="shrink-0 tabular-nums">{formatGbp(line.amount)}</span>
+            <span className="shrink-0 tabular-nums font-bold">
+              {formatGbp(line.amount)}
+            </span>
           </li>
         ))}
       </ul>
 
-      <div className="space-y-1 border-t border-[color:var(--line)] pt-2 font-mono text-[12px]">
+      <div className="space-y-1 border-t-2 border-[color:var(--ink)] pt-2 font-mono text-[12px]">
         <div className="flex justify-between gap-3 text-[color:var(--muted)]">
           <span>Subtotal</span>
           <span className="tabular-nums">{formatGbp(quote.subtotal)}</span>
@@ -37,14 +39,14 @@ export function QuoteCard({ quote, roomName }: Props) {
           <span>VAT (20%)</span>
           <span className="tabular-nums">{formatGbp(quote.vat)}</span>
         </div>
-        <div className="flex justify-between gap-3 pt-1 font-sans text-base font-semibold text-[color:var(--ink)]">
+        <div className="mt-1 flex justify-between gap-3 rounded-[var(--radius-sm)] bg-[color:var(--accent-3)] px-2.5 py-2 font-sans text-base font-bold text-[color:var(--ink)]">
           <span>Total</span>
           <span className="tabular-nums">{formatGbp(quote.total)}</span>
         </div>
       </div>
 
       {quote.belowMinSpend && (
-        <p className="font-mono text-[11px] text-[color:var(--warning)]">
+        <p className="font-mono text-[11px] font-bold text-[color:var(--warning)]">
           Includes {formatGbp(quote.minSpendTopUp)} minimum-spend top-up
         </p>
       )}

@@ -4,15 +4,21 @@ import { isTight } from "@/lib/feasibility";
 import type { Feasibility, FeasibilityStatus } from "@/lib/types";
 
 const COLOR: Record<FeasibilityStatus, string> = {
-  fits: "#0f7d4c",
-  warning: "#9a5b00",
-  cannot: "#a3222f",
+  fits: "#0d8f6a",
+  warning: "#c47a00",
+  cannot: "#d62839",
 };
 
 const LABEL: Record<FeasibilityStatus, string> = {
   fits: "Fits",
   warning: "Needs a change",
   cannot: "Can't host",
+};
+
+const BG: Record<FeasibilityStatus, string> = {
+  fits: "var(--accent)",
+  warning: "var(--accent-3)",
+  cannot: "var(--accent-4)",
 };
 
 type Props = {
@@ -40,13 +46,13 @@ export function FeasibilityCard({
     isTight(feasibility.used, feasibility.capacity);
 
   return (
-    <div className="space-y-3 border border-[color:var(--line)] bg-[color:var(--panel)] p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)]">
+    <div className="nb-panel space-y-3 p-4">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
         Feasibility
       </p>
 
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="font-sans text-lg tracking-tight" style={{ color }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-sans text-lg font-bold tracking-tight" style={{ color }}>
           {LABEL[feasibility.status]}
           {tight && (
             <span className="ml-1 font-medium" style={{ color: COLOR.warning }}>
@@ -54,22 +60,20 @@ export function FeasibilityCard({
             </span>
           )}
         </p>
-        <p className="font-sans text-sm text-[color:var(--ink)]">
-          {feasibility.room?.name ?? "No room"}
-        </p>
+        <span className="nb-chip nb-chip-yellow">{feasibility.room?.name ?? "No room"}</span>
       </div>
 
       <div>
-        <div className="mb-1 flex justify-between font-mono text-[11px] text-[color:var(--muted)]">
+        <div className="mb-1.5 flex justify-between font-mono text-[11px] font-bold text-[color:var(--muted)]">
           <span>
             {feasibility.used} / {feasibility.capacity} {styleLabel}
           </span>
           <span>{Math.round(pct)}%</span>
         </div>
-        <div className="h-1.5 w-full bg-[color:var(--line)]">
+        <div className="h-3 w-full overflow-hidden rounded-full border-2 border-[color:var(--ink)] bg-white">
           <div
             className="h-full transition-[width] duration-300"
-            style={{ width: `${pct}%`, background: color }}
+            style={{ width: `${pct}%`, background: BG[feasibility.status] }}
           />
         </div>
       </div>
@@ -83,11 +87,9 @@ export function FeasibilityCard({
       )}
 
       <label className="block">
-        <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">
-          Room override
-        </span>
+        <span className="nb-label">Room override</span>
         <select
-          className="w-full border border-[color:var(--line)] bg-[color:var(--panel)] px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--accent)]"
+          className="nb-input"
           value={roomOverride ?? ""}
           onChange={(e) =>
             onRoomOverride(e.target.value === "" ? null : e.target.value)

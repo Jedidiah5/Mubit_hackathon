@@ -95,29 +95,16 @@ const EMPTY: Record<Tab, string> = {
   accepted: "No dates held yet. When a client accepts, they land here.",
 };
 
-const PIPELINE_CHIP: Record<PipelineStatus, { label: string; color: string }> =
-  {
-    received: { label: "Received", color: "var(--muted)" },
-    proposed: { label: "Proposed", color: "var(--fits)" },
-    client_changes: { label: "Client changes", color: "var(--warning)" },
-    accepted: { label: "Accepted", color: "var(--accent)" },
-  };
+const PIPELINE_CHIP: Record<PipelineStatus, { label: string; cls: string }> = {
+  received: { label: "Received", cls: "nb-chip" },
+  proposed: { label: "Proposed", cls: "nb-chip nb-chip-teal" },
+  client_changes: { label: "Client changes", cls: "nb-chip nb-chip-yellow" },
+  accepted: { label: "Accepted", cls: "nb-chip nb-chip-purple" },
+};
 
 function PipelineChip({ status }: { status: PipelineStatus }) {
   const chip = PIPELINE_CHIP[status];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
-      style={{ color: chip.color }}
-    >
-      <span
-        className="inline-block size-1.5 rounded-full"
-        style={{ background: chip.color }}
-        aria-hidden
-      />
-      {chip.label}
-    </span>
-  );
+  return <span className={chip.cls}>{chip.label}</span>;
 }
 
 export default function InboxPage() {
@@ -243,61 +230,66 @@ export default function InboxPage() {
   }, [rows, processing]);
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col px-5 py-8 sm:px-8">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-6">
-          <div className="space-y-4">
-            <AppNav current="/" />
+    <main className="min-h-screen text-[color:var(--ink)]">
+      <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-6 sm:px-8 sm:py-10">
+        <header className="nb-frame mb-6 space-y-5 p-4 sm:mb-8 sm:p-6">
+          <AppNav current="/" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="font-sans text-3xl tracking-tight sm:text-4xl">
-                Inbox
-              </h1>
-              <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
+              <div className="mb-3 flex items-center gap-3">
+                <span className="nb-mark" aria-hidden>
+                  ✦
+                </span>
+                <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
+                  Inbox
+                </h1>
+              </div>
+              <p className="font-mono text-xs font-bold text-[color:var(--muted)]">
                 The Wharf Rooms · {countLabel}
               </p>
               {origin && (
-                <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
-                  Enquiry form: {origin}/enquire
+                <p className="mt-2 break-all font-mono text-[11px] text-[color:var(--muted)]">
+                  Enquiry form:{" "}
+                  <span className="nb-chip nb-chip-yellow !normal-case tracking-normal">
+                    {origin}/enquire
+                  </span>
                 </p>
               )}
               {processProgress && (
-                <p className="mt-1 font-mono text-[11px] text-[color:var(--warning)]">
+                <p className="mt-2 font-mono text-[11px] font-bold text-[color:var(--warning)]">
                   {processProgress}
                 </p>
               )}
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void processAll()}
-              disabled={processing || unprocessed.length === 0}
-              className="border border-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)] transition hover:bg-[color:var(--panel)] disabled:opacity-40"
-            >
-              {processing
-                ? "Processing…"
-                : `Process all${unprocessed.length ? ` (${unprocessed.length})` : ""}`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPasteOpen(true)}
-              className="bg-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] transition hover:opacity-90"
-            >
-              Paste new enquiry
-            </button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                onClick={() => void processAll()}
+                disabled={processing || unprocessed.length === 0}
+                className="nb-btn"
+              >
+                {processing
+                  ? "Processing…"
+                  : `Process all${unprocessed.length ? ` (${unprocessed.length})` : ""}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPasteOpen(true)}
+                className="nb-btn nb-btn-ink"
+              >
+                Paste new enquiry
+              </button>
+            </div>
           </div>
         </header>
 
         {error && (
-          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
+          <p className="nb-banner nb-banner-bad mb-6 font-mono text-xs font-bold text-[color:var(--cannot)]">
             {error}
           </p>
         )}
 
-        <div
-          role="tablist"
-          className="mb-6 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.16em]"
-        >
+        <div role="tablist" className="nb-tablist mb-5">
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
@@ -307,14 +299,10 @@ export default function InboxPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
-                className={`border-b-2 pb-2.5 transition ${
-                  active
-                    ? "border-[color:var(--ink)] text-[color:var(--ink)]"
-                    : "border-transparent text-[color:var(--muted)] hover:text-[color:var(--ink)]"
-                }`}
+                className={`nb-tab ${active ? "is-active" : ""}`}
               >
                 {t.label}
-                <span className="ml-1.5 tabular-nums opacity-60">
+                <span className="ml-1.5 tabular-nums opacity-70">
                   {loading ? "·" : byTab[t.id].length}
                 </span>
               </button>
@@ -322,7 +310,7 @@ export default function InboxPage() {
           })}
         </div>
 
-        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
+        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--muted)] lg:grid">
           <span>From</span>
           <span>Subject</span>
           <span className="text-right">Guests</span>
@@ -331,21 +319,23 @@ export default function InboxPage() {
           <span className="text-right">Received</span>
         </div>
 
-        <ul className="divide-y divide-[color:var(--line)] border-y border-[color:var(--line)] bg-[color:var(--panel)]/60">
+        <ul className="nb-frame divide-y-2 divide-[color:var(--ink)] overflow-hidden !rounded-[var(--radius)] !p-0">
           {loading && rows.length === 0 && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               Listening for enquiries…
             </li>
           )}
           {!loading && rows.length === 0 && !error && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               Inbox empty. Seed with{" "}
-              <code className="text-[color:var(--ink)]">npm run seed:inbox</code> or
-              paste a new enquiry.
+              <code className="font-bold text-[color:var(--ink)]">
+                npm run seed:inbox
+              </code>{" "}
+              or paste a new enquiry.
             </li>
           )}
           {!loading && rows.length > 0 && visible.length === 0 && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               {EMPTY[tab]}
             </li>
           )}
@@ -360,18 +350,21 @@ export default function InboxPage() {
               <li key={row.id}>
                 <Link
                   href={`/enquiry/${row.id}`}
-                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] md:items-center md:gap-4"
+                  className="grid grid-cols-1 gap-3 px-4 py-4 transition hover:bg-[color:var(--accent-3)]/35 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] lg:items-center lg:gap-4"
                 >
-                  <span className="truncate font-sans text-sm">
+                  <span className="truncate font-sans text-sm font-bold">
                     {senderName(row.from)}
                   </span>
                   <span className="truncate text-sm text-[color:var(--muted)]">
                     {row.subject}
                   </span>
-                  <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
+                  <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] lg:text-right">
+                    <span className="mr-2 font-mono text-[10px] uppercase lg:hidden">
+                      Guests
+                    </span>
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
-                  <span className="flex flex-col gap-0.5">
+                  <span className="flex flex-wrap gap-1.5">
                     <PipelineChip status={pipe} />
                     {!guessed && feas && (
                       <StatusChip
@@ -386,10 +379,13 @@ export default function InboxPage() {
                       needsInfo={needsInfo(missing)}
                     />
                   </span>
-                  <span className="font-mono text-sm tabular-nums text-[color:var(--ink)] md:text-right">
+                  <span className="font-mono text-sm font-bold tabular-nums text-[color:var(--ink)] lg:text-right">
+                    <span className="mr-2 font-mono text-[10px] font-normal uppercase text-[color:var(--muted)] lg:hidden">
+                      Est.
+                    </span>
                     {est ?? "—"}
                   </span>
-                  <span className="font-mono text-[11px] text-[color:var(--muted)] md:text-right">
+                  <span className="font-mono text-[11px] text-[color:var(--muted)] lg:text-right">
                     {formatWhen(row.receivedAt)}
                   </span>
                 </Link>

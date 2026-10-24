@@ -1,30 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm cream / sand chrome — matches the 3D room, not a dark editorial UI */
-  --background: #ebe2d0;
-  --foreground: #1d2433;
-  --ink: #1d2433;
-  --muted: #5b6478;
-  --panel: #f7f2e8;
-  --panel-2: #fbf8f1;
-  --line: rgba(29, 36, 51, 0.12);
-  --accent: #6a8f2a;
-  --accent-bright: #c8ff00;
-  --fits: #0f7d4c;
-  --warning: #9a5b00;
-  --cannot: #a3222f;
+  /* Neo-brutal — cream field, hard ink, loud accents */
+  --background: #f5f2ed;
+  --foreground: #111111;
+  --ink: #111111;
+  --muted: #5c5c5c;
+  --panel: #ffffff;
+  --panel-2: #faf8f4;
+  --line: #111111;
+  --border: 2.5px solid #111111;
+  --shadow: 4px 4px 0 0 #111111;
+  --shadow-sm: 3px 3px 0 0 #111111;
+  --shadow-lg: 6px 6px 0 0 #111111;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
 
-  /* Scene HUD (light glass over the warm 3D) */
-  --hud-ink: #1d2433;
-  --hud-soft: #5b6478;
-  --hud-bg: rgba(255, 255, 255, 0.92);
-  --hud-line: rgba(29, 36, 51, 0.08);
-  --hud-shadow:
-    0 0 0 1px rgba(29, 36, 51, 0.06),
-    0 2px 4px rgba(17, 24, 39, 0.06),
-    0 8px 24px rgba(17, 24, 39, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --accent: #2ec4b6;
+  --accent-2: #7c6cf0;
+  --accent-3: #f0c419;
+  --accent-4: #ef4b4b;
+  --accent-5: #f97316;
+  --accent-bright: #f0c419;
+
+  --fits: #0d8f6a;
+  --warning: #c47a00;
+  --cannot: #d62839;
+
+  /* Scene HUD — brutal glass */
+  --hud-ink: #111111;
+  --hud-soft: #5c5c5c;
+  --hud-bg: #ffffff;
+  --hud-line: #111111;
+  --hud-shadow: 3px 3px 0 0 #111111;
   --hud-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --hud-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -38,11 +47,229 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--accent-3) 22%, transparent) 0 120px, transparent 121px),
+    radial-gradient(circle at 88% 12%, color-mix(in oklab, var(--accent) 18%, transparent) 0 90px, transparent 91px),
+    radial-gradient(circle at 78% 78%, color-mix(in oklab, var(--accent-2) 14%, transparent) 0 110px, transparent 111px),
+    radial-gradient(circle at 18% 82%, color-mix(in oklab, var(--accent-4) 12%, transparent) 0 80px, transparent 81px),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      color-mix(in oklab, var(--ink) 3.5%, transparent) 23px,
+      color-mix(in oklab, var(--ink) 3.5%, transparent) 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      color-mix(in oklab, var(--ink) 3.5%, transparent) 23px,
+      color-mix(in oklab, var(--ink) 3.5%, transparent) 24px
+    );
+  background-attachment: fixed;
   color: var(--foreground);
 }
 
-/* ---------- Scene HUD (light glass pills over the warm 3D) ---------- */
+/* ---------- Neo-brutal primitives ---------- */
+
+.nb-frame {
+  border: var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.nb-panel {
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.nb-input {
+  width: 100%;
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--ink);
+  outline: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s var(--hud-ease), box-shadow 0.1s var(--hud-ease);
+}
+.nb-input:focus {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #111111;
+}
+
+.nb-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 0.7rem 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s var(--hud-ease), box-shadow 0.1s var(--hud-ease);
+  cursor: pointer;
+}
+.nb-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #111111;
+}
+.nb-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 #111111;
+}
+.nb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.nb-btn-ink {
+  background: var(--ink);
+  color: #f5f2ed;
+}
+.nb-btn-teal {
+  background: var(--accent);
+  color: var(--ink);
+}
+.nb-btn-yellow {
+  background: var(--accent-3);
+  color: var(--ink);
+}
+.nb-btn-red {
+  background: var(--accent-4);
+  color: #fff;
+}
+.nb-btn-purple {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+.nb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 0 #111111;
+  color: var(--ink);
+}
+.nb-chip-teal {
+  background: var(--accent);
+}
+.nb-chip-yellow {
+  background: var(--accent-3);
+}
+.nb-chip-purple {
+  background: var(--accent-2);
+  color: #fff;
+}
+.nb-chip-red {
+  background: var(--accent-4);
+  color: #fff;
+}
+.nb-chip-orange {
+  background: var(--accent-5);
+  color: #fff;
+}
+
+.nb-tablist {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  -webkit-overflow-scrolling: touch;
+}
+.nb-tab {
+  flex: 1 0 auto;
+  min-width: max-content;
+  border: 0;
+  border-right: 2px solid var(--ink);
+  background: transparent;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nb-tab:last-child {
+  border-right: 0;
+}
+.nb-tab[aria-selected="true"],
+.nb-tab.is-active {
+  background: var(--accent-3);
+  color: var(--ink);
+}
+
+.nb-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: var(--border);
+  border-radius: 12px;
+  background: var(--accent-4);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.nb-banner {
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.nb-banner-ok {
+  background: color-mix(in oklab, var(--accent) 35%, white);
+}
+.nb-banner-warn {
+  background: color-mix(in oklab, var(--accent-3) 45%, white);
+}
+.nb-banner-bad {
+  background: color-mix(in oklab, var(--accent-4) 22%, white);
+}
+
+/* ---------- Scene HUD ---------- */
 
 .btf-hud {
   position: absolute;
@@ -53,7 +280,6 @@ body {
   color: var(--hud-ink);
   container-type: inline-size;
 }
-/* Narrow canvases: the footnote and legend would collide, keep the legend. */
 @container (max-width: 720px) {
   .btf-hud__bl {
     display: none;
@@ -70,24 +296,24 @@ body {
   gap: 8px;
 }
 .btf-hud__tl {
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  left: 10px;
   flex-direction: column;
   align-items: flex-start;
 }
 .btf-hud__br {
-  right: 12px;
-  bottom: 12px;
+  right: 10px;
+  bottom: 10px;
   flex-direction: column;
   align-items: flex-end;
 }
 .btf-hud__bl {
-  left: 64px;
-  bottom: 12px;
+  left: 56px;
+  bottom: 10px;
 }
 .btf-hud__bc {
   left: 50%;
-  bottom: 12px;
+  bottom: 10px;
   transform: translateX(-50%);
 }
 .btf-hud__stack {
@@ -103,58 +329,54 @@ body {
   gap: 8px;
   padding: 7px 12px;
   border-radius: 999px;
+  border: 2px solid #111;
   background: var(--hud-bg);
   color: var(--hud-ink);
   box-shadow: var(--hud-shadow);
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.1;
   white-space: nowrap;
   transition:
     transform 0.12s var(--hud-ease),
-    box-shadow 0.15s var(--hud-ease),
-    background-color 0.15s var(--hud-ease);
+    box-shadow 0.15s var(--hud-ease);
 }
 .btf-pill--lg {
   padding: 8px 14px 8px 12px;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  border-radius: 16px;
+  border-radius: 14px;
 }
 .btf-pill--sm {
   padding: 6px 10px;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--hud-soft);
 }
 .btf-pill--dark {
-  background: rgba(17, 19, 24, 0.92);
-  color: #f4efe6;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 8px 28px rgba(0, 0, 0, 0.35);
+  background: #111;
+  color: #f5f2ed;
 }
 .btf-pill--btn {
   cursor: pointer;
-  border: 0;
   font: inherit;
   font-weight: 700;
   font-size: 12.5px;
   padding: 9px 14px;
 }
 .btf-pill--btn:hover {
-  transform: translateY(-1px);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #111;
 }
 .btf-pill--btn:active {
-  transform: translateY(0) scale(0.98);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 #111;
 }
 .btf-pill--btn.is-active {
-  background: var(--hud-ink);
-  color: #fff;
+  background: var(--accent-3);
+  color: #111;
 }
 .btf-pill__title {
   font-size: 14px;
@@ -179,19 +401,19 @@ body {
   font-weight: 700;
 }
 .btf-pill--fits {
-  color: #0f7d4c;
-  background: rgba(236, 253, 243, 0.94);
+  color: var(--fits);
+  background: #d8f5ea;
 }
 .btf-pill--warning {
-  color: #9a5b00;
-  background: rgba(255, 247, 230, 0.94);
+  color: var(--warning);
+  background: #fff3cc;
 }
 .btf-pill--cannot {
-  color: #a3222f;
-  background: rgba(255, 238, 240, 0.94);
+  color: var(--cannot);
+  background: #ffd6db;
 }
 .btf-pill__tight {
-  color: #9a5b00;
+  color: var(--warning);
   font-weight: 600;
 }
 .btf-pill__gauge {
@@ -200,14 +422,15 @@ body {
   gap: 6px;
   margin-left: 4px;
   padding-left: 10px;
-  border-left: 1px solid var(--hud-line);
+  border-left: 2px solid #111;
 }
 .btf-pill__gauge-bar {
   position: relative;
   width: 64px;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: color-mix(in oklab, currentColor 14%, transparent);
+  border: 1.5px solid #111;
+  background: #fff;
   overflow: hidden;
 }
 .btf-pill__gauge-bar > span {
@@ -219,7 +442,7 @@ body {
 }
 .btf-pill__gauge-text {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 11.5px;
 }
 
@@ -227,26 +450,23 @@ body {
   pointer-events: auto;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 0;
-  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #111;
+  border-radius: 12px;
   background: var(--hud-bg);
   color: var(--hud-ink);
   box-shadow: var(--hud-shadow);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   cursor: pointer;
-  transition:
-    transform 0.12s var(--hud-ease),
-    background-color 0.15s var(--hud-ease);
+  transition: transform 0.12s var(--hud-ease);
 }
 .btf-icon:hover {
-  transform: translateY(-1px);
-  background: #fff;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 #111;
 }
 .btf-icon:active {
-  transform: scale(0.94);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 #111;
 }
 
 .btf-legend {
@@ -262,6 +482,7 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 3px;
+  border: 1.5px solid #111;
 }
 .btf-legend__checker {
   background:
@@ -271,7 +492,6 @@ body {
   background-position: 0 0, 3px 3px;
 }
 
-/* Motion */
 @keyframes btf-pop {
   0% {
     opacity: 0;
@@ -323,5 +543,23 @@ body {
   .btf-shimmer,
   .btf-pill--status .btf-dot {
     animation: none;
+  }
+}
+
+/* Mobile touch targets */
+@media (max-width: 640px) {
+  .nb-btn {
+    min-height: 48px;
+  }
+  .nb-btn.nb-btn-block,
+  .nb-btn.w-full {
+    width: 100%;
+  }
+  .nb-input {
+    min-height: 48px;
+    font-size: 16px; /* avoid iOS zoom */
+  }
+  .nb-tablist {
+    width: 100%;
   }
 }

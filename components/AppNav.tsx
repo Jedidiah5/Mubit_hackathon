@@ -11,24 +11,28 @@ type Props = { current?: string };
 
 export function AppNav({ current }: Props) {
   return (
-    <nav className="flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-[0.16em]">
-      <Link href="/" className="font-bold text-[color:var(--ink)]">
+    <nav className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <Link
+        href="/"
+        className="nb-chip nb-chip-red !normal-case tracking-tight"
+        style={{ fontFamily: "var(--font-sans)", fontSize: "12px" }}
+      >
         BriefToFloor
       </Link>
-      <span className="text-[color:var(--line)]">/</span>
-      {LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={
-            current === link.href
-              ? "text-[color:var(--ink)]"
-              : "text-[color:var(--muted)] hover:text-[color:var(--ink)]"
-          }
-        >
-          {link.label}
-        </Link>
-      ))}
+      <div className="nb-tablist !shadow-none sm:!shadow-[var(--shadow-sm)]">
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`nb-tab no-underline ${
+              current === link.href ? "is-active" : ""
+            }`}
+            aria-current={current === link.href ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

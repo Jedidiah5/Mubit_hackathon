@@ -16,15 +16,14 @@ function formatWhen(iso: string): string {
   });
 }
 
-/** Tells the coordinator the spec is an AI draft until they approve it. */
 export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
   if (approvedAt) {
     return (
-      <div className="border border-[color:var(--fits)]/30 bg-[color:var(--fits)]/8 px-3 py-2.5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--fits)]">
-          Approved by coordinator · {formatWhen(approvedAt)}
+      <div className="nb-banner nb-banner-ok">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--fits)]">
+          Approved · {formatWhen(approvedAt)}
         </p>
-        <p className="mt-1 text-xs text-[color:var(--muted)]">
+        <p className="mt-1 text-xs text-[color:var(--ink)]">
           {verdict === "corrected"
             ? "Your fixes are saved and shape future drafts."
             : "Approved as drafted."}{" "}
@@ -36,11 +35,11 @@ export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
 
   if (needsInfo(missing)) {
     return (
-      <div className="border border-[color:var(--cannot)]/30 bg-[color:var(--cannot)]/6 px-3 py-2.5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--cannot)]">
+      <div className="nb-banner nb-banner-bad">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--cannot)]">
           Needs info · ask the client
         </p>
-        <ul className="mt-1.5 space-y-0.5 text-xs text-[color:var(--ink)]">
+        <ul className="mt-1.5 space-y-0.5 text-xs font-medium text-[color:var(--ink)]">
           {missing.map((m) => (
             <li key={m}>· {MISSING_LABEL[m]}</li>
           ))}
@@ -54,16 +53,16 @@ export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
   }
 
   return (
-    <div className="border border-[color:var(--warning)]/35 bg-[color:var(--warning)]/8 px-3 py-2.5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--warning)]">
+    <div className="nb-banner nb-banner-warn">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
         Needs review · AI draft
       </p>
-      <p className="mt-1 text-xs text-[color:var(--muted)]">
+      <p className="mt-1 text-xs text-[color:var(--ink)]">
         Drafted from the email. Check each field before approving. Every fix
         teaches the next draft.
       </p>
       {missing.includes("date") && (
-        <p className="mt-1 text-xs text-[color:var(--ink)]">
+        <p className="mt-1 text-xs font-medium text-[color:var(--ink)]">
           Not in the email: date. The reply will ask for it.
         </p>
       )}

@@ -38,11 +38,6 @@ const EXTRA_LABEL: Record<Extra, string> = {
   photo_booth: "Photo booth",
 };
 
-const fieldClass =
-  "w-full border border-[color:var(--line)] bg-[color:var(--panel)] px-2.5 py-2 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--ink)]";
-const labelClass =
-  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]";
-
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
@@ -198,34 +193,31 @@ export function PlanClient() {
   const hero = `${eventLabel(enquiry, spec)} · ${room.name} · ${dateLabel} · ${spec.guests} guests`;
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-16 pt-6 sm:px-6">
-        <header className="shrink-0">
+    <main className="min-h-screen text-[color:var(--ink)]">
+      <div className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-16 pt-5 sm:px-6 sm:pt-8">
+        <header className="nb-frame shrink-0 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted)]">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
               The Wharf Rooms · proposal
             </p>
-            <Link
-              href={`/e/${id}`}
-              className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)] underline-offset-4 hover:underline"
-            >
+            <Link href={`/e/${id}`} className="nb-chip">
               ← Status
             </Link>
           </div>
-          <h1 className="mt-2 font-sans text-xl tracking-tight sm:text-2xl">
+          <h1 className="mt-3 font-sans text-xl font-bold tracking-tight sm:text-2xl">
             {hero}
           </h1>
           {pipeline === "client_changes" &&
             enquiry.changeRequest?.status === "pending" && (
-              <p className="mt-2 font-mono text-[11px] text-[color:var(--warning)]">
+              <p className="nb-chip nb-chip-yellow mt-3">
                 Change request sent — waiting on the venue
               </p>
             )}
         </header>
 
         {accepted ? (
-          <div className="mt-8 border border-[color:var(--fits)]/35 bg-[color:var(--fits)]/10 px-5 py-8 text-center">
-            <p className="font-sans text-2xl tracking-tight text-[color:var(--fits)]">
+          <div className="nb-banner nb-banner-ok mt-5 px-5 py-8 text-center">
+            <p className="font-sans text-2xl font-bold tracking-tight text-[color:var(--fits)]">
               Date held
             </p>
             <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
@@ -234,7 +226,7 @@ export function PlanClient() {
           </div>
         ) : null}
 
-        <div className="relative mt-6 aspect-[4/3] w-full overflow-hidden border border-[color:var(--line)] sm:aspect-[16/10]">
+        <div className="nb-panel relative mt-5 aspect-[4/3] w-full overflow-hidden !p-0 sm:aspect-[16/10]">
           <RoomCanvas
             room={room}
             items={items}
@@ -251,21 +243,27 @@ export function PlanClient() {
           />
         </div>
 
-        <div className="mt-6 space-y-6">
-          {liveQuote && (
-            <QuoteCard quote={liveQuote} roomName={room.name} />
-          )}
+        <div className="mt-5 space-y-5">
+          {liveQuote && <QuoteCard quote={liveQuote} roomName={room.name} />}
 
           {included.length > 0 && (
-            <section>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">
+            <section className="nb-panel p-4">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
                 Included
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {included.map((chip) => (
+                {included.map((chip, i) => (
                   <span
                     key={chip}
-                    className="border border-[color:var(--line)] bg-[color:var(--panel)] px-2.5 py-1 font-mono text-[11px] text-[color:var(--ink)]"
+                    className={`nb-chip ${
+                      i % 4 === 0
+                        ? "nb-chip-teal"
+                        : i % 4 === 1
+                          ? "nb-chip-yellow"
+                          : i % 4 === 2
+                            ? "nb-chip-purple"
+                            : "nb-chip-orange"
+                    }`}
                   >
                     {chip}
                   </span>
@@ -275,7 +273,7 @@ export function PlanClient() {
           )}
 
           {saveError && (
-            <p className="font-mono text-xs text-[color:var(--cannot)]">
+            <p className="nb-banner nb-banner-bad font-mono text-xs font-bold text-[color:var(--cannot)]">
               {saveError}
             </p>
           )}
@@ -286,7 +284,7 @@ export function PlanClient() {
                 type="button"
                 onClick={openAdjust}
                 disabled={saving}
-                className="flex-1 border border-[color:var(--ink)] px-4 py-3.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)] disabled:opacity-50"
+                className="nb-btn flex-1"
               >
                 Request changes
               </button>
@@ -294,7 +292,7 @@ export function PlanClient() {
                 type="button"
                 onClick={() => void acceptHold()}
                 disabled={saving}
-                className="flex-1 bg-[color:var(--ink)] px-4 py-3.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] disabled:opacity-50"
+                className="nb-btn nb-btn-ink flex-1"
               >
                 Accept & hold the date
               </button>
@@ -305,20 +303,20 @@ export function PlanClient() {
 
       {adjustOpen && draft && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/40 sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/50 p-0 sm:items-center sm:p-6"
           role="dialog"
           aria-modal
           aria-label="Request changes"
         >
-          <div className="max-h-[92vh] w-full max-w-md overflow-y-auto border border-[color:var(--line)] bg-[color:var(--background)] p-5 shadow-lg sm:max-h-[85vh]">
+          <div className="nb-frame max-h-[92vh] w-full max-w-md overflow-y-auto !rounded-b-none p-5 sm:max-h-[85vh] sm:!rounded-[var(--radius)]">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
                 Request changes
               </p>
               <button
                 type="button"
                 onClick={() => setAdjustOpen(false)}
-                className="font-mono text-[11px] text-[color:var(--muted)]"
+                className="nb-chip"
               >
                 Close
               </button>
@@ -326,9 +324,9 @@ export function PlanClient() {
 
             <div className="mt-4 space-y-4">
               <label className="block">
-                <span className={labelClass}>Layout</span>
+                <span className="nb-label">Layout</span>
                 <select
-                  className={fieldClass}
+                  className="nb-input"
                   value={draft.style}
                   onChange={(e) =>
                     setDraft({ ...draft, style: e.target.value as Style })
@@ -343,11 +341,11 @@ export function PlanClient() {
               </label>
 
               <div>
-                <span className={labelClass}>Guests</span>
+                <span className="nb-label">Guests</span>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    className="border border-[color:var(--line)] px-3 py-2 font-mono text-sm"
+                    className="nb-btn !min-h-0 !w-auto px-3 py-2"
                     onClick={() =>
                       setDraft({
                         ...draft,
@@ -357,12 +355,12 @@ export function PlanClient() {
                   >
                     −5
                   </button>
-                  <span className="min-w-[3rem] text-center font-sans text-xl tabular-nums">
+                  <span className="min-w-[3rem] text-center font-sans text-xl font-bold tabular-nums">
                     {draft.guests}
                   </span>
                   <button
                     type="button"
-                    className="border border-[color:var(--line)] px-3 py-2 font-mono text-sm"
+                    className="nb-btn !min-h-0 !w-auto px-3 py-2"
                     onClick={() =>
                       setDraft({
                         ...draft,
@@ -376,7 +374,7 @@ export function PlanClient() {
               </div>
 
               <div>
-                <span className={labelClass}>Extras</span>
+                <span className="nb-label">Extras</span>
                 <div className="flex flex-wrap gap-2">
                   {EXTRAS.map((extra) => {
                     const on = draft.extras.includes(extra);
@@ -390,11 +388,7 @@ export function PlanClient() {
                             : [...draft.extras, extra];
                           setDraft({ ...draft, extras });
                         }}
-                        className={`border px-2.5 py-1.5 font-mono text-[11px] ${
-                          on
-                            ? "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--panel-2)]"
-                            : "border-[color:var(--line)] text-[color:var(--muted)]"
-                        }`}
+                        className={`nb-chip ${on ? "nb-chip-teal" : ""}`}
                       >
                         {EXTRA_LABEL[extra]}
                       </button>
@@ -403,11 +397,11 @@ export function PlanClient() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className={labelClass}>Stage wall</span>
+                  <span className="nb-label">Stage wall</span>
                   <select
-                    className={fieldClass}
+                    className="nb-input"
                     value={draft.stage}
                     onChange={(e) =>
                       setDraft({ ...draft, stage: e.target.value as Wall })
@@ -421,9 +415,9 @@ export function PlanClient() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className={labelClass}>Bar wall</span>
+                  <span className="nb-label">Bar wall</span>
                   <select
-                    className={fieldClass}
+                    className="nb-input"
                     value={draft.bar}
                     onChange={(e) =>
                       setDraft({ ...draft, bar: e.target.value as Wall })
@@ -438,9 +432,10 @@ export function PlanClient() {
                 </label>
               </div>
 
-              <label className="flex items-center gap-2 font-mono text-[12px]">
+              <label className="flex items-center gap-2 font-mono text-[12px] font-bold">
                 <input
                   type="checkbox"
+                  className="size-5 accent-[color:var(--ink)]"
                   checked={draft.accessible}
                   onChange={(e) =>
                     setDraft({ ...draft, accessible: e.target.checked })
@@ -450,10 +445,10 @@ export function PlanClient() {
               </label>
 
               <label className="block">
-                <span className={labelClass}>Note to the venue</span>
+                <span className="nb-label">Note to the venue</span>
                 <textarea
                   rows={3}
-                  className={`${fieldClass} resize-y`}
+                  className="nb-input resize-y"
                   placeholder="Anything else we should know…"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
@@ -465,7 +460,7 @@ export function PlanClient() {
               type="button"
               disabled={saving}
               onClick={() => void submitChanges()}
-              className="mt-5 w-full bg-[color:var(--ink)] px-4 py-3.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] disabled:opacity-50"
+              className="nb-btn nb-btn-ink mt-5 w-full"
             >
               {saving ? "Sending…" : "Send change request"}
             </button>
