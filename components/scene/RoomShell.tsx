@@ -33,6 +33,7 @@ type Props = {
   yaw: number;
 };
 
+/** Room shell renders immediately (no blank canvas while furniture builds). */
 export function RoomShell({ room, yaw }: Props) {
   const { widthM: w, lengthM: l } = room;
   const hx = w / 2;
@@ -55,7 +56,6 @@ export function RoomShell({ room, yaw }: Props) {
 
   return (
     <group>
-      {/* Floor tiles — 1 m × 1 m */}
       {tiles.map((t) => (
         <mesh
           key={`t-${t.x}-${t.z}`}
@@ -72,34 +72,16 @@ export function RoomShell({ room, yaw }: Props) {
       ))}
 
       {walls.includes("north") && (
-        <WallSegment
-          cx={0}
-          cz={-hz}
-          length={w}
-          axis="x"
-          windows
-        />
+        <WallSegment cx={0} cz={-hz} length={w} axis="x" windows />
       )}
       {walls.includes("south") && (
         <SouthWallWithDoor hx={hx} hz={hz} width={w} />
       )}
       {walls.includes("east") && (
-        <WallSegment
-          cx={hx}
-          cz={0}
-          length={l}
-          axis="z"
-          windows
-        />
+        <WallSegment cx={hx} cz={0} length={l} axis="z" windows />
       )}
       {walls.includes("west") && (
-        <WallSegment
-          cx={-hx}
-          cz={0}
-          length={l}
-          axis="z"
-          windows
-        />
+        <WallSegment cx={-hx} cz={0} length={l} axis="z" windows />
       )}
     </group>
   );
@@ -127,10 +109,7 @@ function WallSegment({
       </mesh>
       {windows &&
         [-0.28, 0.28].map((u) => (
-          <mesh
-            key={u}
-            position={[u * length * 0.55, 0.35, WALL_T * 0.6]}
-          >
+          <mesh key={u} position={[u * length * 0.55, 0.35, WALL_T * 0.6]}>
             <boxGeometry args={[length * 0.22, 1.1, 0.04]} />
             <meshStandardMaterial
               color={palette.window}
@@ -159,7 +138,6 @@ function SouthWallWithDoor({
 
   return (
     <group>
-      {/* Left / right wall panels with door gap */}
       <mesh
         position={[leftCenterX, WALL_H / 2, hz]}
         castShadow
@@ -176,7 +154,6 @@ function SouthWallWithDoor({
         <boxGeometry args={[side, WALL_H, WALL_T]} />
         <meshStandardMaterial color={palette.wall} roughness={0.9} />
       </mesh>
-      {/* Lintel above the door */}
       <mesh position={[0, lintelY, hz]} castShadow receiveShadow>
         <boxGeometry args={[DOOR_W, WALL_H - DOOR_H, WALL_T]} />
         <meshStandardMaterial color={palette.wallEdge} roughness={0.9} />

@@ -2,77 +2,24 @@
 
 import { Instance, Instances } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { Group, Object3D } from "three";
 import type { LayoutItem, LayoutKind } from "@/lib/types";
+import { popScale } from "./buildAnim";
 import { palette } from "./palette";
 
-const BUILD_S = 1.5;
+type Props = { items: LayoutItem[]; time: () => number };
 
-function phaseFor(kind: LayoutKind): { start: number; end: number } {
-  if (kind === "chair") return { start: 0.4, end: 1.0 };
-  if (
-    kind === "guest_seated" ||
-    kind === "guest_standing" ||
-    kind === "guest_overflow"
-  ) {
-    return { start: 0.85, end: 1.5 };
-  }
-  return { start: 0.05, end: 0.55 };
-}
-
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.min(
-    1,
-    Math.max(0, (x - edge0) / Math.max(1e-6, edge1 - edge0)),
-  );
-  return t * t * (3 - 2 * t);
-}
-
-function popScale(
-  kind: LayoutKind,
-  index: number,
-  count: number,
-  t: number,
-): number {
-  const { start, end } = phaseFor(kind);
-  const span = Math.max(0.05, end - start);
-  const stagger = count <= 1 ? 0 : (index / (count - 1)) * span * 0.85;
-  const local = start + stagger;
-  return Math.max(0.001, smoothstep(local, local + 0.18, t));
-}
-
-type Props = { items: LayoutItem[] };
-
-export function Items({ items }: Props) {
-  const clock = useRef(0);
-  const itemKey = useMemo(
-    () =>
-      items
-        .map((i) => `${i.kind}:${i.x.toFixed(2)}:${i.z.toFixed(2)}`)
-        .join("|"),
-    [items],
-  );
-
-  useEffect(() => {
-    clock.current = 0;
-  }, [itemKey]);
-
-  useFrame((_, dt) => {
-    clock.current = Math.min(BUILD_S + 0.35, clock.current + dt);
-  });
-
+export function Items({ items, time }: Props) {
   const byKind = useMemo(() => {
     const map = new Map<LayoutKind, LayoutItem[]>();
-    for (const item of items) {
-      const list = map.get(item.kind) ?? [];
-      list.push(item);
-      map.set(item.kind, list);
+    for (const it of items) {
+      const list = map.get(it.kind) ?? [];
+      list.push(it);
+      map.set(it.kind, list);
     }
     return map;
   }, [items]);
-
-  const time = () => clock.current;
 
   return (
     <group>
@@ -95,70 +42,38 @@ export function Items({ items }: Props) {
         kind="guest_overflow"
       />
 
-      {(byKind.get("stage") ?? []).map((it, i, arr) => (
-        <FeatureStage
-          key={`stage-${i}`}
-          item={it}
-          index={i}
-          count={arr.length}
-          time={time}
-        />
+      {(byKind.get("stage") ?? []).map((it, i) => (
+        <FeatureStage key={`stage-${i}`} item={it} index={i} time={time} />
       ))}
-      {(byKind.get("bar") ?? []).map((it, i, arr) => (
-        <FeatureBar
-          key={`bar-${i}`}
-          item={it}
-          index={i}
-          count={arr.length}
-          time={time}
-        />
+      {(byKind.get("bar") ?? []).map((it, i) => (
+        <FeatureBar key={`bar-${i}`} item={it} index={i} time={time} />
       ))}
-      {(byKind.get("dance_floor") ?? []).map((it, i, arr) => (
-        <FeatureDance
-          key={`dance-${i}`}
-          item={it}
-          index={i}
-          count={arr.length}
-          time={time}
-        />
+      {(byKind.get("dance_floor") ?? []).map((it, i) => (
+        <FeatureDance key={`dance-${i}`} item={it} index={i} time={time} />
       ))}
-      {(byKind.get("dj_booth") ?? []).map((it, i, arr) => (
+      {(byKind.get("dj_booth") ?? []).map((it, i) => (
         <FeatureBooth
           key={`dj-${i}`}
           item={it}
           index={i}
-          count={arr.length}
           time={time}
           kind="dj_booth"
         />
       ))}
-      {(byKind.get("photo_booth") ?? []).map((it, i, arr) => (
+      {(byKind.get("photo_booth") ?? []).map((it, i) => (
         <FeatureBooth
           key={`photo-${i}`}
           item={it}
           index={i}
-          count={arr.length}
           time={time}
           kind="photo_booth"
         />
       ))}
-      {(byKind.get("lectern") ?? []).map((it, i, arr) => (
-        <FeatureLectern
-          key={`lec-${i}`}
-          item={it}
-          index={i}
-          count={arr.length}
-          time={time}
-        />
+      {(byKind.get("lectern") ?? []).map((it, i) => (
+        <FeatureLectern key={`lec-${i}`} item={it} index={i} time={time} />
       ))}
-      {(byKind.get("projector") ?? []).map((it, i, arr) => (
-        <FeatureProjector
-          key={`proj-${i}`}
-          item={it}
-          index={i}
-          count={arr.length}
-          time={time}
-        />
+      {(byKind.get("projector") ?? []).map((it, i) => (
+        <FeatureProjector key={`proj-${i}`} item={it} index={i} time={time} />
       ))}
     </group>
   );
@@ -166,10 +81,18 @@ export function Items({ items }: Props) {
 
 type Timed = { items: LayoutItem[]; time: () => number };
 
+function seedFor(kind: LayoutKind, index: number, x: number, z: number): number {
+  return (
+    index * 97 +
+    kind.length * 13 +
+    Math.round(x * 10) * 3 +
+    Math.round(z * 10) * 7
+  );
+}
+
 function AnimatedInstance({
   kind,
   index,
-  count,
   time,
   color,
   position,
@@ -177,15 +100,15 @@ function AnimatedInstance({
 }: {
   kind: LayoutKind;
   index: number;
-  count: number;
   time: () => number;
   color?: string;
   position: [number, number, number];
   rotation?: [number, number, number];
 }) {
   const ref = useRef<Object3D>(null);
+  const seed = seedFor(kind, index, position[0], position[2]);
   useFrame(() => {
-    const s = popScale(kind, index, count, time());
+    const s = popScale(kind, seed, time());
     if (ref.current) ref.current.scale.setScalar(s);
   });
   return (
@@ -211,7 +134,6 @@ function RoundTables({ items, time }: Timed) {
             key={`tt-${i}`}
             kind="table_round"
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, 0.75, it.z]}
             rotation={[0, it.rotY, 0]}
@@ -226,7 +148,6 @@ function RoundTables({ items, time }: Timed) {
             key={`tb-${i}`}
             kind="table_round"
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, 0.36, it.z]}
             rotation={[0, it.rotY, 0]}
@@ -249,7 +170,6 @@ function HighTables({ items, time }: Timed) {
             key={`ht-${i}`}
             kind="high_table"
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, 1.05, it.z]}
           />
@@ -263,7 +183,6 @@ function HighTables({ items, time }: Timed) {
             key={`hb-${i}`}
             kind="high_table"
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, 0.5, it.z]}
           />
@@ -285,7 +204,6 @@ function Chairs({ items, time }: Timed) {
             key={`cs-${i}`}
             kind="chair"
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, 0.45, it.z]}
             rotation={[0, it.rotY, 0]}
@@ -304,7 +222,6 @@ function Chairs({ items, time }: Timed) {
               key={`cb-${i}`}
               kind="chair"
               index={i}
-              count={items.length}
               time={time}
               position={[x, 0.66, z]}
               rotation={[0, it.rotY, 0]}
@@ -343,7 +260,6 @@ function Guests({
             key={`gb-${i}`}
             kind={kind}
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, bodyY, it.z]}
             rotation={[0, it.rotY, 0]}
@@ -366,7 +282,6 @@ function Guests({
             key={`gh-${i}`}
             kind={kind}
             index={i}
-            count={items.length}
             time={time}
             position={[it.x, headY, it.z]}
             color={
@@ -384,7 +299,6 @@ function Guests({
 type FeatureProps = {
   item: LayoutItem;
   index: number;
-  count: number;
   time: () => number;
 };
 
@@ -392,19 +306,20 @@ function useFeatureScale(
   ref: React.RefObject<Group | null>,
   kind: LayoutKind,
   index: number,
-  count: number,
+  item: LayoutItem,
   time: () => number,
 ) {
+  const seed = seedFor(kind, index, item.x, item.z);
   useFrame(() => {
     if (ref.current) {
-      ref.current.scale.setScalar(popScale(kind, index, count, time()));
+      ref.current.scale.setScalar(popScale(kind, seed, time()));
     }
   });
 }
 
-function FeatureStage({ item, index, count, time }: FeatureProps) {
+function FeatureStage({ item, index, time }: FeatureProps) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, "stage", index, count, time);
+  useFeatureScale(ref, "stage", index, item, time);
   const height = 0.6;
   const depth = 2.4;
   const width = 6;
@@ -415,12 +330,10 @@ function FeatureStage({ item, index, count, time }: FeatureProps) {
       rotation={[0, item.rotY, 0]}
       scale={0.001}
     >
-      {/* Raised platform — dark top */}
       <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color={palette.stage} roughness={0.75} />
       </mesh>
-      {/* Accent strip on the front edge (faces into the room = +z local) */}
       <mesh position={[0, height / 2, depth / 2 + 0.02]} castShadow>
         <boxGeometry args={[width, height, 0.06]} />
         <meshStandardMaterial
@@ -433,9 +346,9 @@ function FeatureStage({ item, index, count, time }: FeatureProps) {
   );
 }
 
-function FeatureBar({ item, index, count, time }: FeatureProps) {
+function FeatureBar({ item, index, time }: FeatureProps) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, "bar", index, count, time);
+  useFeatureScale(ref, "bar", index, item, time);
   return (
     <group
       ref={ref}
@@ -455,10 +368,9 @@ function FeatureBar({ item, index, count, time }: FeatureProps) {
   );
 }
 
-function FeatureDance({ item, index, count, time }: FeatureProps) {
+function FeatureDance({ item, index, time }: FeatureProps) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, "dance_floor", index, count, time);
-  // 6×6 m checkered glossy square (1 m tiles)
+  useFeatureScale(ref, "dance_floor", index, item, time);
   const tiles = useMemo(() => {
     const out: { x: number; z: number; alt: boolean }[] = [];
     for (let ix = 0; ix < 6; ix++) {
@@ -502,12 +414,11 @@ function FeatureDance({ item, index, count, time }: FeatureProps) {
 function FeatureBooth({
   item,
   index,
-  count,
   time,
   kind,
 }: FeatureProps & { kind: "dj_booth" | "photo_booth" }) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, kind, index, count, time);
+  useFeatureScale(ref, kind, index, item, time);
   return (
     <group
       ref={ref}
@@ -529,9 +440,9 @@ function FeatureBooth({
   );
 }
 
-function FeatureLectern({ item, index, count, time }: FeatureProps) {
+function FeatureLectern({ item, index, time }: FeatureProps) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, "lectern", index, count, time);
+  useFeatureScale(ref, "lectern", index, item, time);
   return (
     <group
       ref={ref}
@@ -551,9 +462,9 @@ function FeatureLectern({ item, index, count, time }: FeatureProps) {
   );
 }
 
-function FeatureProjector({ item, index, count, time }: FeatureProps) {
+function FeatureProjector({ item, index, time }: FeatureProps) {
   const ref = useRef<Group>(null);
-  useFeatureScale(ref, "projector", index, count, time);
+  useFeatureScale(ref, "projector", index, item, time);
   return (
     <group
       ref={ref}

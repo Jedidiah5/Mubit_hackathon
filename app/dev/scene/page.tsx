@@ -8,7 +8,26 @@ import type { Spec } from "@/lib/types";
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#cfc4b0",
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 12,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+        }}
+      >
+        Loading scene…
+      </div>
+    ),
+  },
 );
 
 const SPEC: Spec = {

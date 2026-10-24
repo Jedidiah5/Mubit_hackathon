@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
 import { SpecForm } from "@/components/enquiry/SpecForm";
+import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
 import { layout } from "@/lib/layout";
@@ -23,7 +24,17 @@ import { useVenueRooms } from "@/lib/useVenueRooms";
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex h-full w-full items-center justify-center font-mono text-xs uppercase tracking-[0.14em] text-[#0a0a0a]/70"
+        style={{ background: "#cfc4b0" }}
+      >
+        Loading scene…
+      </div>
+    ),
+  },
 );
 
 const parseInFlight = new Set<string>();
@@ -152,6 +163,8 @@ export function EnquiryClient() {
     if (!spec) return null;
     return evaluateRooms(rooms, spec, roomOverride);
   }, [spec, roomOverride, rooms]);
+
+  const previewRoom = feasibility?.room ?? rooms[0] ?? DEMO_ROOMS[0]!;
 
   const items = useMemo(() => {
     if (!spec || !feasibility?.room) return [];
@@ -295,18 +308,13 @@ export function EnquiryClient() {
           >
             {planView ? "Isometric" : "Plan view"}
           </button>
-          {feasibility?.room && spec ? (
-            <RoomCanvas
-              room={feasibility.room}
-              items={items}
-              planView={planView}
-              className="h-full w-full"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center font-mono text-sm text-[#f4efe6]/40">
-              {parsing ? "Building room…" : "Waiting for spec…"}
-            </div>
-          )}
+          <RoomCanvas
+            room={previewRoom}
+            items={items}
+            planView={planView}
+            loading={parsing || !spec}
+            className="h-full w-full"
+          />
         </section>
 
         <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">

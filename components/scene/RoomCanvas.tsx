@@ -1,6 +1,6 @@
 "use client";
 
-import { ContactShadows } from "@react-three/drei";
+import { ContactShadows, Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   Vector3,
 } from "three";
 import type { LayoutItem, Room } from "@/lib/types";
+import { BUILD_DURATION_S } from "./buildAnim";
 import { Items } from "./Items";
 import { RoomShell } from "./RoomShell";
 import { palette } from "./palette";
@@ -17,11 +18,15 @@ const ISO_YAW = Math.PI / 4;
 const ISO_POLAR = MathUtils.degToRad(55); // ~35° from horizontal
 const PLAN_POLAR = 0.001;
 const CAM_DIST = 40;
+const WALL_H = 3.2;
+const FIT_FRAC = 0.9;
 
 type Props = {
   room: Room;
   items: LayoutItem[];
   planView?: boolean;
+  /** Show in-canvas loading label (shell still renders immediately). */
+  loading?: boolean;
   className?: string;
 };
 
@@ -29,6 +34,7 @@ export function RoomCanvas({
   room,
   items,
   planView = false,
+  loading = false,
   className,
 }: Props) {
   const [yaw, setYaw] = useState(ISO_YAW);
@@ -68,24 +74,93 @@ export function RoomCanvas({
           shadow-camera-bottom={-22}
         />
 
-        <CameraRig
+        <SceneBody
           room={room}
+          items={items}
           planView={planView}
+          loading={loading}
           yaw={yaw}
           onYawChange={setYaw}
         />
-        <RoomShell room={room} yaw={yaw} />
-        <Items items={items} />
-        <ContactShadows
-          position={[0, 0.015, 0]}
-          opacity={0.38}
-          scale={Math.max(room.widthM, room.lengthM) * 1.4}
-          blur={2.4}
-          far={12}
-          color={palette.shadow}
-        />
       </Canvas>
     </div>
+  );
+}
+
+function SceneBody({
+  room,
+  items,
+  planView,
+  loading,
+  yaw,
+  onYawChange,
+}: {
+  room: Room;
+  items: LayoutItem[];
+  planView: boolean;
+  loading: boolean;
+  yaw: number;
+  onYawChange: (yaw: number) => void;
+}) {
+  const clock = useRef(0);
+  const itemKey = useMemo(
+    () =>
+      `${room.name}:${room.widthM}x${room.lengthM}|` +
+      items
+        .map((i) => `${i.kind}:${i.x.toFixed(2)}:${i.z.toFixed(2)}`)
+        .join("|"),
+    [items, room.name, room.widthM, room.lengthM],
+  );
+
+  useEffect(() => {
+    clock.current = 0;
+  }, [itemKey]);
+
+  useFrame((_, dt) => {
+    clock.current = Math.min(BUILD_DURATION_S + 0.05, clock.current + dt);
+  });
+
+  const time = () => clock.current;
+  const showLoading = loading || items.length === 0;
+
+  return (
+    <>
+      <CameraRig
+        room={room}
+        planView={planView}
+        yaw={yaw}
+        onYawChange={onYawChange}
+      />
+      <RoomShell room={room} yaw={yaw} />
+      <Items items={items} time={time} />
+      <ContactShadows
+        position={[0, 0.015, 0]}
+        opacity={0.38}
+        scale={Math.max(room.widthM, room.lengthM) * 1.4}
+        blur={2.4}
+        far={12}
+        color={palette.shadow}
+      />
+      {showLoading && (
+        <Html center style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 12,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "#0a0a0a",
+              background: "rgba(244,239,230,0.88)",
+              border: "1px solid rgba(10,10,10,0.15)",
+              padding: "10px 16px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {loading ? "Building layout…" : "Preparing room…"}
+          </div>
+        </Html>
+      )}
+    </>
   );
 }
 
@@ -95,6 +170,67 @@ type RigProps = {
   yaw: number;
   onYawChange: (yaw: number) => void;
 };
+
+/**
+ * Ortho zoom from the room's projected AABB in the current iso/plan view so
+ * the bbox fills 90% of the tighter canvas axis.
+ */
+function fitZoomForRoom(
+  room: Room,
+  canvasW: number,
+  canvasH: number,
+  yaw: number,
+  polar: number,
+): number {
+  if (canvasW < 2 || canvasH < 2) return 18;
+
+  const hx = room.widthM / 2;
+  const hz = room.lengthM / 2;
+  const corners: [number, number, number][] = [
+    [-hx, 0, -hz],
+    [hx, 0, -hz],
+    [-hx, 0, hz],
+    [hx, 0, hz],
+    [-hx, WALL_H, -hz],
+    [hx, WALL_H, -hz],
+    [-hx, WALL_H, hz],
+    [hx, WALL_H, hz],
+  ];
+
+  const eye = new Vector3(
+    Math.sin(yaw) * Math.sin(polar) * CAM_DIST,
+    Math.cos(polar) * CAM_DIST,
+    Math.cos(yaw) * Math.sin(polar) * CAM_DIST,
+  );
+  const target = new Vector3(0, 0.4, 0);
+  const probe = new ThreeOrthoCamera(-1, 1, 1, -1, 0.1, 200);
+  probe.position.copy(eye);
+  if (polar < 0.08) probe.up.set(0, 0, -1);
+  else probe.up.set(0, 1, 0);
+  probe.lookAt(target);
+  probe.updateMatrixWorld(true);
+
+  const v = new Vector3();
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  for (const [x, y, z] of corners) {
+    v.set(x, y, z).applyMatrix4(probe.matrixWorldInverse);
+    minX = Math.min(minX, v.x);
+    maxX = Math.max(maxX, v.x);
+    minY = Math.min(minY, v.y);
+    maxY = Math.max(maxY, v.y);
+  }
+
+  const spanX = Math.max(0.01, maxX - minX);
+  const spanY = Math.max(0.01, maxY - minY);
+  // visibleWorld = canvas / zoom; want span = FIT_FRAC * visible → zoom = FIT_FRAC * canvas / span
+  const zoomX = (canvasW * FIT_FRAC) / spanX;
+  const zoomY = (canvasH * FIT_FRAC) / spanY;
+  return Math.max(2, Math.min(zoomX, zoomY));
+}
 
 function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
   const { camera, gl, size } = useThree();
@@ -107,13 +243,12 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
   const snappedThisDrag = useRef(false);
   const look = useMemo(() => new Vector3(0, 0.4, 0), []);
 
-  /** Ortho zoom so the room bbox fills ~85% of the canvas. */
   const fitZoom = useCallback(() => {
-    const worldSpan = Math.max(room.widthM, room.lengthM) * 1.12;
-    const view = Math.min(size.width, size.height);
-    // visibleWorld = view / zoom; want worldSpan = 0.85 * visibleWorld
-    return Math.max(2, view / (worldSpan / 0.85));
-  }, [room.widthM, room.lengthM, size.width, size.height]);
+    const polar = planView ? PLAN_POLAR : ISO_POLAR;
+    // Fit against the settled iso/plan orientation (not mid-orbit yaw).
+    const fitYaw = planView ? ISO_YAW : targetYaw.current;
+    return fitZoomForRoom(room, size.width, size.height, fitYaw, polar);
+  }, [room, size.width, size.height, planView]);
 
   useEffect(() => {
     const fit = fitZoom();
@@ -121,7 +256,15 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
     const cam = camera as ThreeOrthoCamera;
     cam.zoom = fit;
     cam.updateProjectionMatrix();
-  }, [fitZoom, camera, room.widthM, room.lengthM, size.width, size.height]);
+  }, [
+    fitZoom,
+    camera,
+    room.widthM,
+    room.lengthM,
+    size.width,
+    size.height,
+    planView,
+  ]);
 
   useEffect(() => {
     targetYaw.current = yaw;
@@ -144,7 +287,6 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
       if (Math.abs(dx) < 48) return;
       const next = targetYaw.current + (dx > 0 ? -Math.PI / 2 : Math.PI / 2);
       const normalized = ((next % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      // Snap to nearest 90°
       const snapped =
         (Math.round(normalized / (Math.PI / 2)) * (Math.PI / 2)) %
         (Math.PI * 2);
@@ -211,7 +353,6 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
     );
 
     if (p < 0.08) {
-      // Top-down: keep north (−z) pointing up on screen.
       cam.up.set(0, 0, -1);
     } else {
       cam.up.set(0, 1, 0);

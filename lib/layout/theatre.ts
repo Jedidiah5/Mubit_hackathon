@@ -2,12 +2,15 @@ import { effectiveCapacity } from "../feasibility";
 import type { LayoutItem, Room, Spec, Wall } from "../types";
 import {
   THEATRE_AISLE_M,
+  blockedRects,
+  isBlocked,
   item,
   placeFeatures,
   placeOverflow,
   seatingBounds,
   wallFacingIn,
   wallNormal,
+  type Bounds,
 } from "./shared";
 
 const CHAIR_W = 0.55;
@@ -21,16 +24,16 @@ function stageWall(spec: Spec): Wall {
 export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
   const cap = effectiveCapacity(room, spec);
   const seated = Math.min(spec.guests, cap);
-  const overflow = Math.max(0, spec.guests - seated);
+  const overflow = Math.max(0, spec.guests - cap);
   const wall = stageWall(spec);
   const face = wallFacingIn(wall);
   const n = wallNormal(wall);
   const bounds = seatingBounds(room, spec);
+  const blocks = blockedRects(room, spec);
 
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
   const alongX = wall === "north" || wall === "south";
 
-  // Build row lines progressing away from the stage.
   const rowStarts: { x: number; z: number }[] = [];
   if (alongX) {
     const z0 = n.z < 0 ? bounds.minZ : bounds.maxZ;
@@ -71,6 +74,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         face,
         remaining,
         items,
+        blocks,
       );
       remaining -= leftSeats;
       if (remaining <= 0) break;
@@ -82,6 +86,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         face,
         remaining,
         items,
+        blocks,
       );
       remaining -= rightSeats;
     } else {
@@ -95,6 +100,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         face,
         remaining,
         items,
+        blocks,
       );
       remaining -= a;
       if (remaining <= 0) break;
@@ -106,13 +112,13 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         face,
         remaining,
         items,
+        blocks,
       );
       remaining -= b;
     }
   }
 
-  if (remaining > 0) items.push(...placeOverflow(room, remaining));
-  items.push(...placeOverflow(room, overflow));
+  items.push(...placeOverflow(room, overflow, blocks));
   return items;
 }
 
@@ -124,19 +130,23 @@ function placeSide(
   face: number,
   budget: number,
   items: LayoutItem[],
+  blocks: Bounds[],
 ): number {
   if (to < from || budget <= 0) return 0;
   const span = to - from;
-  const count = Math.min(budget, Math.max(0, Math.floor(span / CHAIR_W) + 1));
-  if (count === 0) return 0;
-  const used = (count - 1) * CHAIR_W;
+  const slots = Math.max(0, Math.floor(span / CHAIR_W) + 1);
+  if (slots === 0) return 0;
+  const used = (slots - 1) * CHAIR_W;
   const start = from + (span - used) / 2;
-  for (let i = 0; i < count; i++) {
+  let placed = 0;
+  for (let i = 0; i < slots && placed < budget; i++) {
     const along = start + i * CHAIR_W;
     const x = alongX ? along : fixed;
     const z = alongX ? fixed : along;
+    if (isBlocked(x, z, CHAIR_W * 0.4, blocks)) continue;
     items.push(item("chair", x, z, face));
     items.push(item("guest_seated", x, z, face));
+    placed += 1;
   }
-  return count;
+  return placed;
 }
