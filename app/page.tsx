@@ -90,24 +90,29 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Inbox = still with the coordinator. Once approved (any edit clears it, so it
- * moves back), a "can't host" enquiry is a signed-off decline, not a booking.
+ * moves back), the reply depends on feasibility: "needs a change" offers the
+ * room on condition the client cuts guests, "can't host" is a decline.
  */
-type Tab = "inbox" | "accepted" | "declined";
+type Tab = "inbox" | "accepted" | "change" | "declined";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "inbox", label: "Inbox" },
   { id: "accepted", label: "Accepted" },
+  { id: "change", label: "Needs a change" },
   { id: "declined", label: "Declined" },
 ];
 
 function tabOf(row: EnquiryListItem): Tab {
   if (!row.approvedAt) return "inbox";
-  return row.status === "cannot" ? "declined" : "accepted";
+  if (row.status === "cannot") return "declined";
+  if (row.status === "warning") return "change";
+  return "accepted";
 }
 
 const EMPTY: Record<Tab, string> = {
   inbox: "Inbox clear. Every enquiry has been approved.",
-  accepted: "Nothing accepted yet. Approve an enquiry and it lands here.",
+  accepted: "Nothing accepted yet. Approve an enquiry that fits and it lands here.",
+  change: "None waiting on a change. Approved enquiries slightly over capacity land here.",
   declined: "No declines. Approved enquiries the venue can't host land here.",
 };
 
@@ -168,6 +173,7 @@ export default function InboxPage() {
     const groups: Record<Tab, EnquiryListItem[]> = {
       inbox: [],
       accepted: [],
+      change: [],
       declined: [],
     };
     for (const row of rows) groups[tabOf(row)].push(row);
@@ -281,7 +287,7 @@ export default function InboxPage() {
 
         <div
           role="tablist"
-          className="mb-6 flex gap-6 border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.16em]"
+          className="mb-6 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.16em]"
         >
           {TABS.map((t) => {
             const active = tab === t.id;
@@ -292,7 +298,7 @@ export default function InboxPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
-                className={`-mb-px border-b-2 pb-2.5 transition ${
+                className={`border-b-2 pb-2.5 transition ${
                   active
                     ? "border-[color:var(--ink)] text-[color:var(--ink)]"
                     : "border-transparent text-[color:var(--muted)] hover:text-[color:var(--ink)]"
