@@ -12,12 +12,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
+import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
 import { SpecForm } from "@/components/enquiry/SpecForm";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
 import { layout } from "@/lib/layout";
+import { quote } from "@/lib/quote";
 import { draftReply } from "@/lib/reply";
 import type { Enquiry, Feasibility, Spec } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
@@ -242,10 +244,27 @@ export function EnquiryClient() {
     [id, rooms],
   );
 
+  const liveQuote = useMemo(() => {
+    if (!spec || !feasibility?.room) return null;
+    const named = rooms.find((r) => r.name === feasibility.room!.name);
+    const room = named?.pricing
+      ? named
+      : feasibility.room.pricing
+        ? feasibility.room
+        : null;
+    if (!room) return null;
+    return quote(room, spec);
+  }, [spec, feasibility, rooms]);
+
   const replyBody = useMemo(() => {
     if (!enquiry || !spec || !feasibility) return "";
-    return draftReply(enquiry, spec, feasibility);
-  }, [enquiry, spec, feasibility]);
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+    return draftReply(enquiry, spec, feasibility, {
+      quote: liveQuote,
+      planUrl: origin ? `${origin}/p/${id}` : undefined,
+    });
+  }, [enquiry, spec, feasibility, liveQuote, id]);
 
   if (loadError) {
     return (
@@ -343,6 +362,9 @@ export function EnquiryClient() {
                   roomOverride={roomOverride}
                   onRoomOverride={onRoomOverride}
                 />
+              )}
+              {liveQuote && feasibility?.room && (
+                <QuoteCard quote={liveQuote} roomName={feasibility.room.name} />
               )}
               <button
                 type="button"

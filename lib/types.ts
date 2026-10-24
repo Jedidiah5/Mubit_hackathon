@@ -28,6 +28,25 @@ export type Venue = {
   name: string;
 };
 
+/** Flat / per-head extras priced on a room. */
+export type RoomExtrasPricing = {
+  dance_floor: number;
+  dj_booth: number;
+  photo_booth: number;
+  projector: number;
+  lectern: number;
+  /** Charged per guest when `buffet` is in the spec. */
+  buffet_per_head: number;
+};
+
+/** Instant-quote tariff for a room (£, ex-VAT). */
+export type RoomPricing = {
+  hireFee: number;
+  perHead: Record<Style, number>;
+  extras: RoomExtrasPricing;
+  minSpend: number;
+};
+
 /** rooms/{roomId} */
 export type Room = {
   venueId: string;
@@ -40,6 +59,7 @@ export type Room = {
   hasAV: boolean;
   hasBar: boolean;
   rules: string[];
+  pricing: RoomPricing;
 };
 
 export type FeasibilityStatus = "fits" | "warning" | "cannot";

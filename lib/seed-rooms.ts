@@ -4,6 +4,7 @@ import {
   getDocs,
   query,
   setDoc,
+  updateDoc,
   where,
   type Firestore,
 } from "firebase/firestore";
@@ -16,7 +17,18 @@ import {
 } from "./data/venue";
 import type { Room } from "./types";
 
-/** If `rooms` is empty for the demo venue, seed venue + rooms from lib/data/venue.ts. */
+function hasPricing(data: Record<string, unknown>): boolean {
+  const p = data.pricing;
+  return (
+    !!p &&
+    typeof p === "object" &&
+    typeof (p as { hireFee?: unknown }).hireFee === "number"
+  );
+}
+
+/** If `rooms` is empty for the demo venue, seed venue + rooms from lib/data/venue.ts.
+ *  If rooms already exist but lack `pricing`, patch it from the demo tariff.
+ */
 export async function ensureDemoRoomsSeeded(
   db: Firestore,
 ): Promise<RoomDoc[]> {
@@ -25,7 +37,21 @@ export async function ensureDemoRoomsSeeded(
   );
 
   if (!snap.empty) {
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Room) }));
+    const out: RoomDoc[] = [];
+    for (const d of snap.docs) {
+      const data = d.data() as Room;
+      if (!hasPricing(data as unknown as Record<string, unknown>)) {
+        const demo =
+          DEMO_ROOMS.find((r) => r.name === data.name) ??
+          DEMO_ROOMS[DEMO_ROOM_IDS.indexOf(d.id as (typeof DEMO_ROOM_IDS)[number])] ??
+          DEMO_ROOMS[0]!;
+        await updateDoc(doc(db, "rooms", d.id), { pricing: demo.pricing });
+        out.push({ id: d.id, ...data, pricing: demo.pricing });
+      } else {
+        out.push({ id: d.id, ...data });
+      }
+    }
+    return out;
   }
 
   await setDoc(doc(db, "venues", DEMO_VENUE_ID), DEMO_VENUE);

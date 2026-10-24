@@ -1,3 +1,4 @@
+import { formatGbp, type Quote } from "./quote";
 import type { Enquiry, Feasibility, Spec } from "./types";
 
 function firstName(from: string): string {
@@ -19,19 +20,34 @@ function stylePhrase(style: Spec["style"]): string {
   }
 }
 
+export type DraftReplyOpts = {
+  quote?: Quote | null;
+  /** Absolute URL to the public floor plan, e.g. https://host/p/enq-1 */
+  planUrl?: string;
+};
+
 /** Code-templated client reply — no LLM. */
 export function draftReply(
   enquiry: Pick<Enquiry, "from" | "subject">,
   spec: Spec,
   feasibility: Feasibility,
+  opts: DraftReplyOpts = {},
 ): string {
   const name = firstName(enquiry.from);
   const room = feasibility.room?.name ?? "a suitable room";
   const style = stylePhrase(spec.style);
+  const keyExtras = spec.extras
+    .filter((e) => e !== "lectern")
+    .map((e) => e.replace(/_/g, " "));
   const extras =
-    spec.extras.length > 0
-      ? `, including ${spec.extras.map((e) => e.replace(/_/g, " ")).join(", ")}`
-      : "";
+    keyExtras.length > 0 ? `, including ${keyExtras.join(", ")}` : "";
+
+  const quoteLine = opts.quote
+    ? `\nEstimated total ${formatGbp(opts.quote.total)} inc. VAT.`
+    : "";
+  const planLine = opts.planUrl
+    ? `\nYour floor plan: ${opts.planUrl}`
+    : "";
 
   if (feasibility.status === "cannot") {
     const reason =
@@ -58,9 +74,9 @@ The Wharf Rooms`;
 
   return `Hi ${name},
 
-Thanks for your enquiry. ${room} works for ${spec.guests} guests ${style}${extras}.${caution}
+Thanks for your enquiry. ${room} works for ${spec.guests} guests ${style}${extras}.${quoteLine}${planLine}${caution}
 
-Happy to hold provisional dates — reply to this email to confirm and we'll send a quote.
+Happy to hold provisional dates — reply to this email to confirm.
 
 Best regards,
 The Wharf Rooms`;

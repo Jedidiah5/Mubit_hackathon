@@ -19,6 +19,7 @@ export function firestoreFeasibility(f: Feasibility) {
           hasAV: f.room.hasAV,
           hasBar: f.room.hasBar,
           rules: f.room.rules,
+          pricing: f.room.pricing,
         }
       : null,
   };

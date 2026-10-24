@@ -1,4 +1,4 @@
-import type { Room, Venue } from "../types";
+import type { Room, RoomExtrasPricing, RoomPricing, Venue } from "../types";
 
 export const DEMO_VENUE_ID = "wharf-rooms";
 
@@ -12,6 +12,32 @@ export const DEMO_ROOM_IDS = [
   "garden-room",
   "the-loft",
 ] as const;
+
+/** Shared extras tariff across all demo rooms (£, ex-VAT). */
+export const DEMO_EXTRAS_PRICING: RoomExtrasPricing = {
+  dance_floor: 300,
+  dj_booth: 150,
+  photo_booth: 250,
+  projector: 100,
+  lectern: 0,
+  buffet_per_head: 10,
+};
+
+function pricing(
+  hireFee: number,
+  banquet: number,
+  cabaret: number,
+  theatre: number,
+  reception: number,
+  minSpend: number,
+): RoomPricing {
+  return {
+    hireFee,
+    perHead: { banquet, cabaret, theatre, reception },
+    extras: { ...DEMO_EXTRAS_PRICING },
+    minSpend,
+  };
+}
 
 export const DEMO_ROOMS: Room[] = [
   {
@@ -30,6 +56,7 @@ export const DEMO_ROOMS: Room[] = [
     hasAV: true,
     hasBar: true,
     rules: ["Prefer Thames Hall for 80+ seated dinners"],
+    pricing: pricing(1500, 65, 55, 25, 35, 5000),
   },
   {
     venueId: DEMO_VENUE_ID,
@@ -47,6 +74,7 @@ export const DEMO_ROOMS: Room[] = [
     hasAV: true,
     hasBar: false,
     rules: ["Garden access via east doors"],
+    pricing: pricing(800, 60, 50, 22, 32, 2500),
   },
   {
     venueId: DEMO_VENUE_ID,
@@ -64,6 +92,7 @@ export const DEMO_ROOMS: Room[] = [
     hasAV: false,
     hasBar: false,
     rules: ["Stairs only — not suitable for wheelchair access"],
+    pricing: pricing(400, 55, 45, 20, 28, 1200),
   },
 ];
 

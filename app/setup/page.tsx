@@ -13,13 +13,32 @@ import { AppNav } from "@/components/AppNav";
 import { DEMO_VENUE, DEMO_VENUE_ID, type RoomDoc } from "@/lib/data/venue";
 import { getDb } from "@/lib/firebase";
 import { ensureDemoRoomsSeeded } from "@/lib/seed-rooms";
-import type { Room, Style } from "@/lib/types";
+import { DEMO_EXTRAS_PRICING } from "@/lib/data/venue";
+import type { Room, RoomPricing, Style } from "@/lib/types";
 import { STYLES } from "@/lib/types";
 
 const inputClass =
   "w-full border border-[color:var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--ink)]";
 const labelClass =
   "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/45";
+
+const EXTRA_FIELD_LABEL: Record<keyof RoomPricing["extras"], string> = {
+  dance_floor: "Dance floor",
+  dj_booth: "DJ booth",
+  photo_booth: "Photo booth",
+  projector: "Projector",
+  lectern: "Lectern",
+  buffet_per_head: "Buffet / head",
+};
+
+function defaultPricing(): RoomPricing {
+  return {
+    hireFee: 0,
+    perHead: { banquet: 0, cabaret: 0, theatre: 0, reception: 0 },
+    extras: { ...DEMO_EXTRAS_PRICING },
+    minSpend: 0,
+  };
+}
 
 export default function SetupPage() {
   const [rooms, setRooms] = useState<RoomDoc[]>([]);
@@ -95,6 +114,52 @@ export default function SetupPage() {
           ? { ...r, capacity: { ...r.capacity, [style]: value } }
           : r,
       ),
+    );
+  }
+
+  function patchPricing(id: string, patch: Partial<RoomPricing>) {
+    setRooms((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const pricing = { ...(r.pricing ?? defaultPricing()), ...patch };
+        return { ...r, pricing };
+      }),
+    );
+  }
+
+  function patchPerHead(id: string, style: Style, value: number) {
+    setRooms((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const pricing = r.pricing ?? defaultPricing();
+        return {
+          ...r,
+          pricing: {
+            ...pricing,
+            perHead: { ...pricing.perHead, [style]: value },
+          },
+        };
+      }),
+    );
+  }
+
+  function patchExtraFee(
+    id: string,
+    key: keyof RoomPricing["extras"],
+    value: number,
+  ) {
+    setRooms((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const pricing = r.pricing ?? defaultPricing();
+        return {
+          ...r,
+          pricing: {
+            ...pricing,
+            extras: { ...pricing.extras, [key]: value },
+          },
+        };
+      }),
     );
   }
 
@@ -231,7 +296,7 @@ export default function SetupPage() {
                   <label key={key} className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[#c8ff00]"
+                      className="accent-[color:var(--ink)]"
                       checked={room[key]}
                       onChange={(e) =>
                         patchRoom(room.id, { [key]: e.target.checked })
@@ -258,6 +323,106 @@ export default function SetupPage() {
                   }
                 />
               </label>
+
+              {(() => {
+                const pricing = room.pricing ?? defaultPricing();
+                return (
+                  <div className="mt-6 space-y-4 border-t border-[color:var(--line)] pt-5">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted)]">
+                      Pricing (£, ex-VAT)
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className={labelClass}>Hire fee</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={50}
+                          className={inputClass}
+                          value={pricing.hireFee}
+                          onChange={(e) =>
+                            patchPricing(room.id, {
+                              hireFee: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="block">
+                        <span className={labelClass}>Minimum spend</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={100}
+                          className={inputClass}
+                          value={pricing.minSpend}
+                          onChange={(e) =>
+                            patchPricing(room.id, {
+                              minSpend: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <p className={`${labelClass} !mb-2`}>Per head by style</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {STYLES.map((style) => (
+                        <label key={style} className="block">
+                          <span className={labelClass}>{style}</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            className={inputClass}
+                            value={pricing.perHead[style]}
+                            onChange={(e) =>
+                              patchPerHead(
+                                room.id,
+                                style,
+                                Number(e.target.value) || 0,
+                              )
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <p className={`${labelClass} !mb-2`}>Extras</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {(
+                        [
+                          "dance_floor",
+                          "dj_booth",
+                          "photo_booth",
+                          "projector",
+                          "lectern",
+                          "buffet_per_head",
+                        ] as const
+                      ).map((key) => (
+                        <label key={key} className="block">
+                          <span className={labelClass}>
+                            {EXTRA_FIELD_LABEL[key]}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            className={inputClass}
+                            value={pricing.extras[key]}
+                            onChange={(e) =>
+                              patchExtraFee(
+                                room.id,
+                                key,
+                                Number(e.target.value) || 0,
+                              )
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="mt-4 flex justify-end">
                 <button

@@ -17,7 +17,13 @@ import { StatusChip } from "@/components/inbox/StatusChip";
 import { evaluateRooms } from "@/lib/evaluate";
 import { firestoreFeasibility } from "@/lib/feasibility-serialize";
 import { getDb } from "@/lib/firebase";
-import type { EnquiryListItem, FeasibilityStatus, Spec } from "@/lib/types";
+import { formatGbp, quote } from "@/lib/quote";
+import type {
+  EnquiryListItem,
+  FeasibilityStatus,
+  Room,
+  Spec,
+} from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
 function asIso(value: unknown): string {
@@ -52,6 +58,21 @@ function senderName(from: string): string {
 function guestsOf(row: EnquiryListItem): number | null {
   const spec: Spec | undefined = row.final ?? row.parsed;
   return spec?.guests ?? null;
+}
+
+function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
+  const spec: Spec | undefined = row.final ?? row.parsed;
+  if (!spec || !row.status) return null;
+  const name = row.feasibility?.room?.name;
+  const fromList = name ? rooms.find((r) => r.name === name) : undefined;
+  const room =
+    fromList?.pricing
+      ? fromList
+      : row.feasibility?.room?.pricing
+        ? row.feasibility.room
+        : null;
+  if (!room) return null;
+  return formatGbp(quote(room, spec).total);
 }
 
 type ParseResponse = {
@@ -218,11 +239,12 @@ export default function InboxPage() {
           </p>
         )}
 
-        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
+        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
           <span>From</span>
           <span>Subject</span>
           <span className="text-right">Guests</span>
           <span>Status</span>
+          <span className="text-right">Est. total</span>
           <span className="text-right">Received</span>
         </div>
 
@@ -241,11 +263,12 @@ export default function InboxPage() {
           )}
           {rows.map((row) => {
             const guests = guestsOf(row);
+            const est = estTotalOf(row, rooms);
             return (
               <li key={row.id}>
                 <Link
                   href={`/enquiry/${row.id}`}
-                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)_4.5rem_9rem_7rem] md:items-center md:gap-4"
+                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] md:items-center md:gap-4"
                 >
                   <span className="truncate font-sans text-sm">
                     {senderName(row.from)}
@@ -262,6 +285,9 @@ export default function InboxPage() {
                       used={row.feasibility?.used}
                       capacity={row.feasibility?.capacity}
                     />
+                  </span>
+                  <span className="font-mono text-sm tabular-nums text-[color:var(--ink)] md:text-right">
+                    {est ?? "—"}
                   </span>
                   <span className="font-mono text-[11px] text-[color:var(--muted)] md:text-right">
                     {formatWhen(row.receivedAt)}
