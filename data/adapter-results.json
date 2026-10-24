@@ -1,0 +1,7 @@
+{
+  "label": "Our adapter",
+  "accuracy": null,
+  "medianLatencyMs": null,
+  "costPer1000": null,
+  "notes": "Fill from Mubit Adapters → History match % and timed Try models runs."
+}

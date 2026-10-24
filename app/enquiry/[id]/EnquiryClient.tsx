@@ -14,12 +14,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
 import { SpecForm } from "@/components/enquiry/SpecForm";
-import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
 import { layout } from "@/lib/layout";
 import { draftReply } from "@/lib/reply";
 import type { Enquiry, Feasibility, Spec } from "@/lib/types";
+import { useVenueRooms } from "@/lib/useVenueRooms";
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
@@ -62,6 +62,7 @@ function firestoreFeasibility(f: Feasibility) {
 export function EnquiryClient() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const rooms = useVenueRooms();
 
   const [enquiry, setEnquiry] = useState<(Enquiry & { id: string }) | null>(
     null,
@@ -124,7 +125,7 @@ export function EnquiryClient() {
           throw new Error(data.error ?? `Parse failed (${res.status})`);
         }
 
-        const feasibility = evaluateRooms(DEMO_ROOMS, data.spec, null);
+        const feasibility = evaluateRooms(rooms, data.spec, null);
         await updateDoc(doc(getDb(), "enquiries", id), {
           parsed: data.spec,
           final: data.spec,
@@ -143,14 +144,14 @@ export function EnquiryClient() {
         setParsing(false);
       }
     })();
-  }, [enquiry, id]);
+  }, [enquiry, id, rooms]);
 
   const roomOverride = enquiry?.roomOverride ?? null;
 
   const feasibility = useMemo(() => {
     if (!spec) return null;
-    return evaluateRooms(DEMO_ROOMS, spec, roomOverride);
-  }, [spec, roomOverride]);
+    return evaluateRooms(rooms, spec, roomOverride);
+  }, [spec, roomOverride, rooms]);
 
   const items = useMemo(() => {
     if (!spec || !feasibility?.room) return [];
@@ -166,7 +167,7 @@ export function EnquiryClient() {
       override: string | null = roomOverride,
     ) => {
       skipRemoteSpec.current = true;
-      const feas = evaluateRooms(DEMO_ROOMS, next, override);
+      const feas = evaluateRooms(rooms, next, override);
       await updateDoc(doc(getDb(), "enquiries", id), {
         final: next,
         feasibility: firestoreFeasibility(feas),
@@ -182,7 +183,7 @@ export function EnquiryClient() {
         at: new Date().toISOString(),
       });
     },
-    [id, enquiry?.requestId, roomOverride],
+    [id, enquiry?.requestId, roomOverride, rooms],
   );
 
   const onSpecChange = useCallback(
@@ -216,14 +217,14 @@ export function EnquiryClient() {
     async (name: string | null) => {
       const current = specRef.current;
       if (!current) return;
-      const feas = evaluateRooms(DEMO_ROOMS, current, name);
+      const feas = evaluateRooms(rooms, current, name);
       await updateDoc(doc(getDb(), "enquiries", id), {
         roomOverride: name,
         feasibility: firestoreFeasibility(feas),
         status: feas.status,
       });
     },
-    [id],
+    [id, rooms],
   );
 
   const replyBody = useMemo(() => {
@@ -321,7 +322,7 @@ export function EnquiryClient() {
                 <FeasibilityCard
                   feasibility={feasibility}
                   styleLabel={spec.style}
-                  rooms={DEMO_ROOMS}
+                  rooms={rooms}
                   roomOverride={roomOverride}
                   onRoomOverride={onRoomOverride}
                 />

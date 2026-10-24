@@ -6,6 +6,13 @@ export const DEMO_VENUE: Venue = {
   name: "The Wharf Rooms",
 };
 
+/** Stable Firestore doc ids for the demo rooms. */
+export const DEMO_ROOM_IDS = [
+  "thames-hall",
+  "garden-room",
+  "the-loft",
+] as const;
+
 export const DEMO_ROOMS: Room[] = [
   {
     venueId: DEMO_VENUE_ID,
@@ -59,3 +66,12 @@ export const DEMO_ROOMS: Room[] = [
     rules: ["Stairs only — not suitable for wheelchair access"],
   },
 ];
+
+export type RoomDoc = Room & { id: string };
+
+export function demoRoomsWithIds(): RoomDoc[] {
+  return DEMO_ROOMS.map((room, i) => ({
+    id: DEMO_ROOM_IDS[i]!,
+    ...room,
+  }));
+}

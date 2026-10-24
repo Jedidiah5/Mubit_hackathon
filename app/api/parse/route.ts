@@ -1,40 +1,12 @@
 import { NextResponse } from "next/server";
 import { mubit } from "@/lib/mubit";
 import { PARSE_MODEL, PARSE_SYSTEM_PROMPT, trimEnquiry } from "@/lib/parse";
-import { SpecSchema } from "@/lib/schema";
-import type { Spec } from "@/lib/types";
-
-const DEFAULT_SPEC: Spec = {
-  style: "banquet",
-  guests: 50,
-  stage: "none",
-  bar: "none",
-  extras: [],
-  accessible: false,
-};
+import { parseModelSpec } from "@/lib/parse-response";
 
 type ParseBody = {
   text?: unknown;
   enquiryId?: unknown;
 };
-
-function stripJsonFences(raw: string): string {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return fenced ? fenced[1].trim() : trimmed;
-}
-
-function parseSpec(raw: string): { spec: Spec; error?: string } {
-  try {
-    const parsed: unknown = JSON.parse(stripJsonFences(raw));
-    const result = SpecSchema.safeParse(parsed);
-    if (result.success) return { spec: result.data };
-    return { spec: DEFAULT_SPEC, error: result.error.message };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Invalid JSON";
-    return { spec: DEFAULT_SPEC, error: message };
-  }
-}
 
 export async function POST(request: Request) {
   let body: ParseBody;
@@ -51,10 +23,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    body.enquiryId !== undefined &&
-    typeof body.enquiryId !== "string"
-  ) {
+  if (body.enquiryId !== undefined && typeof body.enquiryId !== "string") {
     return NextResponse.json(
       { error: "enquiryId must be a string when provided" },
       { status: 400 },
@@ -81,7 +50,7 @@ export async function POST(request: Request) {
       response.headers.get("x-request-id") ??
       response.headers.get("request-id");
     const raw = data.choices[0]?.message?.content ?? "";
-    const { spec, error } = parseSpec(raw);
+    const { spec, error } = parseModelSpec(raw);
 
     return NextResponse.json({
       spec,

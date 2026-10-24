@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { StatusChip } from "@/components/inbox/StatusChip";
 import { getDb } from "@/lib/firebase";
@@ -100,16 +101,16 @@ export default function InboxPage() {
     <main className="min-h-screen bg-[#0a0a0a] text-[#f4efe6]">
       <div className="mx-auto flex w-full max-w-5xl flex-col px-5 py-8 sm:px-8">
         <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-[#f4efe6]/12 pb-6">
-          <div>
-            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#c8ff00]">
-              BriefToFloor
-            </p>
-            <h1 className="font-sans text-3xl tracking-tight sm:text-4xl">
-              Inbox
-            </h1>
-            <p className="mt-2 font-mono text-xs text-[#f4efe6]/45">
-              The Wharf Rooms · {countLabel}
-            </p>
+          <div className="space-y-4">
+            <AppNav current="/" />
+            <div>
+              <h1 className="font-sans text-3xl tracking-tight sm:text-4xl">
+                Inbox
+              </h1>
+              <p className="mt-2 font-mono text-xs text-[#f4efe6]/45">
+                The Wharf Rooms · {countLabel}
+              </p>
+            </div>
           </div>
           <button
             type="button"

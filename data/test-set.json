@@ -1,0 +1,178 @@
+[
+  {
+    "text": "Wedding reception for about 120 guests. Sit-down dinner, speeches, then dancing. One guest uses a wheelchair — step-free please.",
+    "label": {
+      "style": "banquet",
+      "guests": 120,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["dance_floor", "lectern"],
+      "accessible": true
+    }
+  },
+  {
+    "text": "Half-day tech workshop for 40 people on laptops. Need seats facing a screen/projector. No dinner.",
+    "label": {
+      "style": "theatre",
+      "guests": 40,
+      "stage": "none",
+      "bar": "none",
+      "extras": ["projector"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "MD leaving party, around 80 people. Drinks and canapés then sit down for dinner. Speeches at some point.",
+    "label": {
+      "style": "banquet",
+      "guests": 80,
+      "stage": "north",
+      "bar": "east",
+      "extras": ["lectern"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Awards night for approximately 200 guests. Everyone should be seated for the ceremony, stage for presenters, lectern, projector for winner slides.",
+    "label": {
+      "style": "cabaret",
+      "guests": 200,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern", "projector"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Networking evening for about 150 people — standing reception with high tables and a bar. No sit-down meal.",
+    "label": {
+      "style": "reception",
+      "guests": 150,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Charity gala with 300 guests for a formal banquet dinner, stage for speeches, dancing afterwards, full step-free access.",
+    "label": {
+      "style": "banquet",
+      "guests": 300,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["dance_floor", "lectern"],
+      "accessible": true
+    }
+  },
+  {
+    "text": "Kids birthday party — about 25 kids and a few parents. Soft drinks, cake table, space for games. Nothing formal.",
+    "label": {
+      "style": "reception",
+      "guests": 25,
+      "stage": "none",
+      "bar": "none",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Product launch for around 90 people. Networking on arrival, then a panel talk with seating facing the stage, plus a projector for slides.",
+    "label": {
+      "style": "theatre",
+      "guests": 90,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["projector"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Hi — looking at 60–80 guests for a corporate dinner, banquet style. Bar on the east wall if possible.",
+    "label": {
+      "style": "banquet",
+      "guests": 70,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Conference keynote then Q&A. Expecting 180 in theatre rows. Stage and lectern required. Wheelchair access essential.",
+    "label": {
+      "style": "theatre",
+      "guests": 180,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern"],
+      "accessible": true
+    }
+  },
+  {
+    "text": "Small workshop, fifteen people, round tables facing a presenter with slides.",
+    "label": {
+      "style": "cabaret",
+      "guests": 15,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["projector"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Friday drinks for the team — say 45 people standing, high tables, DJ booth and a dance floor later.",
+    "label": {
+      "style": "reception",
+      "guests": 45,
+      "stage": "none",
+      "bar": "east",
+      "extras": ["dj_booth", "dance_floor"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Anniversary dinner 100 guests seated. Speeches then dancing. Photo booth would be lovely.",
+    "label": {
+      "style": "banquet",
+      "guests": 100,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern", "dance_floor", "photo_booth"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Investor breakfast: 35 people, cabaret seating for a short talk, buffet along the side.",
+    "label": {
+      "style": "cabaret",
+      "guests": 35,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["buffet", "lectern"],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Messy brief: hiya we need somewhere for maybe 50ish for a sit down meal after drinks, cheers Tom",
+    "label": {
+      "style": "banquet",
+      "guests": 50,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "text": "Awards night, everyone seated — 120 covers, stage south wall, projector for the reel.",
+    "label": {
+      "style": "cabaret",
+      "guests": 120,
+      "stage": "south",
+      "bar": "none",
+      "extras": ["projector", "lectern"],
+      "accessible": false
+    }
+  }
+]

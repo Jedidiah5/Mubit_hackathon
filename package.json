@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test lib/__tests__/**/*.test.ts",
-    "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts"
+    "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts",
+    "eval": "tsx --env-file=.env.local scripts/eval.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

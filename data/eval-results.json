@@ -1,0 +1,20 @@
+{
+  "model": "gpt-6-luna",
+  "ranAt": null,
+  "n": 0,
+  "accuracy": {
+    "overall": null,
+    "style": null,
+    "stage": null,
+    "bar": null,
+    "accessible": null,
+    "guests": null,
+    "extras": null
+  },
+  "medianLatencyMs": null,
+  "totalTokens": null,
+  "promptTokens": null,
+  "completionTokens": null,
+  "costPer1000": null,
+  "notes": "Run: npm run eval"
+}
