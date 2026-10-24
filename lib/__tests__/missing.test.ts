@@ -31,6 +31,27 @@ describe("missingDetails", () => {
     assert.ok(!missingDetails("Dinner for 40 on 3 May").includes("date"));
   });
 
+  it("reads a dash between numbers as a guest range, not a date", () => {
+    assert.deepEqual(
+      missingDetails("Meetup, usually 60-80 devs, two talks with slides"),
+      ["date"],
+    );
+  });
+
+  it("counts teams and knows quiz, supper, tea and mingling are formats", () => {
+    assert.ok(!missingDetails("Quiz final, eight teams of five").includes("guests"));
+    for (const text of [
+      "Quiz night for 60",
+      "Haggis supper for 100",
+      "Afternoon tea for 30",
+      "Launch for 200, music and mingling",
+      "70 people, somewhere to gather and a bite to eat",
+      "Prize-giving for 110",
+    ]) {
+      assert.ok(!missingDetails(text).includes("format"), text);
+    }
+  });
+
   it("finds nothing missing in a complete brief", () => {
     assert.deepEqual(
       missingDetails(

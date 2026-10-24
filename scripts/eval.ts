@@ -54,6 +54,9 @@ async function parseOne(text: string): Promise<{
       { role: "system", content: PARSE_SYSTEM_PROMPT },
       { role: "user", content: trimmed },
     ],
+  }, {
+    // Held-out data must never become a training example.
+    headers: { "x-middleware-record": "off" },
   });
   const latencyMs = Math.round(performance.now() - started);
   const raw = completion.choices[0]?.message?.content ?? "";

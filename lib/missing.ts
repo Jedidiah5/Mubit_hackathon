@@ -28,7 +28,9 @@ const NOT_A_COUNT = new RegExp(
     `\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:${MONTH})\\b`,
     `\\b(?:${MONTH})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b`,
     "\\b\\d{1,2}(?:st|nd|rd|th)\\b",
-    "\\b\\d{1,2}[/.-]\\d{1,2}(?:[/.-]\\d{2,4})?\\b",
+    // Not "60-80": a dash between two numbers is a range of guests.
+    "\\b\\d{1,2}[/.]\\d{1,2}(?:[/.]\\d{2,4})?\\b",
+    "\\b\\d{1,2}-\\d{1,2}-\\d{2,4}\\b",
     "\\b(?:19|20)\\d{2}\\b",
     "\\b\\d{1,2}(?::\\d{2})?\\s*(?:am|pm)\\b",
     "\\b\\d{1,2}:\\d{2}\\b",
@@ -38,7 +40,7 @@ const NOT_A_COUNT = new RegExp(
 );
 
 const COUNT =
-  /\b\d{1,4}\b|\b(?:ten|twelve|fifteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|dozen|thousand)\b/i;
+  /\b\d{1,4}\b|\b(?:ten|twelve|fifteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|dozen|thousand)\b|\b(?:three|four|five|six|seven|eight|nine|eleven)\s+(?:teams|tables|families|couples|people|guests)\b/i;
 
 /** "May" only counts as a month next to a day or "in/early/late May". */
 const MONTH_NOT_MAY = MONTH.replace("|may|", "|");
@@ -51,7 +53,7 @@ const DATE = new RegExp(
     "\\bmay\\s+\\d{1,2}\\b",
     "\\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\\b",
     "\\b\\d{1,2}(?:st|nd|rd|th)\\b",
-    "\\b\\d{1,2}[/.-]\\d{1,2}\\b",
+    "\\b\\d{1,2}[/.]\\d{1,2}\\b",
     "\\b(?:tomorrow|tonight|weekend|christmas|easter|new year|spring|summer|autumn|fall|winter)\\b",
     "\\bnext\\s+(?:week|month|year)\\b",
     "\\bq[1-4]\\b",
@@ -61,7 +63,7 @@ const DATE = new RegExp(
 
 /** Words that say how the room is used, or event types that imply it. */
 const FORMAT =
-  /\b(?:dinner|lunch|breakfast|brunch|meal|food|catering|canap\w*|buffet|seated|sit[-\s]down|standing|drinks|reception|cocktails?|talks?|presentations?|keynote|panel|speech(?:es)?|workshop|conference|seminar|training|meeting|agm|rows|theatre|cabaret|banquet|networking|danc\w*|ceremony|wedding|gala|awards?)\b/i;
+  /\b(?:dinner|lunch|breakfast|brunch|meal|food|catering|canap\w*|buffet|seated|sit[-\s]down|standing|drinks|reception|cocktails?|talks?|presentations?|keynote|panel|speech(?:es)?|workshop|conference|seminar|training|meeting|agm|rows|theatre|cabaret|banquet|networking|mingl\w*|danc\w*|ceilidh|disco|dj|band|ceremony|wedding|gala|awards?|prizes?|quiz|supper|tea|nibbles|refreshments|bite to eat|tasting|auction|reading|signing)\b/i;
 
 /** Pass subject and body together: subjects often carry the date. */
 export function missingDetails(text: string): MissingDetail[] {

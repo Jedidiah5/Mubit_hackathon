@@ -1,0 +1,242 @@
+[
+  {
+    "id": "b2-quiz-60",
+    "from": "Tom Harris <tom@harrisandco.co.uk>",
+    "subject": "Charity quiz night",
+    "body": "Hi,\n\nWe're running a charity quiz night in November, teams of six, probably ten teams. Quizmaster will need to be seen and heard by everyone. Pie and mash halfway through. Bar open all evening.\n\nThanks,\nTom",
+    "receivedAt": "2026-10-24T07:02:00.000Z",
+    "expected": { "style": "cabaret", "guests": 60, "stage": "north", "bar": "east", "extras": [], "accessible": false }
+  },
+  {
+    "id": "b2-agm-45",
+    "from": "Margaret Lowe <secretary@riversidehousing.org>",
+    "subject": "Members' AGM — room hire",
+    "body": "Good morning,\n\nRiverside Housing Co-op needs a room for our annual general meeting. Usually 40 to 50 members attend. The treasurer goes through the accounts on screen and then there's a vote. A couple of our older members can't manage stairs.\n\nKind regards,\nMargaret Lowe\nCo-op Secretary",
+    "receivedAt": "2026-10-24T07:10:00.000Z",
+    "expected": { "style": "theatre", "guests": 45, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": true }
+  },
+  {
+    "id": "b2-xmas-140",
+    "from": "Hannah Webb <hannah.webb@kestrel-logistics.com>",
+    "subject": "Christmas party 2026",
+    "body": "Hi there,\n\nLooking to book our staff Christmas party, 140 staff. Three course meal and then the usual — people will want to let their hair down after. Can you do a free bar for the first hour?\n\nHannah",
+    "receivedAt": "2026-10-24T07:18:00.000Z",
+    "expected": { "style": "banquet", "guests": 140, "stage": "none", "bar": "east", "extras": ["dance_floor", "dj_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-mixer-90",
+    "from": "Leo Brandt <leo@foundersclub.london>",
+    "subject": "Founders mixer",
+    "body": "Hey,\n\nWe host a monthly founders mixer and want to try your space. Around 90 founders and investors, 6:30 till late, people just mingling. A couple of trays of food would be good.\n\nLeo",
+    "receivedAt": "2026-10-24T07:25:00.000Z",
+    "expected": { "style": "reception", "guests": 90, "stage": "none", "bar": "east", "extras": [], "accessible": false }
+  },
+  {
+    "id": "b2-prize-110",
+    "from": "Dr Anita Rao <a.rao@stmarksschool.org.uk>",
+    "subject": "Sixth form prize-giving",
+    "body": "Dear events team,\n\nOur sixth form prize-giving evening will have around 110 students, parents and staff. The head will hand out prizes and say a few words. Light refreshments afterwards. One parent is in a wheelchair.\n\nWith thanks,\nDr Anita Rao",
+    "receivedAt": "2026-10-24T07:31:00.000Z",
+    "expected": { "style": "cabaret", "guests": 110, "stage": "north", "bar": "none", "extras": ["lectern"], "accessible": true }
+  },
+  {
+    "id": "b2-memorial-70",
+    "from": "Claire Dunn <claire.dunn@gmail.com>",
+    "subject": "Celebration of life for my father",
+    "body": "Hello,\n\nWe're holding a celebration of life for my dad after the funeral, roughly 70 people. Nothing formal, just somewhere for people to gather, share stories and have a bite to eat. My mum uses a walking frame.\n\nThank you,\nClaire",
+    "receivedAt": "2026-10-24T07:40:00.000Z",
+    "expected": { "style": "reception", "guests": 70, "stage": "none", "bar": "none", "extras": ["buffet"], "accessible": true }
+  },
+  {
+    "id": "b2-ceilidh-100",
+    "from": "Fiona MacLeod <fiona@thistle-society.org>",
+    "subject": "St Andrew's night ceilidh",
+    "body": "Hi,\n\nThe Thistle Society would like to book for our St Andrew's night. About 100 of us, haggis supper then the ceilidh band takes over. Bar please.\n\nSlàinte,\nFiona",
+    "receivedAt": "2026-10-24T07:47:00.000Z",
+    "expected": { "style": "banquet", "guests": 100, "stage": "north", "bar": "east", "extras": ["dance_floor"], "accessible": false }
+  },
+  {
+    "id": "b2-shareholders-160",
+    "from": "Oliver Grant <ogrant@meridianplc.com>",
+    "subject": "Shareholder meeting — 2027",
+    "body": "Hello,\n\nMeridian plc is looking for a venue for its shareholder meeting next spring. We expect 150 to 170 shareholders. The board will present the results with slides and take questions from the floor.\n\nRegards,\nOliver Grant\nCompany Secretary",
+    "receivedAt": "2026-10-24T07:55:00.000Z",
+    "expected": { "style": "theatre", "guests": 160, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": false }
+  },
+  {
+    "id": "b2-wedding-90",
+    "from": "Priya & Sam <priyaandsam2027@gmail.com>",
+    "subject": "Wedding breakfast enquiry",
+    "body": "Hi!\n\nWe're getting married next August and love your venue. We're thinking 90 guests for the wedding breakfast, speeches, then a band and first dance. Sam's grandad is on crutches after a hip op.\n\nPriya x",
+    "receivedAt": "2026-10-24T08:03:00.000Z",
+    "expected": { "style": "banquet", "guests": 90, "stage": "north", "bar": "east", "extras": ["lectern", "dance_floor"], "accessible": true }
+  },
+  {
+    "id": "b2-training-24",
+    "from": "Mark Ellis <mark.ellis@safetyfirst.co.uk>",
+    "subject": "First aid training day",
+    "body": "Hi,\n\nWe run first aid courses and need a room for a day, 24 delegates. Trainer will use slides for the theory part. Lunch brought in.\n\nThanks,\nMark",
+    "receivedAt": "2026-10-24T08:10:00.000Z",
+    "expected": { "style": "theatre", "guests": 24, "stage": "none", "bar": "none", "extras": ["projector"], "accessible": false }
+  },
+  {
+    "id": "b2-awards-180",
+    "from": "Rachel Kim <rachel@builtenvironmentawards.com>",
+    "subject": "Built Environment Awards 2027",
+    "body": "Hello,\n\nWe're scoping venues for next year's Built Environment Awards. Last year we had 180 attendees. Dinner, host on stage, winners come up for trophies, short video reels for each category.\n\nBest wishes,\nRachel",
+    "receivedAt": "2026-10-24T08:18:00.000Z",
+    "expected": { "style": "cabaret", "guests": 180, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": false }
+  },
+  {
+    "id": "b2-alumni-120",
+    "from": "James Patel <alumni@kingsbridge.ac.uk>",
+    "subject": "Alumni networking evening",
+    "body": "Hi,\n\nKingsbridge University alumni office here. We'd like to hold a networking evening for about 120 alumni and current students. Short welcome from the vice-chancellor, then the rest of the night is for connecting. Drinks and canapés.\n\nJames",
+    "receivedAt": "2026-10-24T08:26:00.000Z",
+    "expected": { "style": "reception", "guests": 120, "stage": "north", "bar": "east", "extras": ["lectern"], "accessible": false }
+  },
+  {
+    "id": "b2-birthday-50",
+    "from": "Dani Okafor <dani.okafor@outlook.com>",
+    "subject": "50th birthday",
+    "body": "Hiya, it's my husband's 50th and I want to surprise him. About 50 friends, a nice sit down dinner and then a DJ so we can dance. A photo booth would be amazing!!\n\nDani",
+    "receivedAt": "2026-10-24T08:31:00.000Z",
+    "expected": { "style": "banquet", "guests": 50, "stage": "none", "bar": "none", "extras": ["dance_floor", "dj_booth", "photo_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-agm-80",
+    "from": "Gerald Pike <gerald.pike@harbourrowing.club>",
+    "subject": "Rowing club annual general meeting",
+    "body": "Hi,\n\nHarbour Rowing Club needs a room for its annual general meeting, 70 to 90 members. Committee reports, elections, then a drink at the bar afterwards. One of our veterans uses a mobility scooter.\n\nGerald",
+    "receivedAt": "2026-10-24T08:40:00.000Z",
+    "expected": { "style": "theatre", "guests": 80, "stage": "north", "bar": "east", "extras": ["lectern"], "accessible": true }
+  },
+  {
+    "id": "b2-launch-200",
+    "from": "Nadia Shah <nadia@lumen-beauty.com>",
+    "subject": "Product launch party",
+    "body": "Hi team,\n\nLumen is launching a new skincare line and we want a launch party for 200 press, influencers and partners. Short reveal from our founder, then music and mingling. Bar essential.\n\nNadia",
+    "receivedAt": "2026-10-24T08:46:00.000Z",
+    "expected": { "style": "reception", "guests": 200, "stage": "north", "bar": "east", "extras": ["lectern", "dj_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-board-12",
+    "from": "Sophie Turner <sophie.turner@greenleaf.org>",
+    "subject": "Board away day",
+    "body": "Hello,\n\nOur board of trustees needs a room for an away day — 12 people, a presentation in the morning and discussion in the afternoon. Tea, coffee and lunch.\n\nSophie",
+    "receivedAt": "2026-10-24T08:52:00.000Z",
+    "expected": { "style": "theatre", "guests": 12, "stage": "none", "bar": "none", "extras": ["projector"], "accessible": false }
+  },
+  {
+    "id": "b2-xmas-60",
+    "from": "Ben Carter <ben@carterarchitects.co.uk>",
+    "subject": "Office Christmas do",
+    "body": "Hi,\n\nSmall practice, about 60 of us with partners. Christmas dinner and a bit of a boogie after. Can you sort the music?\n\nCheers,\nBen",
+    "receivedAt": "2026-10-24T08:58:00.000Z",
+    "expected": { "style": "banquet", "guests": 60, "stage": "none", "bar": "east", "extras": ["dance_floor", "dj_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-quiz-40",
+    "from": "Pub Quiz League <fixtures@southlondonquiz.org>",
+    "subject": "Quiz league final",
+    "body": "Hello,\n\nWe're looking for a venue for our quiz league final. Eight teams of five. The quizmaster reads the questions and shows picture rounds on a screen.\n\nThanks",
+    "receivedAt": "2026-10-24T09:05:00.000Z",
+    "expected": { "style": "cabaret", "guests": 40, "stage": "north", "bar": "none", "extras": ["projector"], "accessible": false }
+  },
+  {
+    "id": "b2-conference-220",
+    "from": "Isaac Moore <isaac@devopsdays.london>",
+    "subject": "One-day conference",
+    "body": "Hi,\n\nWe run a community tech conference, expecting around 220 attendees. Single track of talks with slides all day, mic for Q&A. Some attendees have mobility needs so step-free routes please.\n\nIsaac",
+    "receivedAt": "2026-10-24T09:12:00.000Z",
+    "expected": { "style": "theatre", "guests": 220, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": true }
+  },
+  {
+    "id": "b2-sports-awards-130",
+    "from": "Kerry Doyle <kerry@eastsidefc.co.uk>",
+    "subject": "End of season presentation night",
+    "body": "Hi,\n\nEastside FC end of season presentation night. Players, families and coaches, about 130. Chicken dinner, the manager hands out player of the year etc., then a disco for the kids.\n\nKerry",
+    "receivedAt": "2026-10-24T09:20:00.000Z",
+    "expected": { "style": "cabaret", "guests": 130, "stage": "north", "bar": "none", "extras": ["lectern", "dance_floor", "dj_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-baby-shower-30",
+    "from": "Aisha Bello <aisha.bello@icloud.com>",
+    "subject": "Baby shower",
+    "body": "Hi, I'm organising a baby shower for my sister, around 30 ladies. Afternoon tea style, games, nothing too formal. Thank you!",
+    "receivedAt": "2026-10-24T09:26:00.000Z",
+    "expected": { "style": "reception", "guests": 30, "stage": "none", "bar": "none", "extras": ["buffet"], "accessible": false }
+  },
+  {
+    "id": "b2-charity-gala-250",
+    "from": "Victoria Hale <victoria@hopefoundation.org.uk>",
+    "subject": "Hope Foundation gala dinner",
+    "body": "Dear events team,\n\nThe Hope Foundation's annual gala: 250 guests, champagne reception, three-course dinner, a live auction from the stage, then a band. Several of our supporters are wheelchair users.\n\nWarm regards,\nVictoria Hale",
+    "receivedAt": "2026-10-24T09:33:00.000Z",
+    "expected": { "style": "banquet", "guests": 250, "stage": "north", "bar": "east", "extras": ["lectern", "dance_floor"], "accessible": true }
+  },
+  {
+    "id": "b2-meetup-70",
+    "from": "Ravi Menon <ravi@reactlondon.dev>",
+    "subject": "React London meetup",
+    "body": "Hey! React London meetup, usually 60-80 devs. Two talks with slides, then pizza and beers and people hang around chatting.\n\nRavi",
+    "receivedAt": "2026-10-24T09:40:00.000Z",
+    "expected": { "style": "theatre", "guests": 70, "stage": "north", "bar": "east", "extras": ["projector"], "accessible": false }
+  },
+  {
+    "id": "b2-agm-30",
+    "from": "Linda Shaw <linda@millbrookresidents.org>",
+    "subject": "Residents association AGM",
+    "body": "Hello, our residents association AGM is in January, about 30 residents come. Chair's report, accounts, elections. Many of our members are elderly and some use walkers.\n\nLinda",
+    "receivedAt": "2026-10-24T09:46:00.000Z",
+    "expected": { "style": "theatre", "guests": 30, "stage": "north", "bar": "none", "extras": ["lectern"], "accessible": true }
+  },
+  {
+    "id": "b2-engagement-80",
+    "from": "Zara Ahmed <zara.ahmed@gmail.com>",
+    "subject": "Engagement party",
+    "body": "Hi,\n\nWe're having an engagement party for about 80 friends and family. Drinks, nibbles, music. Mostly standing, we just want people to mingle.\n\nZara",
+    "receivedAt": "2026-10-24T09:52:00.000Z",
+    "expected": { "style": "reception", "guests": 80, "stage": "none", "bar": "east", "extras": ["dj_booth"], "accessible": false }
+  },
+  {
+    "id": "b2-sales-kickoff-150",
+    "from": "Greg Lawson <greg.lawson@vantagesoftware.com>",
+    "subject": "Sales kick-off",
+    "body": "Hi,\n\nVantage needs a venue for our sales kick-off in January. 150 people. Morning of keynotes from the leadership team, afternoon of breakout-style talks at tables, then an awards dinner for top performers in the evening.\n\nGreg",
+    "receivedAt": "2026-10-24T09:58:00.000Z",
+    "expected": { "style": "cabaret", "guests": 150, "stage": "north", "bar": "none", "extras": ["lectern", "projector"], "accessible": false }
+  },
+  {
+    "id": "b2-wine-tasting-40",
+    "from": "Henry Cole <henry@colecellars.co.uk>",
+    "subject": "Wine tasting evening",
+    "body": "Hello,\n\nWe'd like to host a wine tasting for 40 customers. Our sommelier talks people through six wines from the front, guests seated at tables with cheese boards.\n\nHenry",
+    "receivedAt": "2026-10-24T10:04:00.000Z",
+    "expected": { "style": "cabaret", "guests": 40, "stage": "north", "bar": "none", "extras": [], "accessible": false }
+  },
+  {
+    "id": "b2-reunion-100",
+    "from": "Paul Gibbs <paulgibbs1986@hotmail.com>",
+    "subject": "School reunion",
+    "body": "Hi there, organising a 40 year school reunion, class of 86. Reckon about 100 will come. Buffet, bar, and some 80s tunes. A few of the old crowd aren't so steady on their feet these days.\n\nPaul",
+    "receivedAt": "2026-10-24T10:10:00.000Z",
+    "expected": { "style": "reception", "guests": 100, "stage": "none", "bar": "east", "extras": ["buffet", "dj_booth"], "accessible": true }
+  },
+  {
+    "id": "b2-book-launch-60",
+    "from": "Eleanor Price <eleanor@pricebooks.co.uk>",
+    "subject": "Book launch",
+    "body": "Dear team,\n\nWe're launching a debut novel and expect around 60 guests. The author will read an extract and do a short Q&A, followed by drinks and signing.\n\nBest,\nEleanor",
+    "receivedAt": "2026-10-24T10:16:00.000Z",
+    "expected": { "style": "theatre", "guests": 60, "stage": "north", "bar": "east", "extras": ["lectern"], "accessible": false }
+  },
+  {
+    "id": "b2-diwali-160",
+    "from": "Kiran Joshi <kiran@harrowcommunity.org>",
+    "subject": "Diwali celebration",
+    "body": "Hello,\n\nHarrow Community Association's Diwali celebration, around 160 people. Vegetarian buffet dinner, seated, then dancing and a DJ. Some elders use wheelchairs.\n\nThank you,\nKiran",
+    "receivedAt": "2026-10-24T10:22:00.000Z",
+    "expected": { "style": "banquet", "guests": 160, "stage": "none", "bar": "none", "extras": ["buffet", "dance_floor", "dj_booth"], "accessible": true }
+  }
+]

@@ -1,6 +1,6 @@
 /**
- * Writes data/inbox.json into Firestore `enquiries` (no parsing).
- * Usage: npx tsx --env-file=.env.local scripts/seed-inbox.ts
+ * Writes data/inbox.json (or the file given) into Firestore `enquiries` (no parsing).
+ * Usage: npx tsx --env-file=.env.local scripts/seed-inbox.ts [data/inbox-batch2.json]
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -17,7 +17,7 @@ type InboxRow = {
 
 const root = resolve(import.meta.dirname, "..");
 const rows = JSON.parse(
-  readFileSync(resolve(root, "data/inbox.json"), "utf8"),
+  readFileSync(resolve(root, process.argv[2] ?? "data/inbox.json"), "utf8"),
 ) as InboxRow[];
 
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
