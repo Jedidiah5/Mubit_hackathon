@@ -4,7 +4,7 @@ import {
   CHAIR_RADIUS_M,
   TABLE_DIAMETER_M,
   TABLE_SPACING_M,
-  gridCentres,
+  centredGrid,
   item,
   placeFeatures,
   placeOverflow,
@@ -30,10 +30,10 @@ export function layoutCabaret(room: Room, spec: Spec): LayoutItem[] {
   const bounds = seatingBounds(room, spec);
   const minSpacing = TABLE_DIAMETER_M + (spec.accessible ? 1.5 : 0.8);
   let spacing = TABLE_SPACING_M;
-  let centres = gridCentres(bounds, spacing, tablesNeeded);
+  let centres = centredGrid(bounds, spacing, tablesNeeded);
   while (centres.length < tablesNeeded && spacing > minSpacing + 0.01) {
     spacing = Math.max(minSpacing, spacing - 0.15);
-    centres = gridCentres(bounds, spacing, tablesNeeded);
+    centres = centredGrid(bounds, spacing, tablesNeeded);
   }
   if (centres.length === 0) centres = [{ x: 0, z: 0 }];
 

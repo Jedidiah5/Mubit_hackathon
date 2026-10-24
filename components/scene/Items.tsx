@@ -405,6 +405,9 @@ function useFeatureScale(
 function FeatureStage({ item, index, count, time }: FeatureProps) {
   const ref = useRef<Group>(null);
   useFeatureScale(ref, "stage", index, count, time);
+  const height = 0.6;
+  const depth = 2.4;
+  const width = 6;
   return (
     <group
       ref={ref}
@@ -412,9 +415,19 @@ function FeatureStage({ item, index, count, time }: FeatureProps) {
       rotation={[0, item.rotY, 0]}
       scale={0.001}
     >
-      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
-        <boxGeometry args={[6, 0.5, 2.2]} />
-        <meshStandardMaterial color={palette.stage} roughness={0.85} />
+      {/* Raised platform — dark top */}
+      <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width, height, depth]} />
+        <meshStandardMaterial color={palette.stage} roughness={0.75} />
+      </mesh>
+      {/* Accent strip on the front edge (faces into the room = +z local) */}
+      <mesh position={[0, height / 2, depth / 2 + 0.02]} castShadow>
+        <boxGeometry args={[width, height, 0.06]} />
+        <meshStandardMaterial
+          color={palette.stageEdge}
+          roughness={0.4}
+          metalness={0.1}
+        />
       </mesh>
     </group>
   );
@@ -445,11 +458,16 @@ function FeatureBar({ item, index, count, time }: FeatureProps) {
 function FeatureDance({ item, index, count, time }: FeatureProps) {
   const ref = useRef<Group>(null);
   useFeatureScale(ref, "dance_floor", index, count, time);
+  // 6×6 m checkered glossy square (1 m tiles)
   const tiles = useMemo(() => {
     const out: { x: number; z: number; alt: boolean }[] = [];
-    for (let ix = 0; ix < 4; ix++) {
-      for (let iz = 0; iz < 4; iz++) {
-        out.push({ x: ix - 1.5, z: iz - 1.5, alt: (ix + iz) % 2 === 0 });
+    for (let ix = 0; ix < 6; ix++) {
+      for (let iz = 0; iz < 6; iz++) {
+        out.push({
+          x: ix - 2.5,
+          z: iz - 2.5,
+          alt: (ix + iz) % 2 === 0,
+        });
       }
     }
     return out;
@@ -458,7 +476,7 @@ function FeatureDance({ item, index, count, time }: FeatureProps) {
   return (
     <group
       ref={ref}
-      position={[item.x, 0.02, item.z]}
+      position={[item.x, 0.03, item.z]}
       rotation={[0, item.rotY, 0]}
       scale={0.001}
     >
@@ -469,11 +487,11 @@ function FeatureDance({ item, index, count, time }: FeatureProps) {
           rotation={[-Math.PI / 2, 0, 0]}
           receiveShadow
         >
-          <planeGeometry args={[0.95, 0.95]} />
+          <planeGeometry args={[0.96, 0.96]} />
           <meshStandardMaterial
             color={tile.alt ? palette.danceGloss : palette.dance}
-            roughness={0.25}
-            metalness={0.15}
+            roughness={0.18}
+            metalness={0.22}
           />
         </mesh>
       ))}

@@ -2,18 +2,23 @@
 
 import {
   collection,
+  doc,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   type Timestamp,
 } from "firebase/firestore";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { StatusChip } from "@/components/inbox/StatusChip";
+import { evaluateRooms } from "@/lib/evaluate";
+import { firestoreFeasibility } from "@/lib/feasibility-serialize";
 import { getDb } from "@/lib/firebase";
 import type { EnquiryListItem, FeasibilityStatus, Spec } from "@/lib/types";
+import { useVenueRooms } from "@/lib/useVenueRooms";
 
 function asIso(value: unknown): string {
   if (typeof value === "string") return value;
@@ -49,11 +54,24 @@ function guestsOf(row: EnquiryListItem): number | null {
   return spec?.guests ?? null;
 }
 
+type ParseResponse = {
+  spec: Spec;
+  requestId: string | null;
+  latencyMs: number;
+  model: string;
+  error?: string;
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export default function InboxPage() {
+  const rooms = useVenueRooms();
   const [rows, setRows] = useState<EnquiryListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pasteOpen, setPasteOpen] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [processProgress, setProcessProgress] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(
@@ -92,10 +110,66 @@ export default function InboxPage() {
     return unsub;
   }, []);
 
+  const unprocessed = useMemo(
+    () => rows.filter((r) => !r.parsed),
+    [rows],
+  );
+
   const countLabel = useMemo(() => {
     if (loading) return "Loading…";
-    return `${rows.length} enquir${rows.length === 1 ? "y" : "ies"}`;
-  }, [loading, rows.length]);
+    const pending = unprocessed.length;
+    return `${rows.length} enquir${rows.length === 1 ? "y" : "ies"}${
+      pending ? ` · ${pending} unprocessed` : ""
+    }`;
+  }, [loading, rows.length, unprocessed.length]);
+
+  const processAll = useCallback(async () => {
+    const queue = rows.filter((r) => !r.parsed);
+    if (queue.length === 0 || processing) return;
+    setProcessing(true);
+    setError(null);
+
+    for (let i = 0; i < queue.length; i++) {
+      const row = queue[i]!;
+      setProcessProgress(`Parsing ${i + 1}/${queue.length}: ${row.subject}`);
+      const started = Date.now();
+      try {
+        const res = await fetch("/api/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: row.body, enquiryId: row.id }),
+        });
+        const data = (await res.json()) as ParseResponse;
+        if (!res.ok) {
+          throw new Error(data.error ?? `Parse failed (${res.status})`);
+        }
+        const feasibility = evaluateRooms(rooms, data.spec, null);
+        await updateDoc(doc(getDb(), "enquiries", row.id), {
+          parsed: data.spec,
+          final: data.spec,
+          requestId: data.requestId ?? "",
+          latencyMs: data.latencyMs,
+          model: data.model,
+          feasibility: firestoreFeasibility(feasibility),
+          status: feasibility.status,
+          roomOverride: null,
+        });
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `${row.subject}: ${err.message}`
+            : "Process all failed",
+        );
+      }
+      const elapsed = Date.now() - started;
+      if (i < queue.length - 1 && elapsed < 1000) {
+        await sleep(1000 - elapsed);
+      }
+    }
+
+    setProcessing(false);
+    setProcessProgress(null);
+  }, [rows, rooms, processing]);
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#f4efe6]">
@@ -110,20 +184,37 @@ export default function InboxPage() {
               <p className="mt-2 font-mono text-xs text-[#f4efe6]/45">
                 The Wharf Rooms · {countLabel}
               </p>
+              {processProgress && (
+                <p className="mt-1 font-mono text-[11px] text-[#fbbf24]">
+                  {processProgress}
+                </p>
+              )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setPasteOpen(true)}
-            className="bg-[#c8ff00] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[#0a0a0a] transition hover:brightness-110"
-          >
-            Paste new enquiry
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void processAll()}
+              disabled={processing || unprocessed.length === 0}
+              className="border border-[#c8ff00] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[#c8ff00] transition hover:bg-[#c8ff00]/10 disabled:opacity-40"
+            >
+              {processing
+                ? "Processing…"
+                : `Process all${unprocessed.length ? ` (${unprocessed.length})` : ""}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPasteOpen(true)}
+              className="bg-[#c8ff00] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[#0a0a0a] transition hover:brightness-110"
+            >
+              Paste new enquiry
+            </button>
+          </div>
         </header>
 
         {error && (
           <p className="mb-6 border border-[#f87171]/40 bg-[#f87171]/10 px-4 py-3 font-mono text-xs text-[#f87171]">
-            Firestore: {error}
+            {error}
           </p>
         )}
 

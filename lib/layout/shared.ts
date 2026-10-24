@@ -14,10 +14,18 @@ export const STAGE_DEPTH_M = 2.4;
 export const STAGE_WIDTH_FRAC = 0.55;
 export const BAR_DEPTH_M = 1.2;
 export const BAR_WIDTH_M = 3.5;
-export const DANCE_SIZE_M = 4;
+export const DANCE_SIZE_M = 6;
 export const BOOTH_SIZE_M = 1.6;
 export const LECTERN_SIZE_M = 0.7;
 export const PROJECTOR_SIZE_M = 2.2;
+
+export type Bounds = {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+};
+
 export function aisleMargin(accessible: boolean): number {
   return accessible ? AISLE_ACCESSIBLE_M : AISLE_DEFAULT_M;
 }
@@ -45,13 +53,13 @@ export function wallNormal(wall: Wall): { x: number; z: number } {
 export function wallFacingIn(wall: Wall): number {
   switch (wall) {
     case "north":
-      return 0; // face +z (southward)
+      return 0;
     case "south":
       return Math.PI;
     case "east":
-      return Math.PI / 2; // face −x
+      return Math.PI / 2;
     case "west":
-      return -Math.PI / 2; // face +x
+      return -Math.PI / 2;
     default:
       return 0;
   }
@@ -66,11 +74,31 @@ export function item(
   return { kind, x, z, rotY };
 }
 
-/** Usable floor after wall clearance and reserved strips (stage / bar / dance). */
+/** Centre-front of the room (just inboard of the stage). */
+export function danceFloorPosition(
+  room: Room,
+  spec: Spec,
+): { x: number; z: number } {
+  const { hx, hz } = halfExtents(room);
+  const stageWall: Wall = spec.stage === "none" ? "north" : spec.stage;
+  const n = wallNormal(stageWall);
+  const margin = aisleMargin(spec.accessible);
+  const inset = STAGE_DEPTH_M + DANCE_SIZE_M / 2 + margin * 0.5;
+  let x = -n.x * Math.min(inset, Math.max(hx, hz) * 0.35);
+  let z = -n.z * Math.min(inset, Math.max(hx, hz) * 0.35);
+  // Keep the pad inside the floor.
+  const half = DANCE_SIZE_M / 2;
+  x = Math.max(-hx + half + 0.2, Math.min(hx - half - 0.2, x));
+  z = Math.max(-hz + half + 0.2, Math.min(hz - half - 0.2, z));
+  return { x, z };
+}
+
+/** Usable floor after wall clearance and reserved stage / bar strips. */
 export function seatingBounds(
   room: Room,
   spec: Spec,
-): { minX: number; maxX: number; minZ: number; maxZ: number } {
+  opts: { reserveDance?: boolean } = {},
+): Bounds {
   const { hx, hz } = halfExtents(room);
   const margin = aisleMargin(spec.accessible);
   let minX = -hx + margin;
@@ -98,18 +126,24 @@ export function seatingBounds(
 
   if (spec.stage !== "none") reserve(spec.stage, STAGE_DEPTH_M);
   if (spec.bar !== "none") reserve(spec.bar, BAR_DEPTH_M);
-  if (spec.extras.includes("dance_floor")) {
-    // Dance floor sits mid-room toward the stage; shrink the far side lightly.
-    const stageWall = spec.stage === "none" ? "north" : spec.stage;
-    const opposite: Wall =
-      stageWall === "north"
-        ? "south"
-        : stageWall === "south"
-          ? "north"
-          : stageWall === "east"
-            ? "west"
-            : "east";
-    reserve(opposite, DANCE_SIZE_M * 0.35);
+
+  if (opts.reserveDance !== false && spec.extras.includes("dance_floor")) {
+    const dance = danceFloorPosition(room, spec);
+    const half = DANCE_SIZE_M / 2 + 0.6;
+    // Shrink free bounds away from the dance pad (keep the larger remaining band).
+    const stageWall: Wall = spec.stage === "none" ? "north" : spec.stage;
+    if (stageWall === "north" || stageWall === "south") {
+      // Tables sit behind the dance pad (away from stage).
+      if (stageWall === "north") {
+        minZ = Math.max(minZ, dance.z + half);
+      } else {
+        maxZ = Math.min(maxZ, dance.z - half);
+      }
+    } else if (stageWall === "east") {
+      maxX = Math.min(maxX, dance.x - half);
+    } else if (stageWall === "west") {
+      minX = Math.max(minX, dance.x + half);
+    }
   }
 
   if (maxX - minX < 2) {
@@ -140,7 +174,6 @@ function placeOnWall(
   let z = n.z * (hz - inset);
   if (wall === "north" || wall === "south") x = along;
   else z = along;
-  // Clamp so wide pieces stay inside the wall span.
   const halfW = width / 2;
   if (wall === "north" || wall === "south") {
     x = Math.max(-hx + halfW, Math.min(hx - halfW, x));
@@ -151,7 +184,11 @@ function placeOnWall(
 }
 
 /** Stage, bar, dance floor, booths, lectern, projector from the spec. */
-export function placeFeatures(room: Room, spec: Spec): LayoutItem[] {
+export function placeFeatures(
+  room: Room,
+  spec: Spec,
+  opts: { skipDance?: boolean } = {},
+): LayoutItem[] {
   const items: LayoutItem[] = [];
   const { hx, hz } = halfExtents(room);
 
@@ -177,12 +214,8 @@ export function placeFeatures(room: Room, spec: Spec): LayoutItem[] {
     if (bar) items.push(bar);
   }
 
-  if (spec.extras.includes("dance_floor")) {
-    const stageWall = spec.stage === "none" ? "north" : spec.stage;
-    const n = wallNormal(stageWall);
-    // Centre-ish, slightly toward the opposite wall from the stage.
-    const x = -n.x * Math.min(2, hx * 0.15);
-    const z = -n.z * Math.min(2, hz * 0.15);
+  if (!opts.skipDance && spec.extras.includes("dance_floor")) {
+    const { x, z } = danceFloorPosition(room, spec);
     items.push(item("dance_floor", x, z, 0));
   }
 
@@ -227,7 +260,6 @@ export function placeFeatures(room: Room, spec: Spec): LayoutItem[] {
       0,
     );
     if (lectern) {
-      // Nudge slightly into the room in front of the stage lip.
       const n = wallNormal(wall);
       lectern.x -= n.x * (STAGE_DEPTH_M * 0.15);
       lectern.z -= n.z * (STAGE_DEPTH_M * 0.15);
@@ -252,10 +284,7 @@ export function placeFeatures(room: Room, spec: Spec): LayoutItem[] {
 }
 
 /** Overflow queue by the south-wall door. */
-export function placeOverflow(
-  room: Room,
-  count: number,
-): LayoutItem[] {
+export function placeOverflow(room: Room, count: number): LayoutItem[] {
   if (count <= 0) return [];
   const { hz } = halfExtents(room);
   const items: LayoutItem[] = [];
@@ -270,9 +299,9 @@ export function placeOverflow(
   return items;
 }
 
-/** Grid of centres inside bounds with fixed spacing. */
+/** Full grid of centres inside bounds with fixed spacing (already centred). */
 export function gridCentres(
-  bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
+  bounds: Bounds,
   spacing: number,
   maxCount?: number,
 ): { x: number; z: number }[] {
@@ -295,4 +324,44 @@ export function gridCentres(
     }
   }
   return centres;
+}
+
+/**
+ * Pack up to `count` centres in bounds, then translate so the used cluster
+ * is centred in the free floor area.
+ */
+export function centredGrid(
+  bounds: Bounds,
+  spacing: number,
+  count: number,
+): { x: number; z: number }[] {
+  if (count <= 0) return [];
+  let centres = gridCentres(bounds, spacing, count);
+  if (centres.length === 0) {
+    const cx = (bounds.minX + bounds.maxX) / 2;
+    const cz = (bounds.minZ + bounds.maxZ) / 2;
+    return [{ x: cx, z: cz }];
+  }
+
+  const selected = centres.slice(0, count);
+  const meanX = selected.reduce((s, p) => s + p.x, 0) / selected.length;
+  const meanZ = selected.reduce((s, p) => s + p.z, 0) / selected.length;
+  const midX = (bounds.minX + bounds.maxX) / 2;
+  const midZ = (bounds.minZ + bounds.maxZ) / 2;
+  const dx = midX - meanX;
+  const dz = midZ - meanZ;
+  return selected.map((p) => ({ x: p.x + dx, z: p.z + dz }));
+}
+
+/** True if a table centre overlaps the dance pad (with clearance). */
+export function overlapsDance(
+  x: number,
+  z: number,
+  dance: { x: number; z: number },
+  clearance = TABLE_RADIUS_M + 0.4,
+): boolean {
+  const half = DANCE_SIZE_M / 2 + clearance;
+  return (
+    Math.abs(x - dance.x) < half && Math.abs(z - dance.z) < half
+  );
 }

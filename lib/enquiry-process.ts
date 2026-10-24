@@ -10,32 +10,12 @@ import {
 } from "firebase/firestore";
 import { DEMO_ROOMS, DEMO_VENUE_ID } from "./data/venue";
 import { evaluateRooms } from "./evaluate";
+import { firestoreFeasibility } from "./feasibility-serialize";
 import { getDb } from "./firebase";
 import { runParse } from "./run-parse";
-import type { Feasibility, Room, Spec } from "./types";
+import type { Room, Spec } from "./types";
 
-export function firestoreFeasibility(f: Feasibility) {
-  return {
-    status: f.status,
-    used: f.used,
-    capacity: f.capacity,
-    notes: f.notes,
-    room: f.room
-      ? {
-          venueId: f.room.venueId,
-          name: f.room.name,
-          widthM: f.room.widthM,
-          lengthM: f.room.lengthM,
-          capacity: f.room.capacity,
-          stepFree: f.room.stepFree,
-          hasStage: f.room.hasStage,
-          hasAV: f.room.hasAV,
-          hasBar: f.room.hasBar,
-          rules: f.room.rules,
-        }
-      : null,
-  };
-}
+export { firestoreFeasibility };
 
 async function loadRooms(): Promise<Room[]> {
   try {

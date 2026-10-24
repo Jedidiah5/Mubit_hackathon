@@ -107,19 +107,21 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
   const snappedThisDrag = useRef(false);
   const look = useMemo(() => new Vector3(0, 0.4, 0), []);
 
+  /** Ortho zoom so the room bbox fills ~85% of the canvas. */
   const fitZoom = useCallback(() => {
-    const span = Math.hypot(room.widthM, room.lengthM) * 1.15;
+    const worldSpan = Math.max(room.widthM, room.lengthM) * 1.12;
     const view = Math.min(size.width, size.height);
-    return Math.max(4, view / span);
+    // visibleWorld = view / zoom; want worldSpan = 0.85 * visibleWorld
+    return Math.max(2, view / (worldSpan / 0.85));
   }, [room.widthM, room.lengthM, size.width, size.height]);
 
   useEffect(() => {
     const fit = fitZoom();
-    zoomRef.current = MathUtils.clamp(zoomRef.current, fit * 0.65, fit);
+    zoomRef.current = fit;
     const cam = camera as ThreeOrthoCamera;
-    cam.zoom = zoomRef.current;
+    cam.zoom = fit;
     cam.updateProjectionMatrix();
-  }, [fitZoom, camera]);
+  }, [fitZoom, camera, room.widthM, room.lengthM, size.width, size.height]);
 
   useEffect(() => {
     targetYaw.current = yaw;
@@ -164,8 +166,8 @@ function CameraRig({ room, planView, yaw, onYawChange }: RigProps) {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const fit = fitZoom();
-      const minZ = fit * 0.65;
-      const maxZ = fit;
+      const minZ = fit * 0.7;
+      const maxZ = fit * 1.35;
       const factor = Math.exp(-e.deltaY * 0.0015);
       zoomRef.current = MathUtils.clamp(zoomRef.current * factor, minZ, maxZ);
     };
