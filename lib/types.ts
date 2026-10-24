@@ -73,6 +73,23 @@ export type Feasibility = {
   notes: string[];
 };
 
+/** Organiser / coordinator pipeline (not feasibility Fits/Can't host). */
+export const PIPELINES = [
+  "received",
+  "proposed",
+  "client_changes",
+  "accepted",
+] as const;
+export type PipelineStatus = (typeof PIPELINES)[number];
+
+/** Organiser-submitted tweak waiting on the coordinator. */
+export type ChangeRequest = {
+  status: "pending" | "accepted" | "dismissed";
+  spec: Spec;
+  note?: string;
+  at: string;
+};
+
 /** Raw inbound fields — written before /api/parse runs. */
 export type EnquiryInbound = {
   from: string;
@@ -83,6 +100,13 @@ export type EnquiryInbound = {
 
 /** enquiries/{id} — parse fields appear once processed. */
 export type Enquiry = EnquiryInbound & {
+  /** Organiser email when source is the public form. */
+  email?: string;
+  source?: "form" | "email" | "paste" | "inbound" | "seed";
+  /** Free-text event type from the form (e.g. Wedding). */
+  eventType?: string;
+  /** ISO date (yyyy-mm-dd) when known. */
+  eventDate?: string;
   parsed?: Spec;
   requestId?: string;
   latencyMs?: number;
@@ -91,12 +115,20 @@ export type Enquiry = EnquiryInbound & {
   notesUsed?: number;
   final?: Spec;
   feasibility?: Feasibility;
-  status?: FeasibilityStatus;
+  /**
+   * Pipeline status for the organiser journey.
+   * Legacy docs may still hold a FeasibilityStatus here — readers should
+   * normalise via {@link pipelineOf}.
+   */
+  status?: PipelineStatus | FeasibilityStatus;
   /** Manual room pick by name; clears when empty → bestRoom again. */
   roomOverride?: string | null;
   /** Set when the coordinator approves; any later edit clears it (needs review). */
   approvedAt?: string | null;
+  /** Client accepted the proposal. */
+  acceptedAt?: string | null;
   verdict?: Verdict | null;
+  changeRequest?: ChangeRequest | null;
 };
 
 /** good = approved as the model drafted it; corrected = edited first. */
@@ -122,7 +154,26 @@ export type Correction = {
   final: Spec;
   changes: SpecChange[];
   at: string;
+  /** Who authored the correction — coordinator (default) or client. */
+  source?: "coordinator" | "client";
 };
+
+/** Normalise enquiry.status to a pipeline value (handles legacy Fits values). */
+export function pipelineOf(
+  e: Pick<Enquiry, "status" | "approvedAt" | "acceptedAt" | "changeRequest">,
+): PipelineStatus {
+  if (e.acceptedAt || e.status === "accepted") return "accepted";
+  if (
+    e.changeRequest?.status === "pending" ||
+    e.status === "client_changes"
+  ) {
+    return "client_changes";
+  }
+  if (e.approvedAt || e.status === "proposed") return "proposed";
+  if (e.status === "received") return "received";
+  // Legacy: status held FeasibilityStatus — treat as still with the venue.
+  return "received";
+}
 
 export const LAYOUT_KINDS = [
   "table_round",

@@ -2,11 +2,9 @@
 
 import {
   collection,
-  doc,
   onSnapshot,
   orderBy,
   query,
-  updateDoc,
   type Timestamp,
 } from "firebase/firestore";
 import Link from "next/link";
@@ -16,15 +14,15 @@ import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { StatusChip } from "@/components/inbox/StatusChip";
-import { evaluateRooms } from "@/lib/evaluate";
-import { firestoreFeasibility } from "@/lib/feasibility-serialize";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
-import type {
-  EnquiryListItem,
-  FeasibilityStatus,
-  Room,
-  Spec,
+import {
+  pipelineOf,
+  type EnquiryListItem,
+  type FeasibilityStatus,
+  type PipelineStatus,
+  type Room,
+  type Spec,
 } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -62,9 +60,13 @@ function guestsOf(row: EnquiryListItem): number | null {
   return spec?.guests ?? null;
 }
 
+function feasStatusOf(row: EnquiryListItem): FeasibilityStatus | undefined {
+  return row.feasibility?.status;
+}
+
 function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
   const spec: Spec | undefined = row.final ?? row.parsed;
-  if (!spec || !row.status) return null;
+  if (!spec || !feasStatusOf(row)) return null;
   const name = row.feasibility?.room?.name;
   const fromList = name ? rooms.find((r) => r.name === name) : undefined;
   const room =
@@ -77,44 +79,46 @@ function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
   return formatGbp(quote(room, spec).total);
 }
 
-type ParseResponse = {
-  spec: Spec;
-  requestId: string | null;
-  latencyMs: number;
-  model: string;
-  notesUsed: number;
-  error?: string;
-};
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Inbox = still with the coordinator. Once approved (any edit clears it, so it
- * moves back), the reply depends on feasibility: "needs a change" offers the
- * room on condition the client cuts guests, "can't host" is a decline.
- */
-type Tab = "inbox" | "accepted" | "change" | "declined";
+type Tab = PipelineStatus;
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "inbox", label: "Inbox" },
+  { id: "received", label: "Received" },
+  { id: "proposed", label: "Proposed" },
+  { id: "client_changes", label: "Client changes" },
   { id: "accepted", label: "Accepted" },
-  { id: "change", label: "Needs a change" },
-  { id: "declined", label: "Declined" },
 ];
 
-function tabOf(row: EnquiryListItem): Tab {
-  if (!row.approvedAt) return "inbox";
-  if (row.status === "cannot") return "declined";
-  if (row.status === "warning") return "change";
-  return "accepted";
-}
-
 const EMPTY: Record<Tab, string> = {
-  inbox: "Inbox clear. Every enquiry has been approved.",
-  accepted: "Nothing accepted yet. Approve an enquiry that fits and it lands here.",
-  change: "None waiting on a change. Approved enquiries slightly over capacity land here.",
-  declined: "No declines. Approved enquiries the venue can't host land here.",
+  received: "Nothing waiting. New form and email enquiries land here.",
+  proposed: "No proposals out yet. Approve & draft reply to move one here.",
+  client_changes: "No client tweak requests waiting.",
+  accepted: "No dates held yet. When a client accepts, they land here.",
 };
+
+const PIPELINE_CHIP: Record<PipelineStatus, { label: string; color: string }> =
+  {
+    received: { label: "Received", color: "var(--muted)" },
+    proposed: { label: "Proposed", color: "var(--fits)" },
+    client_changes: { label: "Client changes", color: "var(--warning)" },
+    accepted: { label: "Accepted", color: "var(--accent)" },
+  };
+
+function PipelineChip({ status }: { status: PipelineStatus }) {
+  const chip = PIPELINE_CHIP[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
+      style={{ color: chip.color }}
+    >
+      <span
+        className="inline-block size-1.5 rounded-full"
+        style={{ background: chip.color }}
+        aria-hidden
+      />
+      {chip.label}
+    </span>
+  );
+}
 
 export default function InboxPage() {
   const rooms = useVenueRooms();
@@ -124,7 +128,12 @@ export default function InboxPage() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("inbox");
+  const [tab, setTab] = useState<Tab>("received");
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     const q = query(
@@ -144,12 +153,18 @@ export default function InboxPage() {
             receivedAt: asIso(data.receivedAt),
             parsed: data.parsed as Spec | undefined,
             final: data.final as Spec | undefined,
-            status: data.status as FeasibilityStatus | undefined,
+            status: data.status,
             requestId: data.requestId as string | undefined,
             latencyMs: data.latencyMs as number | undefined,
             model: data.model as string | undefined,
             feasibility: data.feasibility,
             approvedAt: data.approvedAt as string | null | undefined,
+            acceptedAt: data.acceptedAt as string | null | undefined,
+            changeRequest: data.changeRequest,
+            email: data.email as string | undefined,
+            source: data.source,
+            eventType: data.eventType as string | undefined,
+            eventDate: data.eventDate as string | undefined,
           };
         });
         setRows(next);
@@ -171,12 +186,12 @@ export default function InboxPage() {
 
   const byTab = useMemo(() => {
     const groups: Record<Tab, EnquiryListItem[]> = {
-      inbox: [],
+      received: [],
+      proposed: [],
+      client_changes: [],
       accepted: [],
-      change: [],
-      declined: [],
     };
-    for (const row of rows) groups[tabOf(row)].push(row);
+    for (const row of rows) groups[pipelineOf(row)].push(row);
     return groups;
   }, [rows]);
   const visible = byTab[tab];
@@ -205,22 +220,11 @@ export default function InboxPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: row.body, enquiryId: row.id }),
         });
-        const data = (await res.json()) as ParseResponse;
+        const data = (await res.json()) as { error?: string };
         if (!res.ok) {
           throw new Error(data.error ?? `Parse failed (${res.status})`);
         }
-        const feasibility = evaluateRooms(rooms, data.spec, null);
-        await updateDoc(doc(getDb(), "enquiries", row.id), {
-          parsed: data.spec,
-          final: data.spec,
-          requestId: data.requestId ?? "",
-          latencyMs: data.latencyMs,
-          model: data.model,
-          notesUsed: data.notesUsed,
-          feasibility: firestoreFeasibility(feasibility),
-          status: feasibility.status,
-          roomOverride: null,
-        });
+        // Server persists parsed + final when enquiryId is set.
       } catch (err) {
         setError(
           err instanceof Error
@@ -230,13 +234,13 @@ export default function InboxPage() {
       }
       const elapsed = Date.now() - started;
       if (i < queue.length - 1 && elapsed < 1000) {
-        await sleep(1000 - elapsed);
+        await new Promise((r) => setTimeout(r, 1000 - elapsed));
       }
     }
 
     setProcessing(false);
     setProcessProgress(null);
-  }, [rows, rooms, processing]);
+  }, [rows, processing]);
 
   return (
     <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
@@ -251,6 +255,11 @@ export default function InboxPage() {
               <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
                 The Wharf Rooms · {countLabel}
               </p>
+              {origin && (
+                <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
+                  Enquiry form: {origin}/enquire
+                </p>
+              )}
               {processProgress && (
                 <p className="mt-1 font-mono text-[11px] text-[color:var(--warning)]">
                   {processProgress}
@@ -342,10 +351,11 @@ export default function InboxPage() {
           )}
           {visible.map((row) => {
             const missing = missingDetails(enquiryText(row));
-            // No count in the email → the model's number and price are guesses.
             const guessed = missing.includes("guests") && !row.approvedAt;
             const guests = guessed ? null : guestsOf(row);
             const est = guessed ? null : estTotalOf(row, rooms);
+            const pipe = pipelineOf(row);
+            const feas = feasStatusOf(row);
             return (
               <li key={row.id}>
                 <Link
@@ -361,10 +371,11 @@ export default function InboxPage() {
                   <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
-                  <span>
-                    {!guessed && (
+                  <span className="flex flex-col gap-0.5">
+                    <PipelineChip status={pipe} />
+                    {!guessed && feas && (
                       <StatusChip
-                        status={row.status}
+                        status={feas}
                         used={row.feasibility?.used}
                         capacity={row.feasibility?.capacity}
                       />

@@ -51,6 +51,7 @@ export async function createAndParseEnquiry(input: {
     body: input.body,
     receivedAt: new Date().toISOString(),
     source: "inbound",
+    status: "received",
   });
 
   let parsed: Awaited<ReturnType<typeof runParse>>;
@@ -71,7 +72,6 @@ export async function createAndParseEnquiry(input: {
     model: parsed.model,
     notesUsed: parsed.notesUsed,
     feasibility: firestoreFeasibility(feasibility),
-    status: feasibility.status,
     roomOverride: null,
   });
 

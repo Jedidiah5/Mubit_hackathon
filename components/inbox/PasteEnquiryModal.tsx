@@ -43,6 +43,8 @@ export function PasteEnquiryModal({ open, onClose }: Props) {
         body: body.trim(),
         receivedAt: new Date().toISOString(),
         createdAt: serverTimestamp(),
+        source: "paste",
+        status: "received",
       });
       setFrom("");
       setSubject("");

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeRequestBanner } from "@/components/enquiry/ChangeRequestBanner";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
 import { ReviewBanner } from "@/components/enquiry/ReviewBanner";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
@@ -140,18 +141,7 @@ export function EnquiryClient() {
           throw new Error(data.error ?? `Parse failed (${res.status})`);
         }
 
-        const feasibility = evaluateRooms(rooms, data.spec, null);
-        await updateDoc(doc(getDb(), "enquiries", id), {
-          parsed: data.spec,
-          final: data.spec,
-          requestId: data.requestId ?? "",
-          latencyMs: data.latencyMs,
-          model: data.model,
-          notesUsed: data.notesUsed,
-          feasibility: firestoreFeasibility(feasibility),
-          status: feasibility.status,
-          roomOverride: null,
-        });
+        // /api/parse with enquiryId persists parsed + final + feasibility.
         if (data.error) setParseError(`Validated with fallback: ${data.error}`);
       } catch (err) {
         setParseError(err instanceof Error ? err.message : "Parse failed");
@@ -160,7 +150,7 @@ export function EnquiryClient() {
         setParsing(false);
       }
     })();
-  }, [enquiry, id, rooms]);
+  }, [enquiry, id]);
 
   const roomOverride = enquiry?.roomOverride ?? null;
 
@@ -183,10 +173,10 @@ export function EnquiryClient() {
       await updateDoc(doc(getDb(), "enquiries", id), {
         final: next,
         feasibility: firestoreFeasibility(feas),
-        status: feas.status,
         roomOverride: override,
         approvedAt: null,
         verdict: null,
+        status: "received",
       });
       if (!enquiry?.parsed) return;
       // One doc per enquiry, overwritten: intermediate edits never pile up.
@@ -198,6 +188,7 @@ export function EnquiryClient() {
         final: next,
         changes: diffSpec(enquiry.parsed, next),
         at: new Date().toISOString(),
+        source: "coordinator",
       });
     },
     [id, enquiry, roomOverride, rooms],
@@ -237,9 +228,9 @@ export function EnquiryClient() {
       await updateDoc(doc(getDb(), "enquiries", id), {
         roomOverride: name,
         feasibility: firestoreFeasibility(feas),
-        status: feas.status,
         approvedAt: null,
         verdict: null,
+        status: "received",
       });
     },
     [id, rooms],
@@ -247,6 +238,10 @@ export function EnquiryClient() {
 
   const approved = Boolean(enquiry?.approvedAt);
   const parsedSpec = enquiry?.parsed;
+  const pendingChange =
+    enquiry?.changeRequest?.status === "pending"
+      ? enquiry.changeRequest
+      : null;
 
   const subject = enquiry?.subject;
   const body = enquiry?.body;
@@ -268,9 +263,49 @@ export function EnquiryClient() {
     if (approved || !current || !parsedSpec) return;
     await updateDoc(doc(getDb(), "enquiries", id), {
       approvedAt: new Date().toISOString(),
+      status: "proposed",
       verdict: diffSpec(parsedSpec, current).length > 0 ? "corrected" : "good",
     });
   }, [approved, parsedSpec, id]);
+
+  const onAcceptClientChanges = useCallback(async () => {
+    const req = enquiry?.changeRequest;
+    const current = specRef.current;
+    if (!req || req.status !== "pending" || !current || !enquiry?.parsed) return;
+    const next = req.spec;
+    const feas = evaluateRooms(rooms, next, roomOverride);
+    skipRemoteSpec.current = true;
+    specRef.current = next;
+    setLocalSpec(next);
+    setGuestsDraft(String(next.guests));
+    await updateDoc(doc(getDb(), "enquiries", id), {
+      final: next,
+      feasibility: firestoreFeasibility(feas),
+      changeRequest: { ...req, status: "accepted" },
+      status: "proposed",
+      approvedAt: new Date().toISOString(),
+      verdict: "corrected",
+    });
+    await setDoc(doc(getDb(), "corrections", id), {
+      enquiryId: id,
+      requestId: enquiry.requestId ?? "",
+      email: trimEnquiry(enquiry.body),
+      parsed: enquiry.parsed,
+      final: next,
+      changes: diffSpec(enquiry.parsed, next),
+      at: new Date().toISOString(),
+      source: "client",
+    });
+  }, [enquiry, id, rooms, roomOverride]);
+
+  const onDismissClientChanges = useCallback(async () => {
+    const req = enquiry?.changeRequest;
+    if (!req || req.status !== "pending") return;
+    await updateDoc(doc(getDb(), "enquiries", id), {
+      changeRequest: { ...req, status: "dismissed" },
+      status: "proposed",
+    });
+  }, [enquiry, id]);
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room) return null;
@@ -384,6 +419,14 @@ export function EnquiryClient() {
                 verdict={enquiry.verdict ?? null}
                 missing={missing}
               />
+              {pendingChange && spec && (
+                <ChangeRequestBanner
+                  changeRequest={pendingChange}
+                  current={spec}
+                  onAccept={() => void onAcceptClientChanges()}
+                  onDismiss={() => void onDismissClientChanges()}
+                />
+              )}
               <SpecForm
                 spec={spec}
                 onChange={onSpecChange}
