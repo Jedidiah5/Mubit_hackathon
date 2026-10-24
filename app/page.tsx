@@ -99,7 +99,7 @@ const PIPELINE_CHIP: Record<PipelineStatus, { label: string; cls: string }> = {
   received: { label: "Received", cls: "nb-chip" },
   proposed: { label: "Proposed", cls: "nb-chip nb-chip-teal" },
   client_changes: { label: "Client changes", cls: "nb-chip nb-chip-yellow" },
-  accepted: { label: "Accepted", cls: "nb-chip nb-chip-purple" },
+  accepted: { label: "Accepted", cls: "nb-chip nb-chip-blue" },
 };
 
 function PipelineChip({ status }: { status: PipelineStatus }) {
@@ -232,7 +232,7 @@ export default function InboxPage() {
   return (
     <main className="min-h-screen text-[color:var(--ink)]">
       <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-6 sm:px-8 sm:py-10">
-        <header className="nb-frame mb-6 space-y-5 p-4 sm:mb-8 sm:p-6">
+        <header className="nb-frame nb-frame-blue mb-6 space-y-5 p-4 sm:mb-8 sm:p-6">
           <AppNav current="/" />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -240,7 +240,7 @@ export default function InboxPage() {
                 <span className="nb-mark" aria-hidden>
                   ✦
                 </span>
-                <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
+                <h1 className="font-sans text-3xl font-extrabold tracking-tight sm:text-4xl">
                   Inbox
                 </h1>
               </div>
@@ -275,7 +275,7 @@ export default function InboxPage() {
               <button
                 type="button"
                 onClick={() => setPasteOpen(true)}
-                className="nb-btn nb-btn-ink"
+                className="nb-btn nb-btn-red nb-btn-pill"
               >
                 Paste new enquiry
               </button>
@@ -319,7 +319,7 @@ export default function InboxPage() {
           <span className="text-right">Received</span>
         </div>
 
-        <ul className="nb-frame divide-y-2 divide-[color:var(--ink)] overflow-hidden !rounded-[var(--radius)] !p-0">
+        <ul className="nb-frame nb-frame-snow divide-y-2 divide-[color:var(--ink)] overflow-hidden !rounded-[var(--radius)] !p-0">
           {loading && rows.length === 0 && (
             <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               Listening for enquiries…
@@ -350,7 +350,7 @@ export default function InboxPage() {
               <li key={row.id}>
                 <Link
                   href={`/enquiry/${row.id}`}
-                  className="grid grid-cols-1 gap-3 px-4 py-4 transition hover:bg-[color:var(--accent-3)]/35 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] lg:items-center lg:gap-4"
+                  className="grid grid-cols-1 gap-3 px-4 py-4 transition hover:bg-[color:var(--panel-2)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] lg:items-center lg:gap-4"
                 >
                   <span className="truncate font-sans text-sm font-bold">
                     {senderName(row.from)}

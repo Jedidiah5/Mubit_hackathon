@@ -19,7 +19,7 @@ function formatWhen(iso: string): string {
 export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
   if (approvedAt) {
     return (
-      <div className="nb-banner nb-banner-ok">
+      <div className="nb-banner nb-banner-ok backdrop-blur-md">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--fits)]">
           Approved · {formatWhen(approvedAt)}
         </p>
@@ -35,7 +35,7 @@ export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
 
   if (needsInfo(missing)) {
     return (
-      <div className="nb-banner nb-banner-bad">
+      <div className="nb-banner nb-banner-bad backdrop-blur-md">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--cannot)]">
           Needs info · ask the client
         </p>
@@ -53,7 +53,7 @@ export function ReviewBanner({ approvedAt, verdict, missing }: Props) {
   }
 
   return (
-    <div className="nb-banner nb-banner-warn">
+    <div className="nb-banner nb-banner-warn backdrop-blur-md">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
         Needs review · AI draft
       </p>

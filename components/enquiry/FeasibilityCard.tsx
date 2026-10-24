@@ -27,6 +27,7 @@ type Props = {
   rooms: { name: string }[];
   roomOverride: string | null;
   onRoomOverride: (name: string | null) => void;
+  compact?: boolean;
 };
 
 export function FeasibilityCard({
@@ -35,6 +36,7 @@ export function FeasibilityCard({
   rooms,
   roomOverride,
   onRoomOverride,
+  compact = false,
 }: Props) {
   const color = COLOR[feasibility.status];
   const pct =
@@ -45,8 +47,50 @@ export function FeasibilityCard({
     feasibility.status === "fits" &&
     isTight(feasibility.used, feasibility.capacity);
 
+  if (compact) {
+    return (
+      <div className="nb-panel space-y-2 bg-[color:var(--panel-snow)]/92 p-3 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-sans text-sm font-extrabold" style={{ color }}>
+            {LABEL[feasibility.status]}
+            {tight ? " · tight" : ""}
+          </p>
+          <span className="nb-chip nb-chip-yellow !px-2 !py-0.5 text-[10px]">
+            {feasibility.room?.name ?? "—"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full border border-[color:var(--ink)] bg-white">
+            <div
+              className="h-full"
+              style={{ width: `${pct}%`, background: BG[feasibility.status] }}
+            />
+          </div>
+          <span className="shrink-0 font-mono text-[10px] font-bold text-[color:var(--muted)]">
+            {feasibility.used}/{feasibility.capacity}
+          </span>
+        </div>
+        <select
+          className="nb-input !px-2 !py-1.5 !text-[11px]"
+          value={roomOverride ?? ""}
+          onChange={(e) =>
+            onRoomOverride(e.target.value === "" ? null : e.target.value)
+          }
+          aria-label="Room override"
+        >
+          <option value="">Auto · {styleLabel}</option>
+          {rooms.map((r) => (
+            <option key={r.name} value={r.name}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
   return (
-    <div className="nb-panel space-y-3 p-4">
+    <div className="nb-panel space-y-3 bg-[color:var(--panel-snow)]/92 p-4 backdrop-blur-md">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
         Feasibility
       </p>
@@ -60,7 +104,9 @@ export function FeasibilityCard({
             </span>
           )}
         </p>
-        <span className="nb-chip nb-chip-yellow">{feasibility.room?.name ?? "No room"}</span>
+        <span className="nb-chip nb-chip-yellow">
+          {feasibility.room?.name ?? "No room"}
+        </span>
       </div>
 
       <div>

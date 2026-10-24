@@ -81,7 +81,7 @@ export function StatusClient() {
   return (
     <main className="min-h-screen text-[color:var(--ink)]">
       <div className="mx-auto w-full max-w-lg px-4 py-8 sm:px-6 sm:py-12">
-        <div className="nb-frame p-5 sm:p-7">
+        <div className="nb-frame nb-frame-lilac p-5 sm:p-7">
           <div className="mb-2 flex items-center gap-3">
             <span className="nb-mark" aria-hidden>
               ✦
@@ -90,7 +90,7 @@ export function StatusClient() {
               The Wharf Rooms · your enquiry
             </p>
           </div>
-          <h1 className="font-sans text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="font-sans text-2xl font-extrabold tracking-tight sm:text-3xl">
             {enquiry.subject}
           </h1>
           <p className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
@@ -158,14 +158,17 @@ export function StatusClient() {
           </ol>
 
           {proposalReady && (
-            <Link href={`/p/${id}`} className="nb-btn nb-btn-ink mt-2 w-full">
+            <Link
+              href={`/p/${id}`}
+              className="nb-btn nb-btn-red nb-btn-pill mt-2 w-full"
+            >
               View your proposal
             </Link>
           )}
         </div>
 
         {summary && (
-          <section className="nb-panel mt-5 p-5">
+          <section className="nb-panel nb-panel-blue mt-5 p-5">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
               Your request
             </p>

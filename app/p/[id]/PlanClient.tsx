@@ -195,16 +195,16 @@ export function PlanClient() {
   return (
     <main className="min-h-screen text-[color:var(--ink)]">
       <div className="mx-auto flex w-full max-w-3xl flex-col px-4 pb-16 pt-5 sm:px-6 sm:pt-8">
-        <header className="nb-frame shrink-0 p-4 sm:p-5">
+        <header className="nb-frame nb-frame-red shrink-0 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
               The Wharf Rooms · proposal
             </p>
-            <Link href={`/e/${id}`} className="nb-chip">
+            <Link href={`/e/${id}`} className="nb-chip nb-chip-yellow">
               ← Status
             </Link>
           </div>
-          <h1 className="mt-3 font-sans text-xl font-bold tracking-tight sm:text-2xl">
+          <h1 className="mt-3 font-sans text-xl font-extrabold tracking-tight sm:text-2xl">
             {hero}
           </h1>
           {pipeline === "client_changes" &&
@@ -247,24 +247,13 @@ export function PlanClient() {
           {liveQuote && <QuoteCard quote={liveQuote} roomName={room.name} />}
 
           {included.length > 0 && (
-            <section className="nb-panel p-4">
+            <section className="nb-panel nb-panel-lilac p-4">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
                 Included
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {included.map((chip, i) => (
-                  <span
-                    key={chip}
-                    className={`nb-chip ${
-                      i % 4 === 0
-                        ? "nb-chip-teal"
-                        : i % 4 === 1
-                          ? "nb-chip-yellow"
-                          : i % 4 === 2
-                            ? "nb-chip-purple"
-                            : "nb-chip-orange"
-                    }`}
-                  >
+                {included.map((chip) => (
+                  <span key={chip} className="nb-chip">
                     {chip}
                   </span>
                 ))}
@@ -284,7 +273,7 @@ export function PlanClient() {
                 type="button"
                 onClick={openAdjust}
                 disabled={saving}
-                className="nb-btn flex-1"
+                className="nb-btn nb-btn-blue nb-btn-pill flex-1"
               >
                 Request changes
               </button>
@@ -292,7 +281,7 @@ export function PlanClient() {
                 type="button"
                 onClick={() => void acceptHold()}
                 disabled={saving}
-                className="nb-btn nb-btn-ink flex-1"
+                className="nb-btn nb-btn-red nb-btn-pill flex-1"
               >
                 Accept & hold the date
               </button>

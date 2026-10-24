@@ -5,11 +5,34 @@ import { formatGbp, type Quote } from "@/lib/quote";
 type Props = {
   quote: Quote;
   roomName: string;
+  compact?: boolean;
 };
 
-export function QuoteCard({ quote, roomName }: Props) {
+export function QuoteCard({ quote, roomName, compact = false }: Props) {
+  if (compact) {
+    return (
+      <div className="nb-panel space-y-1.5 bg-[color:var(--panel-snow)]/92 p-3 backdrop-blur-md">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--muted)]">
+          Quote · {roomName}
+        </p>
+        <div className="flex items-baseline justify-between gap-2 rounded-[12px] bg-[color:var(--accent-3)] px-2.5 py-2">
+          <span className="font-sans text-sm font-extrabold">Total</span>
+          <span className="font-sans text-base font-extrabold tabular-nums">
+            {formatGbp(quote.total)}
+          </span>
+        </div>
+        <p className="font-mono text-[10px] text-[color:var(--muted)]">
+          inc. VAT
+          {quote.belowMinSpend
+            ? ` · +${formatGbp(quote.minSpendTopUp)} min spend`
+            : ""}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="nb-panel space-y-3 p-4">
+    <div className="nb-panel space-y-3 bg-[color:var(--panel-snow)]/92 p-4 backdrop-blur-md">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
         Quote · {roomName}
       </p>

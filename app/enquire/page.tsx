@@ -97,7 +97,7 @@ export default function EnquirePage() {
   return (
     <main className="min-h-screen text-[color:var(--ink)]">
       <div className="mx-auto w-full max-w-lg px-4 py-8 sm:px-6 sm:py-12">
-        <div className="nb-frame p-5 sm:p-7">
+        <div className="nb-frame nb-frame-blue p-5 sm:p-7">
           <div className="mb-5 flex items-center gap-3">
             <span className="nb-mark" aria-hidden>
               ✦
@@ -106,7 +106,7 @@ export default function EnquirePage() {
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
                 The Wharf Rooms
               </p>
-              <h1 className="font-sans text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="font-sans text-2xl font-extrabold tracking-tight sm:text-3xl">
                 Enquire about a date
               </h1>
             </div>
@@ -203,7 +203,7 @@ export default function EnquirePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="nb-btn nb-btn-ink w-full"
+              className="nb-btn nb-btn-red nb-btn-pill w-full"
             >
               {submitting ? "Sending…" : "Send enquiry"}
             </button>

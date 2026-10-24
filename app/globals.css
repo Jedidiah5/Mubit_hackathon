@@ -1,39 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  /* Neo-brutal — cream field, hard ink, loud accents */
-  --background: #f5f2ed;
-  --foreground: #111111;
-  --ink: #111111;
-  --muted: #5c5c5c;
-  --panel: #ffffff;
-  --panel-2: #faf8f4;
-  --line: #111111;
-  --border: 2.5px solid #111111;
-  --shadow: 4px 4px 0 0 #111111;
-  --shadow-sm: 3px 3px 0 0 #111111;
-  --shadow-lg: 6px 6px 0 0 #111111;
-  --radius: 14px;
-  --radius-sm: 10px;
+  /* Neo-brutal — calm cream base, colour only on accents */
+  --background: #f3efe6;
+  --foreground: #151515;
+  --ink: #151515;
+  --muted: #5a5a5a;
+  --panel: #fffcf7;
+  --panel-2: #f7f3eb;
+  --panel-purple: #f3f0fa;
+  --panel-coral: #faf0ef;
+  --panel-peach: #faf4ee;
+  --panel-mint: #eef6f4;
+  --panel-lemon: #faf7ef;
+  --panel-lilac: #f3f0fa;
+  --panel-blue: #eef3f8;
+  --panel-red: #faf0ef;
+  --panel-snow: #fffcf7;
+  --line: #151515;
+  --border: 2.5px solid #151515;
+  --shadow: 4px 4px 0 0 #151515;
+  --shadow-sm: 3px 3px 0 0 #151515;
+  --shadow-lg: 6px 6px 0 0 #151515;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-btn: 18px;
   --radius-pill: 999px;
 
-  --accent: #2ec4b6;
-  --accent-2: #7c6cf0;
-  --accent-3: #f0c419;
-  --accent-4: #ef4b4b;
-  --accent-5: #f97316;
-  --accent-bright: #f0c419;
+  --accent: #2a9d8f;
+  --accent-2: #6b63c9;
+  --accent-3: #e6c84a;
+  --accent-4: #e04545;
+  --accent-5: #e07a3d;
+  --accent-blue: #4a7fd4;
+  --accent-bright: #e6c84a;
 
-  --fits: #0d8f6a;
-  --warning: #c47a00;
-  --cannot: #d62839;
+  --fits: #1a7a5c;
+  --warning: #9a6b00;
+  --cannot: #c0392b;
 
-  /* Scene HUD — brutal glass */
-  --hud-ink: #111111;
-  --hud-soft: #5c5c5c;
-  --hud-bg: #ffffff;
-  --hud-line: #111111;
-  --hud-shadow: 3px 3px 0 0 #111111;
+  /* Scene HUD */
+  --hud-ink: #151515;
+  --hud-soft: #5a5a5a;
+  --hud-bg: #fffcf7;
+  --hud-line: #151515;
+  --hud-shadow: 3px 3px 0 0 #151515;
   --hud-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --hud-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -42,33 +53,40 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+  --font-sans: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 body {
   background-color: var(--background);
   background-image:
-    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--accent-3) 22%, transparent) 0 120px, transparent 121px),
-    radial-gradient(circle at 88% 12%, color-mix(in oklab, var(--accent) 18%, transparent) 0 90px, transparent 91px),
-    radial-gradient(circle at 78% 78%, color-mix(in oklab, var(--accent-2) 14%, transparent) 0 110px, transparent 111px),
-    radial-gradient(circle at 18% 82%, color-mix(in oklab, var(--accent-4) 12%, transparent) 0 80px, transparent 81px),
+    radial-gradient(circle at 10% 8%, color-mix(in oklab, var(--accent-3) 14%, transparent) 0 160px, transparent 161px),
+    radial-gradient(circle at 90% 15%, color-mix(in oklab, var(--accent-blue) 10%, transparent) 0 140px, transparent 141px),
+    radial-gradient(circle at 80% 85%, color-mix(in oklab, var(--accent) 10%, transparent) 0 150px, transparent 151px),
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 23px,
-      color-mix(in oklab, var(--ink) 3.5%, transparent) 23px,
-      color-mix(in oklab, var(--ink) 3.5%, transparent) 24px
+      transparent 24px,
+      color-mix(in oklab, var(--ink) 2.5%, transparent) 24px,
+      color-mix(in oklab, var(--ink) 2.5%, transparent) 25px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
-      transparent 23px,
-      color-mix(in oklab, var(--ink) 3.5%, transparent) 23px,
-      color-mix(in oklab, var(--ink) 3.5%, transparent) 24px
+      transparent 24px,
+      color-mix(in oklab, var(--ink) 2.5%, transparent) 24px,
+      color-mix(in oklab, var(--ink) 2.5%, transparent) 25px
     );
   background-attachment: fixed;
   color: var(--foreground);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 /* ---------- Neo-brutal primitives ---------- */
@@ -76,23 +94,41 @@ body {
 .nb-frame {
   border: var(--border);
   border-radius: var(--radius);
-  background: var(--panel);
+  background: var(--panel-snow);
   box-shadow: var(--shadow);
+}
+.nb-frame-mint,
+.nb-frame-lilac,
+.nb-frame-coral,
+.nb-frame-peach,
+.nb-frame-snow,
+.nb-frame-blue,
+.nb-frame-red {
+  background: var(--panel-snow);
 }
 
 .nb-panel {
   border: var(--border);
   border-radius: var(--radius-sm);
-  background: var(--panel);
+  background: var(--panel-snow);
   box-shadow: var(--shadow-sm);
+}
+.nb-panel-lemon,
+.nb-panel-mint,
+.nb-panel-lilac,
+.nb-panel-coral,
+.nb-panel-peach,
+.nb-panel-blue,
+.nb-panel-red {
+  background: var(--panel-2);
 }
 
 .nb-input {
   width: 100%;
   border: var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--panel);
-  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--panel-snow);
+  padding: 0.85rem 1.15rem;
   font-family: var(--font-mono);
   font-size: 0.875rem;
   color: var(--ink);
@@ -100,9 +136,14 @@ body {
   box-shadow: var(--shadow-sm);
   transition: transform 0.1s var(--hud-ease), box-shadow 0.1s var(--hud-ease);
 }
+textarea.nb-input {
+  border-radius: var(--radius-btn);
+  resize: vertical;
+}
 .nb-input:focus {
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 0 #111111;
+  background: #fff;
 }
 
 .nb-label {
@@ -116,28 +157,31 @@ body {
   color: var(--muted);
 }
 
+/* Reference-style CTAs: soft radius, thick border, hard offset shadow */
 .nb-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--panel);
-  padding: 0.7rem 1.1rem;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: 0.55rem;
+  border: 3px solid var(--ink);
+  border-radius: var(--radius-btn);
+  background: var(--panel-snow);
+  padding: 0.85rem 1.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
   color: var(--ink);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 4px 4px 0 0 #111111;
   transition: transform 0.1s var(--hud-ease), box-shadow 0.1s var(--hud-ease);
   cursor: pointer;
+  text-decoration: none;
+  line-height: 1.1;
 }
 .nb-btn:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 0 #111111;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 #111111;
 }
 .nb-btn:active:not(:disabled) {
   transform: translate(2px, 2px);
@@ -168,6 +212,16 @@ body {
   background: var(--accent-2);
   color: #fff;
 }
+.nb-btn-blue {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+/* Fully pill buttons (Success / chip-like CTAs) */
+.nb-btn-pill {
+  border-radius: var(--radius-pill);
+  padding: 0.75rem 1.5rem;
+}
 
 .nb-chip {
   display: inline-flex;
@@ -175,42 +229,46 @@ body {
   gap: 0.35rem;
   border: 2px solid var(--ink);
   border-radius: var(--radius-pill);
-  background: var(--panel);
-  padding: 0.3rem 0.75rem;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  background: var(--panel-snow);
+  padding: 0.35rem 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  box-shadow: 2px 2px 0 0 #111111;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  box-shadow: 2px 2px 0 0 #151515;
   color: var(--ink);
 }
 .nb-chip-teal {
-  background: var(--accent);
+  background: color-mix(in oklab, var(--accent) 28%, white);
 }
 .nb-chip-yellow {
-  background: var(--accent-3);
+  background: color-mix(in oklab, var(--accent-3) 35%, white);
 }
 .nb-chip-purple {
-  background: var(--accent-2);
-  color: #fff;
+  background: color-mix(in oklab, var(--accent-2) 22%, white);
+  color: var(--ink);
 }
 .nb-chip-red {
-  background: var(--accent-4);
-  color: #fff;
+  background: color-mix(in oklab, var(--accent-4) 22%, white);
+  color: var(--ink);
 }
 .nb-chip-orange {
-  background: var(--accent-5);
-  color: #fff;
+  background: color-mix(in oklab, var(--accent-5) 25%, white);
+  color: var(--ink);
+}
+.nb-chip-blue {
+  background: color-mix(in oklab, var(--accent-blue) 22%, white);
+  color: var(--ink);
 }
 
 .nb-tablist {
   display: flex;
   gap: 0;
   overflow-x: auto;
-  border: var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--panel);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius-btn);
+  background: var(--panel-snow);
   box-shadow: var(--shadow-sm);
   -webkit-overflow-scrolling: touch;
 }
@@ -218,38 +276,39 @@ body {
   flex: 1 0 auto;
   min-width: max-content;
   border: 0;
-  border-right: 2px solid var(--ink);
+  border-right: 2.5px solid var(--ink);
   background: transparent;
-  padding: 0.75rem 1rem;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  padding: 0.8rem 1.1rem;
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 .nb-tab:last-child {
   border-right: 0;
 }
 .nb-tab[aria-selected="true"],
 .nb-tab.is-active {
-  background: var(--accent-3);
+  background: color-mix(in oklab, var(--accent-3) 40%, white);
   color: var(--ink);
 }
 
 .nb-mark {
   display: inline-grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: var(--border);
-  border-radius: 12px;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
   background: var(--accent-4);
   color: #fff;
-  box-shadow: var(--shadow-sm);
-  font-size: 1.1rem;
+  box-shadow: 3px 3px 0 0 #111111;
+  font-size: 1.15rem;
   line-height: 1;
 }
 
@@ -260,13 +319,13 @@ body {
   box-shadow: var(--shadow-sm);
 }
 .nb-banner-ok {
-  background: color-mix(in oklab, var(--accent) 35%, white);
+  background: color-mix(in oklab, var(--accent) 16%, white);
 }
 .nb-banner-warn {
-  background: color-mix(in oklab, var(--accent-3) 45%, white);
+  background: color-mix(in oklab, var(--accent-3) 22%, white);
 }
 .nb-banner-bad {
-  background: color-mix(in oklab, var(--accent-4) 22%, white);
+  background: color-mix(in oklab, var(--accent-4) 12%, white);
 }
 
 /* ---------- Scene HUD ---------- */
@@ -300,6 +359,40 @@ body {
   left: 10px;
   flex-direction: column;
   align-items: flex-start;
+}
+
+/* Enquiry page: room + Fits pills sit under the email (top-left);
+   view controls stay flush on the right edge */
+.enquiry-with-mail .btf-hud__tl {
+  top: 11.5rem;
+  left: 12px;
+  transform: none;
+  align-items: flex-start;
+  max-width: min(240px, calc(100vw - 1.5rem));
+}
+.enquiry-with-mail .btf-hud__br {
+  top: 50%;
+  right: 10px;
+  bottom: auto;
+  transform: translateY(-50%);
+  align-items: flex-end;
+}
+@media (min-width: 1024px) {
+  .enquiry-with-mail .btf-hud__tl {
+    /* Align with the left overlay column, just below the email bubble */
+    top: 12.75rem;
+    left: 12px;
+    max-width: 220px;
+  }
+  .enquiry-with-mail .btf-hud__br {
+    top: 50%;
+    right: 10px;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+}
+.enquiry-with-mail.email-open .btf-hud__tl {
+  top: min(42vh, 22rem);
 }
 .btf-hud__br {
   right: 10px;
