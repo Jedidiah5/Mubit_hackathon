@@ -63,7 +63,7 @@ const DATE = new RegExp(
 
 /** Words that say how the room is used, or event types that imply it. */
 const FORMAT =
-  /\b(?:dinner|lunch|breakfast|brunch|meal|food|catering|canap\w*|buffet|seated|sit[-\s]down|standing|drinks|reception|cocktails?|talks?|presentations?|keynote|panel|speech(?:es)?|workshop|conference|seminar|training|meeting|agm|rows|theatre|cabaret|banquet|networking|mingl\w*|danc\w*|ceilidh|disco|dj|band|ceremony|wedding|gala|awards?|prizes?|quiz|supper|tea|nibbles|refreshments|bite to eat|tasting|auction|reading|signing)\b/i;
+  /\b(?:dinner|lunch|breakfast|brunch|meal|food|catering|canap\w*|buffet|seated|sit[-\s]down|standing|drinks|reception|cocktails?|talks?|present\w*|keynote|panel|speech(?:es)?|workshop|conference|seminar|training|meeting|agm|rows|theatre|cabaret|banquet|networking|mixer|social|mingl\w*|danc\w*|ceilidh|disco|dj|band|ceremony|wedding|gala|awards?|prizes?|quiz|supper|tea|nibbles|refreshments|bite to eat|tasting|auction|reading|signing)\b/i;
 
 /** Pass subject and body together: subjects often carry the date. */
 export function missingDetails(text: string): MissingDetail[] {
