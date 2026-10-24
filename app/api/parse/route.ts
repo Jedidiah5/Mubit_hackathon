@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { mubit } from "@/lib/mubit";
-import { PARSE_MODEL, PARSE_SYSTEM_PROMPT, trimEnquiry } from "@/lib/parse";
-import { parseModelSpec } from "@/lib/parse-response";
+import { runParse } from "@/lib/run-parse";
 
 type ParseBody = {
   text?: unknown;
@@ -30,36 +28,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const trimmed = trimEnquiry(body.text);
-  const started = performance.now();
-
   try {
-    const { data, response } = await mubit.chat.completions
-      .create({
-        model: PARSE_MODEL,
-        messages: [
-          { role: "system", content: PARSE_SYSTEM_PROMPT },
-          { role: "user", content: trimmed },
-        ],
-      })
-      .withResponse();
-
-    const latencyMs = Math.round(performance.now() - started);
-    const requestId =
-      response.headers.get("x-middleware-request-id") ??
-      response.headers.get("x-request-id") ??
-      response.headers.get("request-id");
-    const raw = data.choices[0]?.message?.content ?? "";
-    const { spec, error } = parseModelSpec(raw);
-
-    return NextResponse.json({
-      spec,
-      requestId,
-      latencyMs,
-      model: PARSE_MODEL,
-      raw,
-      ...(error ? { error } : {}),
-    });
+    const result = await runParse(body.text);
+    return NextResponse.json(result);
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Mubit request failed";
