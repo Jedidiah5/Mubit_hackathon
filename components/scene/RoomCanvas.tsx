@@ -339,7 +339,13 @@ function SceneBody({
         onViewYaw={onViewYaw}
       />
       <RoomShell room={room} yaw={yaw} planView={planView} />
-      <Items items={items} time={time} room={room} spec={spec} />
+      <Items
+        items={items}
+        time={time}
+        room={room}
+        spec={spec}
+        hidePeople={editMode}
+      />
       {edit && (
         <EditLayoutScene
           room={room}

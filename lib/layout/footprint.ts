@@ -12,7 +12,8 @@ const SIZES: Record<LayoutKind, FootprintSize> = {
   dj_booth: { w: 2, d: 1.5 },
   photo_booth: { w: 2, d: 2 },
   table_round: { w: 3.2, d: 3.2 },
-  high_table: { w: 3.2, d: 3.2 },
+  /** Cocktail pedestal — not a seated table group. */
+  high_table: { w: 1.2, d: 1.2 },
   buffet: { w: 4.8, d: 0.9 },
   lectern: { w: 0.7, d: 0.7 },
   projector: { w: 2.2, d: 0.2 },

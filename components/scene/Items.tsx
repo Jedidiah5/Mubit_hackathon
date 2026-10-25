@@ -21,11 +21,13 @@ type Props = {
   time: () => number;
   room: Room;
   spec?: Spec;
+  /** Hide guests while Edit layout is on (clears the floor for picking). */
+  hidePeople?: boolean;
 };
 
 const GUEST_KINDS = ["guest_seated", "guest_standing", "guest_overflow"] as const;
 
-export function Items({ items, time, room, spec }: Props) {
+export function Items({ items, time, room, spec, hidePeople = false }: Props) {
   const byKind = useMemo(() => {
     const map = new Map<LayoutKind, LayoutItem[]>();
     for (const it of items) {
@@ -42,15 +44,19 @@ export function Items({ items, time, room, spec }: Props) {
       <RoundTables items={byKind.get("table_round") ?? []} time={time} />
       <HighTables items={byKind.get("high_table") ?? []} time={time} />
       <Chairs items={byKind.get("chair") ?? []} time={time} />
-      {GUEST_KINDS.map((kind) => {
-        const guests = byKind.get(kind) ?? [];
-        return (
-          // Rigged characters once the models are in; capsule stand-ins meanwhile.
-          <Suspense key={kind} fallback={<Guests items={guests} time={time} kind={kind} />}>
-            <People items={guests} time={time} kind={kind} />
-          </Suspense>
-        );
-      })}
+      {!hidePeople &&
+        GUEST_KINDS.map((kind) => {
+          const guests = byKind.get(kind) ?? [];
+          return (
+            // Rigged characters once the models are in; capsule stand-ins meanwhile.
+            <Suspense
+              key={kind}
+              fallback={<Guests items={guests} time={time} kind={kind} />}
+            >
+              <People items={guests} time={time} kind={kind} />
+            </Suspense>
+          );
+        })}
 
       {(byKind.get("stage") ?? []).map((it, i) => (
         <FeatureStage

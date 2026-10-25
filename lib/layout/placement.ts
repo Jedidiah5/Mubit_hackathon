@@ -98,8 +98,16 @@ function occupiedBounds(
       );
       continue;
     }
-    // Skip seated guests / chairs that somehow lack a group — covered by table.
-    if (it.kind === "chair" || it.kind === "guest_seated") continue;
+    // Guests never block furniture moves (and are hidden in edit mode).
+    // Chairs without a groupId are covered by their table footprint.
+    if (
+      it.kind === "chair" ||
+      it.kind === "guest_seated" ||
+      it.kind === "guest_standing" ||
+      it.kind === "guest_overflow"
+    ) {
+      continue;
+    }
     rects.push(footprintBounds(it.x, it.z, footprintSize(it.kind), it.rotY));
   }
   return rects;

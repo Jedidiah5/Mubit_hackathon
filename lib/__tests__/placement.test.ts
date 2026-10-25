@@ -177,6 +177,23 @@ describe("placementProblem", () => {
     );
   });
 
+  it("does not treat hidden standing guests as occupied floor", () => {
+    const items = layout(thames, {
+      style: "reception",
+      guests: 40,
+      stage: "none",
+      bar: "none",
+      extras: [],
+      accessible: false,
+    });
+    // Empty-looking cell away from high tables — guests may stand nearby
+    // but must not block furniture placement.
+    assert.equal(
+      placementProblem("table-1", { x: 0, z: 0, rotY: 0 }, items, thames),
+      null,
+    );
+  });
+
   it("flags blocks_exit when covering the south door clearance", () => {
     const items = layout(
       thames,
