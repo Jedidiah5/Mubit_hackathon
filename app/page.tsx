@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
+import { FixedTag } from "@/components/inbox/FixedTag";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
 import { StatusChip } from "@/components/inbox/StatusChip";
 import { PageHeader, PageShell } from "@/components/PageHeader";
@@ -17,10 +18,12 @@ import { evaluateRooms } from "@/lib/evaluate";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
+import { showFixedBy } from "@/lib/ripple";
 import {
   pipelineOf,
   type EnquiryListItem,
   type Feasibility,
+  type FixedBy,
   type PipelineStatus,
   type Room,
   type Spec,
@@ -137,6 +140,8 @@ export default function InboxPage() {
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("received");
+  /** `${id}:${fixedBy.at}` that arrived live, not on first load: flash once. */
+  const [freshFixes, setFreshFixes] = useState<Set<string>>(() => new Set());
   const [origin, setOrigin] = useState("");
   /** Enquiry ids that just received a pending client change request. */
   const [flashIds, setFlashIds] = useState<Set<string>>(() => new Set());
@@ -147,6 +152,8 @@ export default function InboxPage() {
   }, []);
 
   useEffect(() => {
+    let firstSnapshot = true;
+    const seenFixes = new Set<string>();
     const q = query(
       collection(getDb(), "enquiries"),
       orderBy("receivedAt", "desc"),
@@ -178,8 +185,18 @@ export default function InboxPage() {
             source: data.source,
             eventType: data.eventType as string | undefined,
             eventDate: data.eventDate as string | undefined,
+            fixedBy: data.fixedBy as FixedBy | null | undefined,
           };
         });
+        const arrived = next
+          .filter((r) => r.fixedBy?.at)
+          .map((r) => `${r.id}:${r.fixedBy!.at}`)
+          .filter((key) => !seenFixes.has(key));
+        for (const key of arrived) seenFixes.add(key);
+        if (!firstSnapshot && arrived.length > 0) {
+          setFreshFixes((prev) => new Set([...prev, ...arrived]));
+        }
+        firstSnapshot = false;
 
         const pendingKeys = new Set(
           next
@@ -399,13 +416,21 @@ export default function InboxPage() {
             const guests = guessed ? null : guestsOf(row);
             const live = guessed ? null : liveFeasibility(row, rooms);
             const est = guessed ? null : estTotalOf(row, rooms);
+            const fixed = showFixedBy(row) ? row.fixedBy : null;
+            const fixFlash = fixed && freshFixes.has(`${row.id}:${fixed.at}`);
             const pipe = pipelineOf(row);
             const clientPending = row.changeRequest?.status === "pending";
-            const flash = flashIds.has(row.id);
+            const changeFlash = flashIds.has(row.id);
             return (
               <li
                 key={row.id}
-                className={flash ? "inbox-row-flash" : undefined}
+                className={
+                  changeFlash
+                    ? "inbox-row-flash"
+                    : fixFlash
+                      ? "btf-flash"
+                      : undefined
+                }
               >
                 <Link
                   href={`/enquiry/${row.id}`}
@@ -414,8 +439,11 @@ export default function InboxPage() {
                   <span className="truncate font-sans text-sm font-bold">
                     {senderName(row.from)}
                   </span>
-                  <span className="truncate text-sm text-[color:var(--muted)]">
-                    {row.subject}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-[color:var(--muted)]">
+                      {row.subject}
+                    </span>
+                    {fixed && <FixedTag fixedBy={fixed} />}
                   </span>
                   <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] lg:text-right">
                     <span className="mr-2 font-mono text-[10px] uppercase lg:hidden">

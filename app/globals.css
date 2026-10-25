@@ -84,7 +84,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
@@ -394,14 +394,17 @@ textarea.nb-input {
 }
 @media (min-width: 1024px) {
   .enquiry-with-mail .btf-hud__tl {
-    /* Align with the left overlay column, just below the email bubble */
-    top: 12.75rem;
+    /* Align with the left overlay column, just below the email bubble
+       (title + collapsed email end at ~13.5rem, plus its shadow) */
+    top: 14.25rem;
     left: 12px;
     max-width: 220px;
   }
   .enquiry-with-mail .btf-hud__br {
     top: 50%;
-    right: 10px;
+    /* Just left of the 220px review column (plus the overlay's 12px padding
+       and gap), so tall review / change-request cards never cover it */
+    right: calc(220px + 12px + 12px + 10px);
     bottom: auto;
     transform: translateY(-50%);
   }
@@ -445,11 +448,18 @@ textarea.nb-input {
   gap: 8px;
   justify-content: flex-end;
   pointer-events: auto;
-  max-width: min(100% - 20px, 280px);
+  max-width: min(100% - 20px, 460px);
 }
 .enquiry-with-mail .btf-edit-hud__tr {
   top: 10px;
   right: 10px;
+}
+@media (min-width: 1024px) {
+  /* Top-right is the review column; sit over the open middle instead */
+  .enquiry-with-mail .btf-edit-hud__tr {
+    right: 50%;
+    transform: translateX(50%);
+  }
 }
 .btf-edit-hud__pad {
   position: absolute;
@@ -509,6 +519,27 @@ textarea.nb-input {
   transform: translateX(-50%);
   pointer-events: none;
   max-width: min(90%, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* Enquiry page: the overlay grid (z-30) covers the bottom corners and centre,
+   so lift the edit HUD above it — the pad sits over the Fits card while
+   editing — and show the toast in the open top-centre under the toggle. */
+.enquiry-with-mail .btf-edit-hud {
+  z-index: 31;
+}
+.enquiry-with-mail .btf-edit-hud__pad {
+  padding: 8px;
+  background: var(--hud-bg);
+  border: 2px solid var(--hud-line);
+  border-radius: 14px;
+  box-shadow: var(--hud-shadow);
+}
+.enquiry-with-mail .btf-edit-hud__toast {
+  top: 60px;
+  bottom: auto;
 }
 .btf-edit-hud__toast .btf-pill {
   white-space: normal;
@@ -603,6 +634,10 @@ textarea.nb-input {
   background: #fff3cc;
 }
 .btf-pill--cannot {
+  color: var(--cannot);
+  background: #ffd6db;
+}
+.btf-pill--danger {
   color: var(--cannot);
   background: #ffd6db;
 }
@@ -732,6 +767,20 @@ textarea.nb-input {
   animation: btf-pulse 2.2s ease-in-out infinite;
 }
 
+/* Inbox row a correction just re-parsed ("Fixed by your correction"). */
+@keyframes btf-flash {
+  0%,
+  35% {
+    background-color: color-mix(in oklab, var(--fits) 16%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.btf-flash {
+  animation: btf-flash 3.2s ease-out both;
+}
+
 @keyframes inbox-flash {
   0% {
     background-color: color-mix(in srgb, var(--panel-peach) 0%, transparent);
@@ -757,6 +806,7 @@ textarea.nb-input {
 @media (prefers-reduced-motion: reduce) {
   .btf-pop,
   .btf-shimmer,
+  .btf-flash,
   .btf-pill--status .btf-dot,
   .inbox-row-flash {
     animation: none;

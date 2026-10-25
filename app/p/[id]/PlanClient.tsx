@@ -61,7 +61,15 @@ function overridesEqual(
     const ka = keysA[i]!;
     const pa = a[ka]!;
     const pb = b[ka]!;
-    if (pa.x !== pb.x || pa.z !== pb.z || pa.rotY !== pb.rotY) return false;
+    if (
+      pa.x !== pb.x ||
+      pa.z !== pb.z ||
+      pa.rotY !== pb.rotY ||
+      pa.kind !== pb.kind ||
+      Boolean(pa.removed) !== Boolean(pb.removed)
+    ) {
+      return false;
+    }
   }
   return true;
 }
@@ -156,6 +164,7 @@ export function PlanClient() {
     return applyOverrides(
       layout(feasibility.room, liveSpec),
       liveOverrides,
+      feasibility.room,
     );
   }, [liveSpec, feasibility, liveOverrides]);
 
@@ -341,10 +350,8 @@ export function PlanClient() {
     );
   }
 
-  const dateLabel =
-    formatDate(enquiry.eventDate) ??
-    formatDate(enquiry.receivedAt)?.replace(/,.*/, "") ??
-    "Date TBC";
+  // receivedAt is when the email arrived, not the event: never show it here.
+  const dateLabel = formatDate(enquiry.eventDate) ?? "Date TBC";
   const hero = `${eventLabel(enquiry, liveSpec)} · ${room.name} · ${dateLabel} · ${liveSpec.guests} guests`;
   const showPending = Boolean(pending) || justSent;
 

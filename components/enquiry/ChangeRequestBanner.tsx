@@ -112,7 +112,7 @@ export function ChangeRequestBanner({
       )}
 
       {!dismissOpen ? (
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-3 flex flex-wrap gap-2 [&>button]:grow">
           <button
             type="button"
             disabled={busy}
@@ -142,7 +142,7 @@ export function ChangeRequestBanner({
               onChange={(e) => setReplyNote(e.target.value)}
             />
           </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-wrap gap-2 [&>button]:grow">
             <button
               type="button"
               disabled={busy}

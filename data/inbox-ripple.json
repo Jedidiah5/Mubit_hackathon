@@ -1,0 +1,92 @@
+[
+  {
+    "id": "rp-awards-golf-90",
+    "from": "Martin Doyle <captain@riversidegolfclub.co.uk>",
+    "subject": "Golf club awards dinner",
+    "body": "Hi,\n\nRiverside Golf Club would like to book our annual awards dinner for about 90 members and partners. Three-course dinner, then the captain presents the season's trophies and awards. Bar for the evening please.\n\nMartin",
+    "receivedAt": "2026-10-25T01:10:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 90,
+      "stage": "north",
+      "bar": "east",
+      "extras": ["lectern"],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rp-awards-darts-70",
+    "from": "Kev Allen <kev@thamesvalleydarts.org.uk>",
+    "subject": "Darts league awards night",
+    "body": "Hello,\n\nThe Thames Valley Darts League awards night, around 70 players. Sit-down dinner first, then trophies for the league and cup winners.\n\nKev",
+    "receivedAt": "2026-10-25T01:11:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 70,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern"],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rp-awards-staff-150",
+    "from": "Hannah Okafor <hannah.okafor@brightwellgroup.com>",
+    "subject": "Staff awards dinner",
+    "body": "Hi there,\n\nBrightwell Group is holding its staff awards dinner for 150 employees. Two-course dinner, then trophies and awards for the year's top performers.\n\nHannah",
+    "receivedAt": "2026-10-25T01:12:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 150,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern"],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rp-awards-bowls-60",
+    "from": "Jean Pritchard <secretary@hillsidebowls.org.uk>",
+    "subject": "Bowls club trophy dinner",
+    "body": "Good evening,\n\nHillside Bowls Club's end of season trophy dinner, about 60 members. Roast dinner, then the president hands out the trophies and club awards. One member uses a wheelchair.\n\nJean",
+    "receivedAt": "2026-10-25T01:13:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 60,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern"],
+      "accessible": true
+    }
+  },
+  {
+    "id": "rp-awards-swim-80",
+    "from": "Priya Shah <priya@northbankswimming.co.uk>",
+    "subject": "Swimming club awards evening",
+    "body": "Hi,\n\nNorthbank Swimming Club awards evening, roughly 80 swimmers and parents. A buffet dinner, then the head coach gives out the trophies and awards for the season.\n\nPriya",
+    "receivedAt": "2026-10-25T01:14:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 80,
+      "stage": "north",
+      "bar": "none",
+      "extras": ["lectern", "buffet"],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rp-dinner-dance-120",
+    "from": "Fiona Grant <fiona@rotaryharbourside.org>",
+    "subject": "Rotary dinner dance",
+    "body": "Hello,\n\nHarbourside Rotary would like to book our winter dinner dance for 120 members and guests. Three-course dinner, then a band and dancing. Bar please.\n\nFiona",
+    "receivedAt": "2026-10-25T01:15:00.000Z",
+    "expected": {
+      "style": "banquet",
+      "guests": 120,
+      "stage": "none",
+      "bar": "east",
+      "extras": ["dance_floor"],
+      "accessible": false
+    }
+  }
+]

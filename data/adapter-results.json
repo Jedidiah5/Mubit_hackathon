@@ -1,9 +1,27 @@
 [
   {
     "label": "Mubit adapter v1",
+    "base": "Qwen3-4B-Instruct",
+    "hint": "trained by Mubit on calls up to ~16:30 Sat (25 of 38 corrections in by then) · no notes",
     "exact": null,
     "accuracy": null,
     "medianLatencyMs": null,
-    "notes": "Fill by hand: run data/test-house.json through Try models"
+    "grade": {
+      "quality": 0.733,
+      "target": 0.85,
+      "testCases": 15,
+      "status": "Below target · silent test on 10% of traffic",
+      "checkedAt": "2026-10-25T00:30:00.000Z"
+    },
+    "notes": "grade = Mubit's own check (matches GPT's answers), from the console's Adapters page. exact/accuracy: npm run adapter -- score, once Try models allows v1."
+  },
+  {
+    "label": "Mubit adapter v2",
+    "hint": "next training run · first to learn from calls since v1, which carry 13 more corrections as notes",
+    "exact": null,
+    "accuracy": null,
+    "medianLatencyMs": null,
+    "pending": "Not trained yet · waiting on Mubit's next training run",
+    "notes": "Placeholder until Mubit trains v2. When it appears in the console, add its grade here like v1's."
   }
 ]

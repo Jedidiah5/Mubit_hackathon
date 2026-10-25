@@ -7,8 +7,10 @@
  *   notes  frozen prompt + coordinator corrections from Firestore (the app today)
  *   rules  house rules written into the system prompt (the baseline to beat)
  *
- * Usage: npm run eval -- [plain|notes|rules] [data/test-house.json]
+ * Usage: npm run eval -- [plain|notes|rules] [data/test-house.json] [--runs 3]
  * Each run is merged into data/eval-results.json under its set and mode.
+ * The same set can swing 75%–95% exact between runs, so --runs repeats it
+ * and saves the average plus the lowest and highest run.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -50,12 +52,17 @@ const HOUSE_RULES = `Venue house rules:
 const root = resolve(import.meta.dirname, "..");
 const outPath = resolve(root, "data/eval-results.json");
 
-const mode = (process.argv[2] ?? "plain") as Mode;
+const argv = process.argv.slice(2);
+const runsAt = argv.indexOf("--runs");
+const runs = runsAt >= 0 ? Math.max(1, Number(argv[runsAt + 1]) || 1) : 1;
+const positional = argv.filter((_, i) => runsAt < 0 || (i !== runsAt && i !== runsAt + 1));
+
+const mode = (positional[0] ?? "plain") as Mode;
 if (!MODES.includes(mode)) {
   console.error(`Mode must be one of: ${MODES.join(", ")}`);
   process.exit(1);
 }
-const setPath = resolve(root, process.argv[3] ?? "data/test-house.json");
+const setPath = resolve(root, positional[1] ?? "data/test-house.json");
 const setName = basename(setPath, ".json");
 
 const apiKey = process.env.MUBIT_API_KEY?.trim();
@@ -72,6 +79,23 @@ const mubit = new OpenAI({
 });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const RETRY_DELAYS_MS = [2000, 5000, 10000, 20000];
+
+/** Retries gateway errors (429 / 5xx), which say nothing about the model's answer. */
+async function withRetry<T>(fn: () => Promise<T>, i: number, n: number): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = (err as { status?: number }).status ?? 0;
+      const retryable = status === 429 || status >= 500;
+      if (!retryable || attempt >= RETRY_DELAYS_MS.length) throw err;
+      console.warn(`[${i + 1}/${n}] ${status}, retrying in ${RETRY_DELAYS_MS[attempt]! / 1000}s`);
+      await sleep(RETRY_DELAYS_MS[attempt]!);
+    }
+  }
+}
 
 async function loadCorrections(): Promise<Correction[]> {
   const snap = await getDocs(
@@ -136,10 +160,12 @@ function diffLine(pred: Spec, label: Spec): string {
 }
 
 async function main() {
-  const rows = JSON.parse(readFileSync(setPath, "utf8")) as TestRow[];
+  const set = JSON.parse(readFileSync(setPath, "utf8")) as TestRow[];
+  const rows = Array.from({ length: runs }, () => set).flat();
+  const exactPerRun = Array.from({ length: runs }, () => 0);
   const corrections = mode === "notes" ? await loadCorrections() : [];
   console.log(
-    `Evaluating ${rows.length} rows of ${setName} · mode=${mode}` +
+    `Evaluating ${set.length} rows of ${setName} × ${runs} · mode=${mode}` +
       (mode === "notes" ? ` · ${corrections.length} corrections` : ""),
   );
 
@@ -154,6 +180,7 @@ async function main() {
   const overalls: number[] = [];
   const latencies: number[] = [];
   let exact = 0;
+  let failed = 0;
   let notesUsed = 0;
   let promptTokens = 0;
   let completionTokens = 0;
@@ -163,14 +190,17 @@ async function main() {
     const row = rows[i]!;
     const t0 = Date.now();
     try {
-      const result = await parseOne(row.text, corrections);
+      const result = await withRetry(() => parseOne(row.text, corrections), i, rows.length);
       const fields = scoreSpec(result.spec, row.label);
       for (const key of Object.keys(fields) as (keyof FieldScores)[]) {
         fieldBuckets[key].push(fields[key]);
       }
       const overall = overallFromFields(fields);
       overalls.push(overall);
-      if (overall === 1) exact += 1;
+      if (overall === 1) {
+        exact += 1;
+        exactPerRun[Math.floor(i / set.length)]! += 1;
+      }
       latencies.push(result.latencyMs);
       notesUsed += result.notesUsed;
       promptTokens += result.promptTokens;
@@ -184,6 +214,7 @@ async function main() {
       );
     } catch (err) {
       console.error(`[${i + 1}/${rows.length}] FAIL`, err);
+      failed += 1;
       for (const key of Object.keys(fieldBuckets) as (keyof FieldScores)[]) {
         fieldBuckets[key].push(0);
       }
@@ -196,13 +227,22 @@ async function main() {
     }
   }
 
+  // A gateway outage would score as wrong answers, so never save a partial run.
+  if (failed > 0) {
+    console.error(`\n${failed}/${rows.length} calls failed after retries. Not writing ${outPath}.`);
+    process.exit(1);
+  }
+
   const report = {
     model: PARSE_MODEL,
     mode,
     ranAt: new Date().toISOString(),
-    n: rows.length,
-    /** Share of rows with every field right. */
+    n: set.length,
+    runs,
+    /** Share of rows with every field right (average over runs). */
     exact: rows.length > 0 ? exact / rows.length : 0,
+    exactMin: set.length > 0 ? Math.min(...exactPerRun) / set.length : 0,
+    exactMax: set.length > 0 ? Math.max(...exactPerRun) / set.length : 0,
     accuracy: {
       overall: mean(overalls),
       style: mean(fieldBuckets.style),
@@ -214,9 +254,10 @@ async function main() {
     },
     medianLatencyMs: median(latencies),
     avgNotes: rows.length > 0 ? notesUsed / rows.length : 0,
-    promptTokens,
-    completionTokens,
-    totalTokens,
+    // Per pass over the set, so runs stay comparable.
+    promptTokens: Math.round(promptTokens / runs),
+    completionTokens: Math.round(completionTokens / runs),
+    totalTokens: Math.round(totalTokens / runs),
   };
 
   const all = existsSync(outPath)

@@ -83,9 +83,36 @@ describe("pickCorrections", () => {
     assert.equal(picked[0]?.enquiryId, "agm");
   });
 
+  it("puts the same kind of event ahead of shared filler words", () => {
+    const mixer = correction(
+      "mixer",
+      "Founders mixer, 90 people, drinks and a bar, light bites",
+      { bar: "east" },
+    );
+    const dating = correction("dating", "Speed dating, 40 singles, drinks", {
+      style: "cabaret",
+    });
+    const picked = pickCorrections(
+      [mixer, dating],
+      "Speed dating for 60, drinks and light bites, a bar please",
+    );
+    assert.equal(picked[0]?.enquiryId, "dating");
+  });
+
   it("skips the enquiry itself and guest-only corrections", () => {
     const picked = pickCorrections([agm, guestsOnly], "shareholders", "agm");
     assert.deepEqual(picked, []);
+  });
+
+  it("skips corrections from vague emails", () => {
+    const vague = correction("v", "i want to host an event soon", {
+      style: "cabaret",
+    });
+    const picked = pickCorrections([vague, awards], "host an awards event");
+    assert.deepEqual(
+      picked.map((c) => c.enquiryId),
+      ["awards"],
+    );
   });
 
   it(`returns at most ${MAX_NOTES}`, () => {
@@ -107,9 +134,19 @@ describe("buildUserMessage", () => {
       guests: 95,
     });
     const msg = buildUserMessage("Awards evening for 150.", [c]);
-    assert.match(msg, /→ style: cabaret$/m);
+    assert.match(
+      msg,
+      /→ style: cabaret; stage: north; bar: none; extras: lectern, projector \(fixed: style\)$/m,
+    );
     assert.doesNotMatch(formatNote(c), /guests/);
     assert.ok(msg.endsWith("Enquiry:\nAwards evening for 150."));
+  });
+
+  it("shows access only when it was the fix", () => {
+    const access = correction("a", "AGM for 60, members use walkers", {
+      accessible: true,
+    });
+    assert.match(formatNote(access), /accessible: true \(fixed: accessible\)$/);
   });
 });
 
