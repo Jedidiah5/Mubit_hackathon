@@ -302,10 +302,8 @@ export function PlanClient() {
     );
   }
 
-  const dateLabel =
-    formatDate(enquiry.eventDate) ??
-    formatDate(enquiry.receivedAt)?.replace(/,.*/, "") ??
-    "Date TBC";
+  // receivedAt is when the email arrived, not the event: never show it here.
+  const dateLabel = formatDate(enquiry.eventDate) ?? "Date TBC";
   const hero = `${eventLabel(enquiry, liveSpec)} · ${room.name} · ${dateLabel} · ${liveSpec.guests} guests`;
   const showPending = Boolean(pending) || justSent;
 
