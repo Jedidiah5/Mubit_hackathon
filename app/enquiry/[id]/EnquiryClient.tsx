@@ -20,8 +20,18 @@ import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
-import type { Enquiry, Feasibility, Spec } from "@/lib/types";
+import type {
+  Enquiry,
+  Feasibility,
+  LayoutOverride,
+  Spec,
+} from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
+
+function asSpec(final: Spec & { overrides?: unknown }): Spec {
+  const { style, guests, stage, bar, extras, accessible } = final;
+  return { style, guests, stage, bar, extras, accessible };
+}
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
@@ -174,8 +184,10 @@ export function EnquiryClient() {
     async (next: Spec, override: string | null = roomOverride) => {
       skipRemoteSpec.current = true;
       const feas = evaluateRooms(rooms, next, override);
+      // Keep furniture overrides; only spec fields create corrections.
+      const preserved = enquiry?.final?.overrides;
       await updateDoc(doc(getDb(), "enquiries", id), {
-        final: next,
+        final: preserved ? { ...next, overrides: preserved } : next,
         feasibility: firestoreFeasibility(feas),
         roomOverride: override,
         approvedAt: null,
@@ -196,6 +208,22 @@ export function EnquiryClient() {
       });
     },
     [id, enquiry, roomOverride, rooms],
+  );
+
+  const onLayoutOverridesChange = useCallback(
+    async (next: Record<string, LayoutOverride>) => {
+      const current = specRef.current ?? enquiry?.final ?? enquiry?.parsed;
+      if (!current) return;
+      const base = asSpec(current);
+      await updateDoc(doc(getDb(), "enquiries", id), {
+        final:
+          Object.keys(next).length > 0
+            ? { ...base, overrides: next }
+            : base,
+      });
+      // No corrections doc — furniture positions are not model mistakes.
+    },
+    [id, enquiry],
   );
 
   const onSpecChange = useCallback(
@@ -282,24 +310,36 @@ export function EnquiryClient() {
     specRef.current = next;
     setLocalSpec(next);
     setGuestsDraft(String(next.guests));
+    const mergedOverrides = {
+      ...(enquiry.final?.overrides ?? {}),
+      ...(req.overrides ?? {}),
+    };
+    const finalDoc =
+      Object.keys(mergedOverrides).length > 0
+        ? { ...next, overrides: mergedOverrides }
+        : next;
     await updateDoc(doc(getDb(), "enquiries", id), {
-      final: next,
+      final: finalDoc,
       feasibility: firestoreFeasibility(feas),
       changeRequest: { ...req, status: "accepted" },
       status: "proposed",
       approvedAt: new Date().toISOString(),
       verdict: "corrected",
     });
-    await setDoc(doc(getDb(), "corrections", id), {
-      enquiryId: id,
-      requestId: enquiry.requestId ?? "",
-      email: trimEnquiry(enquiry.body),
-      parsed: enquiry.parsed,
-      final: next,
-      changes: diffSpec(enquiry.parsed, next),
-      at: new Date().toISOString(),
-      source: "client",
-    });
+    // Corrections only for spec field diffs — never for furniture overrides.
+    const changes = diffSpec(enquiry.parsed, next);
+    if (changes.length > 0) {
+      await setDoc(doc(getDb(), "corrections", id), {
+        enquiryId: id,
+        requestId: enquiry.requestId ?? "",
+        email: trimEnquiry(enquiry.body),
+        parsed: enquiry.parsed,
+        final: next,
+        changes,
+        at: new Date().toISOString(),
+        source: "client",
+      });
+    }
   }, [enquiry, id, rooms, roomOverride]);
 
   const onDismissClientChanges = useCallback(async () => {
@@ -367,6 +407,14 @@ export function EnquiryClient() {
           planView={planView}
           onPlanViewChange={setPlanView}
           loading={parsing || !spec}
+          layoutEdit={
+            spec
+              ? {
+                  overrides: enquiry.final?.overrides,
+                  onOverridesChange: onLayoutOverridesChange,
+                }
+              : undefined
+          }
           hud={{
             subtitle: spec
               ? `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`

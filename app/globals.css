@@ -430,6 +430,92 @@ textarea.nb-input {
   gap: 6px;
 }
 
+.btf-edit-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+.btf-edit-hud__tr {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  pointer-events: auto;
+  max-width: min(100% - 20px, 280px);
+}
+.enquiry-with-mail .btf-edit-hud__tr {
+  top: 10px;
+  right: 10px;
+}
+.btf-edit-hud__pad {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: auto;
+}
+.btf-edit-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  gap: 6px;
+  align-items: center;
+  justify-items: center;
+}
+.btf-edit-pad__spacer {
+  width: 40px;
+  height: 40px;
+}
+.btf-edit-pad__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  justify-content: stretch;
+}
+.btf-edit-pad__actions .btf-pill {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.btf-edit-pad__actions .btf-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btf-edit-hint {
+  margin: 0;
+  max-width: 220px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--hud-soft);
+  background: color-mix(in srgb, var(--hud-bg) 88%, transparent);
+  border: 1px solid color-mix(in srgb, #111 20%, transparent);
+  border-radius: 8px;
+  padding: 6px 8px;
+  line-height: 1.35;
+}
+.btf-edit-hud__toast {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  max-width: min(90%, 320px);
+}
+.btf-edit-hud__toast .btf-pill {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
+}
+
 .btf-pill {
   pointer-events: auto;
   display: inline-flex;

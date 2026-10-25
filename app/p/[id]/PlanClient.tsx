@@ -4,7 +4,7 @@ import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
@@ -18,6 +18,7 @@ import {
   pipelineOf,
   type Extra,
   type Enquiry,
+  type LayoutOverride,
   type Spec,
   type Style,
   type Wall,
@@ -37,6 +38,8 @@ const EXTRA_LABEL: Record<Extra, string> = {
   buffet: "Buffet",
   photo_booth: "Photo booth",
 };
+
+const EMPTY_OVERRIDES: Record<string, LayoutOverride> = {};
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
@@ -96,13 +99,40 @@ export function PlanClient() {
   }, [rooms, spec, roomOverride]);
 
   const room = feasibility?.room ?? rooms[0] ?? DEMO_ROOMS[0]!;
+
+  const pendingOverrides =
+    enquiry?.changeRequest?.status === "pending"
+      ? (enquiry.changeRequest.overrides ?? EMPTY_OVERRIDES)
+      : EMPTY_OVERRIDES;
+
   const items = useMemo(() => {
     if (!spec || !feasibility?.room) return [];
-    return applyOverrides(
-      layout(feasibility.room, spec),
-      enquiry?.final?.overrides,
-    );
-  }, [spec, feasibility, enquiry?.final?.overrides]);
+    return applyOverrides(layout(feasibility.room, spec), {
+      ...(enquiry?.final?.overrides ?? {}),
+      ...pendingOverrides,
+    });
+  }, [spec, feasibility, enquiry?.final?.overrides, pendingOverrides]);
+
+  const onLayoutOverridesChange = useCallback(
+    async (next: Record<string, LayoutOverride>) => {
+      if (!spec || accepted) return;
+      const prev =
+        enquiry?.changeRequest?.status === "pending"
+          ? enquiry.changeRequest
+          : null;
+      await updateDoc(doc(getDb(), "enquiries", id), {
+        changeRequest: {
+          status: "pending",
+          spec: prev?.spec ?? spec,
+          note: prev?.note ?? null,
+          overrides: next,
+          at: new Date().toISOString(),
+        },
+        status: "client_changes",
+      });
+    },
+    [accepted, enquiry?.changeRequest, id, spec],
+  );
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room?.pricing) return null;
@@ -139,6 +169,10 @@ export function PlanClient() {
           status: "pending",
           spec: draft,
           note: note.trim() || null,
+          overrides:
+            enquiry?.changeRequest?.status === "pending"
+              ? enquiry.changeRequest.overrides
+              : undefined,
           at: new Date().toISOString(),
         },
         status: "client_changes",
@@ -234,6 +268,14 @@ export function PlanClient() {
             room={room}
             items={items}
             spec={spec}
+            layoutEdit={
+              accepted
+                ? undefined
+                : {
+                    overrides: pendingOverrides,
+                    onOverridesChange: onLayoutOverridesChange,
+                  }
+            }
             hud={{
               subtitle: `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`,
               status: feasibility?.status,

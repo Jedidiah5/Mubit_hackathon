@@ -82,12 +82,21 @@ export const PIPELINES = [
 ] as const;
 export type PipelineStatus = (typeof PIPELINES)[number];
 
+/** Manual move of a furniture piece (or table group). Metres, yaw in radians. */
+export type LayoutOverride = {
+  x: number;
+  z: number;
+  rotY: number;
+};
+
 /** Organiser-submitted tweak waiting on the coordinator. */
 export type ChangeRequest = {
   status: "pending" | "accepted" | "dismissed";
   spec: Spec;
   note?: string;
   at: string;
+  /** Manual furniture moves from the client plan page (not AI corrections). */
+  overrides?: Record<string, LayoutOverride>;
 };
 
 /** Raw inbound fields — written before /api/parse runs. */
@@ -193,13 +202,6 @@ export const LAYOUT_KINDS = [
 ] as const;
 
 export type LayoutKind = (typeof LAYOUT_KINDS)[number];
-
-/** Manual move of a furniture piece (or table group). Metres, yaw in radians. */
-export type LayoutOverride = {
-  x: number;
-  z: number;
-  rotY: number;
-};
 
 /**
  * Approved spec on an enquiry. `overrides` are keyed by LayoutItem.id or

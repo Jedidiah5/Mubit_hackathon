@@ -16,8 +16,14 @@ import {
   OrthographicCamera as ThreeOrthoCamera,
   Vector3,
 } from "three";
-import type { LayoutItem, Room, Spec } from "@/lib/types";
+import type { LayoutItem, LayoutOverride, Room, Spec } from "@/lib/types";
 import { BUILD_DURATION_S } from "./buildAnim";
+import { EditLayoutHud } from "./edit/EditLayoutHud";
+import {
+  EditLayoutScene,
+  omitSelected,
+} from "./edit/EditLayoutScene";
+import { useLayoutEdit } from "./edit/useLayoutEdit";
 import { Items } from "./Items";
 import { RoomShell, WALL_H } from "./RoomShell";
 import { SceneHud, type SceneHudProps } from "./SceneHud";
@@ -36,6 +42,15 @@ const POLAR_MIN = MathUtils.degToRad(20);
 const POLAR_MAX = MathUtils.degToRad(72);
 const QUARTER = Math.PI / 2;
 
+export type LayoutEditProps = {
+  /** Current overrides (already applied into `items`). */
+  overrides?: Record<string, LayoutOverride>;
+  /** Persist after Place / Reset. Parent chooses Firestore path. */
+  onOverridesChange: (
+    next: Record<string, LayoutOverride>,
+  ) => void | Promise<void>;
+};
+
 type Props = {
   room: Room;
   items: LayoutItem[];
@@ -46,6 +61,8 @@ type Props = {
   /** Show in-canvas loading label (shell still renders immediately). */
   loading?: boolean;
   hud?: SceneHudProps;
+  /** Enables the Edit layout toggle and furniture moves. */
+  layoutEdit?: LayoutEditProps;
   children?: ReactNode;
   className?: string;
 };
@@ -58,11 +75,22 @@ export function RoomCanvas({
   onPlanViewChange,
   loading = false,
   hud,
+  layoutEdit,
   children,
   className,
 }: Props) {
   const [yaw, setYaw] = useState(ISO_YAW);
   const [fitNonce, setFitNonce] = useState(0);
+  const [viewYaw, setViewYaw] = useState(ISO_YAW);
+
+  const overrides = layoutEdit?.overrides ?? {};
+  const edit = useLayoutEdit({
+    items,
+    room,
+    accessible: Boolean(spec?.accessible),
+    overrides,
+    onOverridesChange: layoutEdit?.onOverridesChange ?? (() => undefined),
+  });
 
   const rotate = useCallback((dir: 1 | -1) => {
     setYaw((y) => {
@@ -70,6 +98,12 @@ export function RoomCanvas({
       return ((next % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
     });
   }, []);
+
+  const displayItems = useMemo(
+    () =>
+      edit.editing ? omitSelected(items, edit.selectedId) : items,
+    [items, edit.editing, edit.selectedId],
+  );
 
   return (
     <div
@@ -110,12 +144,33 @@ export function RoomCanvas({
         <Lighting room={room} />
         <SceneBody
           room={room}
-          items={items}
+          items={displayItems}
+          allItems={items}
           spec={spec}
           planView={planView}
           loading={loading}
           yaw={yaw}
           fitNonce={fitNonce}
+          editMode={Boolean(layoutEdit && edit.editing)}
+          onViewYaw={setViewYaw}
+          edit={
+            layoutEdit && edit.editing
+              ? {
+                  selectedId: edit.selectedId,
+                  candidate: edit.candidate,
+                  hoverId: edit.hoverId,
+                  valid: edit.valid,
+                  onHover: edit.setHover,
+                  onSelect: edit.select,
+                  onMoveCandidate: edit.setCandidate,
+                  viewYaw,
+                  onNudge: edit.nudge,
+                  onRotate: edit.rotate,
+                  onConfirm: edit.confirm,
+                  onCancel: edit.cancel,
+                }
+              : null
+          }
         />
         {children}
       </Canvas>
@@ -128,6 +183,22 @@ export function RoomCanvas({
         onRotate={rotate}
         onFit={() => setFitNonce((n) => n + 1)}
       />
+
+      {layoutEdit && (
+        <EditLayoutHud
+          editing={edit.editing}
+          onToggle={() => edit.setEditing(!edit.editing)}
+          hasOverrides={Object.keys(overrides).length > 0}
+          onReset={edit.reset}
+          selected={Boolean(edit.selectedId)}
+          valid={edit.valid}
+          toast={edit.toast}
+          onNudge={(dir) => edit.nudgeScreen(dir, viewYaw)}
+          onRotate={edit.rotate}
+          onConfirm={edit.confirm}
+          onCancel={edit.cancel}
+        />
+      )}
     </div>
   );
 }
@@ -194,31 +265,56 @@ function Lighting({ room }: { room: Room }) {
   );
 }
 
+type EditSceneBind = {
+  selectedId: string | null;
+  candidate: LayoutOverride | null;
+  hoverId: string | null;
+  valid: boolean;
+  onHover: (id: string | null) => void;
+  onSelect: (id: string) => void;
+  onMoveCandidate: (pose: LayoutOverride) => void;
+  viewYaw: number;
+  onNudge: (dx: number, dz: number) => void;
+  onRotate: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
 function SceneBody({
   room,
   items,
+  allItems,
   spec,
   planView,
   loading,
   yaw,
   fitNonce,
+  editMode,
+  onViewYaw,
+  edit,
 }: {
   room: Room;
+  /** Items actually drawn (selected piece omitted while editing). */
   items: LayoutItem[];
+  /** Full layout for pickables / validation anchors. */
+  allItems: LayoutItem[];
   spec?: Spec;
   planView: boolean;
   loading: boolean;
   yaw: number;
   fitNonce: number;
+  editMode: boolean;
+  onViewYaw: (yaw: number) => void;
+  edit: EditSceneBind | null;
 }) {
   const clock = useRef(0);
   const itemKey = useMemo(
     () =>
       `${room.name}:${room.widthM}x${room.lengthM}|` +
-      items
+      allItems
         .map((i) => `${i.kind}:${i.x.toFixed(2)}:${i.z.toFixed(2)}`)
         .join("|"),
-    [items, room.name, room.widthM, room.lengthM],
+    [allItems, room.name, room.widthM, room.lengthM],
   );
 
   useEffect(() => {
@@ -230,13 +326,38 @@ function SceneBody({
   });
 
   const time = () => clock.current;
-  const showLoading = loading || items.length === 0;
+  const showLoading = loading || allItems.length === 0;
 
   return (
     <>
-      <CameraRig room={room} planView={planView} yaw={yaw} fitNonce={fitNonce} />
+      <CameraRig
+        room={room}
+        planView={planView}
+        yaw={yaw}
+        fitNonce={fitNonce}
+        editMode={editMode}
+        onViewYaw={onViewYaw}
+      />
       <RoomShell room={room} yaw={yaw} planView={planView} />
       <Items items={items} time={time} room={room} spec={spec} />
+      {edit && (
+        <EditLayoutScene
+          room={room}
+          items={allItems}
+          selectedId={edit.selectedId}
+          candidate={edit.candidate}
+          hoverId={edit.hoverId}
+          valid={edit.valid}
+          onHover={edit.onHover}
+          onSelect={edit.onSelect}
+          onMoveCandidate={edit.onMoveCandidate}
+          viewYaw={edit.viewYaw}
+          onNudge={edit.onNudge}
+          onRotate={edit.onRotate}
+          onConfirm={edit.onConfirm}
+          onCancel={edit.onCancel}
+        />
+      )}
       {showLoading && (
         <Html center style={{ pointerEvents: "none" }}>
           <div className="btf-pill btf-pill--dark btf-shimmer">
@@ -254,6 +375,8 @@ type RigProps = {
   planView: boolean;
   yaw: number;
   fitNonce: number;
+  editMode?: boolean;
+  onViewYaw?: (yaw: number) => void;
 };
 
 /**
@@ -316,7 +439,14 @@ function fitZoomForRoom(
   return Math.max(2, Math.min(zoomX, zoomY));
 }
 
-function CameraRig({ room, planView, yaw, fitNonce }: RigProps) {
+function CameraRig({
+  room,
+  planView,
+  yaw,
+  fitNonce,
+  editMode = false,
+  onViewYaw,
+}: RigProps) {
   const { camera, gl, size } = useThree();
   const targetYaw = useRef(yaw);
   const prevYawProp = useRef(yaw);
@@ -329,6 +459,11 @@ function CameraRig({ room, planView, yaw, fitNonce }: RigProps) {
   const drag = useRef<{ mode: "orbit" | "pan"; x: number; y: number } | null>(null);
   const pan = useRef(new Vector3(0, 0, 0));
   const look = useMemo(() => new Vector3(0, 0.4, 0), []);
+  const editModeRef = useRef(editMode);
+  editModeRef.current = editMode;
+  const onViewYawRef = useRef(onViewYaw);
+  onViewYawRef.current = onViewYaw;
+  const lastReportedYaw = useRef<number | null>(null);
 
   const fitZoom = useCallback(() => {
     const polar = planView ? PLAN_POLAR : ISO_POLAR;
@@ -378,6 +513,11 @@ function CameraRig({ room, planView, yaw, fitNonce }: RigProps) {
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
+      // In edit mode, leave left-click for R3F picking; only pan with
+      // shift / right / middle (and always in plan view).
+      if (editModeRef.current && e.button === 0 && !e.shiftKey && !planView) {
+        return;
+      }
       // Left-drag orbits (iso only); shift/right/middle-drag pans.
       const wantsPan = planView || e.button !== 0 || e.shiftKey;
       drag.current = { mode: wantsPan ? "pan" : "orbit", x: e.clientX, y: e.clientY };
@@ -489,6 +629,16 @@ function CameraRig({ room, planView, yaw, fitNonce }: RigProps) {
       cam.zoom = MathUtils.damp(cam.zoom, zoomRef.current, 9, dt);
     }
     cam.updateProjectionMatrix();
+
+    const snapped =
+      Math.round(currentYaw.current / QUARTER) * QUARTER;
+    if (
+      lastReportedYaw.current === null ||
+      Math.abs(snapped - lastReportedYaw.current) > 1e-3
+    ) {
+      lastReportedYaw.current = snapped;
+      onViewYawRef.current?.(snapped);
+    }
   });
 
   return null;
