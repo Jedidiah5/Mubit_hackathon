@@ -7,8 +7,10 @@
  *   notes  frozen prompt + coordinator corrections from Firestore (the app today)
  *   rules  house rules written into the system prompt (the baseline to beat)
  *
- * Usage: npm run eval -- [plain|notes|rules] [data/test-house.json]
+ * Usage: npm run eval -- [plain|notes|rules] [data/test-house.json] [--runs 3]
  * Each run is merged into data/eval-results.json under its set and mode.
+ * The same set can swing 75%–95% exact between runs, so --runs repeats it
+ * and saves the average plus the lowest and highest run.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -50,12 +52,17 @@ const HOUSE_RULES = `Venue house rules:
 const root = resolve(import.meta.dirname, "..");
 const outPath = resolve(root, "data/eval-results.json");
 
-const mode = (process.argv[2] ?? "plain") as Mode;
+const argv = process.argv.slice(2);
+const runsAt = argv.indexOf("--runs");
+const runs = runsAt >= 0 ? Math.max(1, Number(argv[runsAt + 1]) || 1) : 1;
+const positional = argv.filter((_, i) => runsAt < 0 || (i !== runsAt && i !== runsAt + 1));
+
+const mode = (positional[0] ?? "plain") as Mode;
 if (!MODES.includes(mode)) {
   console.error(`Mode must be one of: ${MODES.join(", ")}`);
   process.exit(1);
 }
-const setPath = resolve(root, process.argv[3] ?? "data/test-house.json");
+const setPath = resolve(root, positional[1] ?? "data/test-house.json");
 const setName = basename(setPath, ".json");
 
 const apiKey = process.env.MUBIT_API_KEY?.trim();
@@ -153,10 +160,12 @@ function diffLine(pred: Spec, label: Spec): string {
 }
 
 async function main() {
-  const rows = JSON.parse(readFileSync(setPath, "utf8")) as TestRow[];
+  const set = JSON.parse(readFileSync(setPath, "utf8")) as TestRow[];
+  const rows = Array.from({ length: runs }, () => set).flat();
+  const exactPerRun = Array.from({ length: runs }, () => 0);
   const corrections = mode === "notes" ? await loadCorrections() : [];
   console.log(
-    `Evaluating ${rows.length} rows of ${setName} · mode=${mode}` +
+    `Evaluating ${set.length} rows of ${setName} × ${runs} · mode=${mode}` +
       (mode === "notes" ? ` · ${corrections.length} corrections` : ""),
   );
 
@@ -188,7 +197,10 @@ async function main() {
       }
       const overall = overallFromFields(fields);
       overalls.push(overall);
-      if (overall === 1) exact += 1;
+      if (overall === 1) {
+        exact += 1;
+        exactPerRun[Math.floor(i / set.length)]! += 1;
+      }
       latencies.push(result.latencyMs);
       notesUsed += result.notesUsed;
       promptTokens += result.promptTokens;
@@ -225,9 +237,12 @@ async function main() {
     model: PARSE_MODEL,
     mode,
     ranAt: new Date().toISOString(),
-    n: rows.length,
-    /** Share of rows with every field right. */
+    n: set.length,
+    runs,
+    /** Share of rows with every field right (average over runs). */
     exact: rows.length > 0 ? exact / rows.length : 0,
+    exactMin: set.length > 0 ? Math.min(...exactPerRun) / set.length : 0,
+    exactMax: set.length > 0 ? Math.max(...exactPerRun) / set.length : 0,
     accuracy: {
       overall: mean(overalls),
       style: mean(fieldBuckets.style),
@@ -239,9 +254,10 @@ async function main() {
     },
     medianLatencyMs: median(latencies),
     avgNotes: rows.length > 0 ? notesUsed / rows.length : 0,
-    promptTokens,
-    completionTokens,
-    totalTokens,
+    // Per pass over the set, so runs stay comparable.
+    promptTokens: Math.round(promptTokens / runs),
+    completionTokens: Math.round(completionTokens / runs),
+    totalTokens: Math.round(totalTokens / runs),
   };
 
   const all = existsSync(outPath)

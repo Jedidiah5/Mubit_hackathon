@@ -35,6 +35,10 @@ type EvalRun = {
   accuracy: { overall: number };
   medianLatencyMs: number;
   avgNotes: number;
+  /** Passes over the set; exact is their average, min/max the spread. */
+  runs?: number;
+  exactMin?: number;
+  exactMax?: number;
 };
 
 type AdapterRun = {
@@ -188,7 +192,14 @@ export default function StatsPage() {
                           : ""}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 text-right tabular-nums">{pct(run?.exact)}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums">
+                      {pct(run?.exact)}
+                      {run?.runs && run.runs > 1 && (
+                        <span className="block font-mono text-[11px] text-[color:var(--muted)]">
+                          {pct(run.exactMin)}–{pct(run.exactMax)} · {run.runs} runs
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4 text-right tabular-nums">
                       {pct(run?.accuracy.overall)}
                     </td>
