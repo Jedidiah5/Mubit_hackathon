@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Syne } from "next/font/google";
+import { Google_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+const googleSans = Google_Sans({
+  variable: "--font-google-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -23,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${googleSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-[color:var(--background)] font-sans text-[color:var(--ink)]">
         {children}

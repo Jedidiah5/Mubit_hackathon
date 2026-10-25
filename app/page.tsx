@@ -13,13 +13,14 @@ import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
 import { StatusChip } from "@/components/inbox/StatusChip";
 import { PageHeader, PageShell } from "@/components/PageHeader";
+import { evaluateRooms } from "@/lib/evaluate";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
 import {
   pipelineOf,
   type EnquiryListItem,
-  type FeasibilityStatus,
+  type Feasibility,
   type PipelineStatus,
   type Room,
   type Spec,
@@ -60,23 +61,21 @@ function guestsOf(row: EnquiryListItem): number | null {
   return spec?.guests ?? null;
 }
 
-function feasStatusOf(row: EnquiryListItem): FeasibilityStatus | undefined {
-  return row.feasibility?.status;
+/** Same live check as the enquiry page — never trust a stored status chip. */
+function liveFeasibility(
+  row: EnquiryListItem,
+  rooms: Room[],
+): Feasibility | null {
+  const spec: Spec | undefined = row.final ?? row.parsed;
+  if (!spec || rooms.length === 0) return null;
+  return evaluateRooms(rooms, spec, row.roomOverride ?? null);
 }
 
 function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
   const spec: Spec | undefined = row.final ?? row.parsed;
-  if (!spec || !feasStatusOf(row)) return null;
-  const name = row.feasibility?.room?.name;
-  const fromList = name ? rooms.find((r) => r.name === name) : undefined;
-  const room =
-    fromList?.pricing
-      ? fromList
-      : row.feasibility?.room?.pricing
-        ? row.feasibility.room
-        : null;
-  if (!room) return null;
-  return formatGbp(quote(room, spec).total);
+  const feas = liveFeasibility(row, rooms);
+  if (!spec || !feas?.room?.pricing) return null;
+  return formatGbp(quote(feas.room, spec).total);
 }
 
 type Tab = PipelineStatus;
@@ -170,6 +169,7 @@ export default function InboxPage() {
             latencyMs: data.latencyMs as number | undefined,
             model: data.model as string | undefined,
             feasibility: data.feasibility,
+            roomOverride: (data.roomOverride as string | null | undefined) ?? null,
             approvedAt: data.approvedAt as string | null | undefined,
             acceptedAt: data.acceptedAt as string | null | undefined,
             confirmedAt: data.confirmedAt as string | null | undefined,
@@ -397,9 +397,9 @@ export default function InboxPage() {
             const missing = missingDetails(enquiryText(row));
             const guessed = missing.includes("guests") && !row.approvedAt;
             const guests = guessed ? null : guestsOf(row);
+            const live = guessed ? null : liveFeasibility(row, rooms);
             const est = guessed ? null : estTotalOf(row, rooms);
             const pipe = pipelineOf(row);
-            const feas = feasStatusOf(row);
             const clientPending = row.changeRequest?.status === "pending";
             const flash = flashIds.has(row.id);
             return (
@@ -431,11 +431,11 @@ export default function InboxPage() {
                     ) : (
                       <PipelineChip status={pipe} />
                     )}
-                    {!guessed && feas && (
+                    {!guessed && live && (
                       <StatusChip
-                        status={feas}
-                        used={row.feasibility?.used}
-                        capacity={row.feasibility?.capacity}
+                        status={live.status}
+                        used={live.used}
+                        capacity={live.capacity}
                       />
                     )}
                     <ReviewTag
