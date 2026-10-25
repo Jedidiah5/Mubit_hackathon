@@ -347,6 +347,19 @@ export function PlanClient() {
           </div>
         )}
 
+        {enquiry.changeRequest?.status === "dismissed" &&
+          enquiry.changeRequest.replyNote?.trim() &&
+          !accepted && (
+            <div className="nb-banner nb-banner-warn mt-5 px-4 py-3">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
+                Venue reply
+              </p>
+              <p className="mt-1 font-mono text-[12px] font-bold leading-relaxed text-[color:var(--ink)]">
+                “{enquiry.changeRequest.replyNote.trim()}”
+              </p>
+            </div>
+          )}
+
         <div className="nb-panel relative mt-5 aspect-[4/3] w-full overflow-hidden !p-0 sm:aspect-[16/10]">
           <RoomCanvas
             room={room}

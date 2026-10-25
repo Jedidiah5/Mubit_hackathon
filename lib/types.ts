@@ -104,6 +104,8 @@ export type ChangeRequest = {
   overrides?: Record<string, LayoutOverride>;
   /** Spec field diffs vs the approved plan (from {@link diffSpec}). */
   diff?: SpecChange[];
+  /** Optional venue reply when the request is dismissed (shown to the client). */
+  replyNote?: string;
 };
 
 /** Raw inbound fields — written before /api/parse runs. */

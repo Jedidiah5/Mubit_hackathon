@@ -732,10 +732,33 @@ textarea.nb-input {
   animation: btf-pulse 2.2s ease-in-out infinite;
 }
 
+@keyframes inbox-flash {
+  0% {
+    background-color: color-mix(in srgb, var(--panel-peach) 0%, transparent);
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  18% {
+    background-color: color-mix(in srgb, #ffe08a 55%, transparent);
+    box-shadow: inset 3px 0 0 0 #e2a100;
+  }
+  55% {
+    background-color: color-mix(in srgb, #ffe08a 28%, transparent);
+    box-shadow: inset 3px 0 0 0 #e2a100;
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+.inbox-row-flash {
+  animation: inbox-flash 2.6s var(--hud-ease, ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btf-pop,
   .btf-shimmer,
-  .btf-pill--status .btf-dot {
+  .btf-pill--status .btf-dot,
+  .inbox-row-flash {
     animation: none;
   }
 }
