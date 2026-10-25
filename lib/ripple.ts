@@ -158,6 +158,23 @@ export function rippleChanges(
   return out;
 }
 
+/**
+ * What a re-parse may change: only the fields that moved the coordinator's
+ * way (see rippleChanges). Everything else stays as it was, so a fix can't
+ * quietly flip something else, e.g. drop step-free access.
+ */
+export function keepCorrected(
+  correction: Correction,
+  before: Spec,
+  after: Spec,
+): Spec {
+  const kept: Spec = { ...before, extras: [...before.extras] };
+  for (const ch of rippleChanges(correction, before, after)) {
+    (kept as Record<keyof Spec, unknown>)[ch.field] = after[ch.field];
+  }
+  return kept;
+}
+
 function formatValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value.length ? value.join(", ").replace(/_/g, " ") : "none";

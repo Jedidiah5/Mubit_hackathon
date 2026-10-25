@@ -6,6 +6,7 @@ import { parseEnquiry } from "@/lib/enquiry-process";
 import { getDb } from "@/lib/firebase";
 import {
   pickRippleTargets,
+  keepCorrected,
   rippleChanges,
   type RippleCandidate,
   type RippleFix,
@@ -114,7 +115,9 @@ export async function POST(request: Request) {
     const run = async (target: RippleCandidate) => {
       try {
         const before = target.parsed!;
-        const result = await parseEnquiry(target.id, target.body);
+        const result = await parseEnquiry(target.id, target.body, (fresh) =>
+          keepCorrected(correction, before, fresh),
+        );
         if (!result.spec) {
           failed += 1;
           return;

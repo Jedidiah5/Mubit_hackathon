@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { diffSpec } from "../corrections";
 import { trimEnquiry } from "../parse";
 import {
+  keepCorrected,
   MAX_TARGETS,
   pickRippleTargets,
   rippleChanges,
@@ -163,5 +164,21 @@ describe("rippleChanges", () => {
 
   it("ignores an unchanged re-parse", () => {
     assert.deepEqual(rippleChanges(golfFix, cabaret, cabaret), []);
+  });
+});
+
+describe("keepCorrected", () => {
+  it("takes only the fixed fields from the re-parse", () => {
+    const before = { ...banquet, accessible: true };
+    const after = {
+      ...banquet,
+      style: "cabaret" as const,
+      bar: "west" as const,
+      accessible: false,
+    };
+    assert.deepEqual(keepCorrected(golfFix, before, after), {
+      ...before,
+      style: "cabaret",
+    });
   });
 });

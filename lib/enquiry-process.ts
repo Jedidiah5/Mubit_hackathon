@@ -63,6 +63,8 @@ export async function createEnquiry(input: EnquiryInput): Promise<string> {
 export async function parseEnquiry(
   id: string,
   body: string,
+  /** Adjust the model's spec before it is saved (the ripple keeps unfixed fields). */
+  shape: (spec: Spec) => Spec = (spec) => spec,
 ): Promise<ParseOutcome> {
   let parsed: Awaited<ReturnType<typeof runParse>>;
   try {
@@ -71,12 +73,13 @@ export async function parseEnquiry(
     const error = err instanceof Error ? err.message : "Parse failed";
     return { spec: null, requestId: null, error };
   }
+  const spec = shape(parsed.spec);
   const rooms = await loadRooms();
-  const feasibility = evaluateRooms(rooms, parsed.spec, null);
+  const feasibility = evaluateRooms(rooms, spec, null);
 
   await updateDoc(doc(getDb(), "enquiries", id), {
-    parsed: parsed.spec,
-    final: parsed.spec,
+    parsed: spec,
+    final: spec,
     requestId: parsed.requestId ?? "",
     latencyMs: parsed.latencyMs,
     model: parsed.model,
@@ -85,7 +88,7 @@ export async function parseEnquiry(
     roomOverride: null,
   });
 
-  return { spec: parsed.spec, requestId: parsed.requestId };
+  return { spec, requestId: parsed.requestId };
 }
 
 /**
