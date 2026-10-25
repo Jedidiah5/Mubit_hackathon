@@ -10,12 +10,33 @@ Built in 42 hours at **Night Shift**, the Mubit hackathon in London (23–25 Oct
 | **Enquiry form (organiser side)** | https://mubit-hackathon.vercel.app/enquire |
 | **Example client proposal** | https://mubit-hackathon.vercel.app/p/enq-demo-proposed |
 | **Track** | Recurring tasks, plus a quality / cost / latency comparison against the closed model |
-| **Demo video** | *(attached to the submission)* |
+| **Demo video** | *(attached to the submission, 2 min)* |
+
+---
+
+## Demo video walkthrough
+
+The 2-minute video follows one enquiry from both sides. Approximate timestamps:
+
+| Time | What you see | Where it's explained below |
+|---|---|---|
+| 0:00 | **The venue's inbox.** Every enquiry is already read through Mubit and tagged Fits / Can't host, Needs review, with an estimated price | [What BriefToFloor does](#what-brieftofloor-does) |
+| 0:10 | **Venue setup.** The venue's rooms, sizes, capacity per layout, features and prices. Plain code uses this data; it never goes into the AI prompt | [How we use Mubit](#how-we-use-mubit) |
+| 0:20 | **Stats.** Our held-out eval of plain GPT vs correction notes vs rules in the prompt, and the adapter grade | [Results](#results) |
+| 0:30 | **An enquiry becomes a 3D hall.** The AI's setup is laid out by code in the venue's real room | [The 3D hall](#the-3d-hall) |
+| 0:45 | **The Mubit console.** Every call lands in the one task "Read event enquiries sent"; the request detail shows the email in and the setup JSON out | [How we use Mubit](#how-we-use-mubit) |
+| 0:55 | **The organiser enquires** on the public form ("Enquire about a date"): a wedding with a buffet, described in their own words | [The organiser's journey](#the-organisers-journey) |
+| 1:10 | **It appears in the venue's inbox,** gets read, and the hall builds in the best-fitting room | [What BriefToFloor does](#what-brieftofloor-does) |
+| 1:20 | **Edit layout.** The coordinator moves and adds pieces in plan view, with placement checks | [The 3D hall](#the-3d-hall) |
+| 1:30 | **Approve & draft reply.** A code-written reply with the room, the price and the client's plan link | [What BriefToFloor does](#what-brieftofloor-does) |
+| 1:35 | **The organiser's proposal page.** Their event in 3D with the quote; they ask the venue for a change in plain English | [The organiser's journey](#the-organisers-journey) |
+| 1:45 | **Back at the venue.** The request shows under *Client changes*; the coordinator accepts and the hall rebuilds. Accepted client edits are saved as corrections that feed the Mubit loop | [Turning corrections into model updates](#2-turning-corrections-into-model-updates) |
 
 ---
 
 ## Contents
 
+0. [Demo video walkthrough](#demo-video-walkthrough)
 1. [The problem](#the-problem)
 2. [What BriefToFloor does](#what-brieftofloor-does)
 3. [How we use Mubit](#how-we-use-mubit)
