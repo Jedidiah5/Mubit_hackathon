@@ -44,7 +44,16 @@ export function ChangeRequestBanner({
 }: Props) {
   if (changeRequest.status !== "pending") return null;
 
-  const bits = summarize(changeRequest.spec, current);
+  const bits =
+    changeRequest.diff && changeRequest.diff.length > 0
+      ? changeRequest.diff.map((c) => {
+          if (c.field === "extras") {
+            return `Extras updated`;
+          }
+          return `${c.field}: ${String(c.from)} → ${String(c.to)}`;
+        })
+      : summarize(changeRequest.spec, current);
+  const moved = Object.keys(changeRequest.overrides ?? {}).length;
 
   return (
     <div className="nb-banner nb-banner-warn">
@@ -57,6 +66,11 @@ export function ChangeRequestBanner({
             <li key={b}>{b}</li>
           ))}
         </ul>
+      )}
+      {moved > 0 && (
+        <p className="mt-2 font-mono text-[12px] font-bold text-[color:var(--ink)]">
+          Layout moves · {moved} piece{moved === 1 ? "" : "s"}
+        </p>
       )}
       {changeRequest.note?.trim() && (
         <p className="mt-2 font-mono text-[12px] leading-relaxed text-[color:var(--ink)]">

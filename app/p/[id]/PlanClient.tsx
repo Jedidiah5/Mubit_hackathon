@@ -6,22 +6,19 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
+import { SpecForm } from "@/components/enquiry/SpecForm";
+import { diffSpec } from "@/lib/corrections";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
 import { applyOverrides, layout } from "@/lib/layout";
 import { formatGbp, quote } from "@/lib/quote";
 import {
-  EXTRAS,
-  STYLES,
-  WALLS,
   pipelineOf,
   type Extra,
   type Enquiry,
   type LayoutOverride,
   type Spec,
-  type Style,
-  type Wall,
 } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -40,6 +37,34 @@ const EXTRA_LABEL: Record<Extra, string> = {
 };
 
 const EMPTY_OVERRIDES: Record<string, LayoutOverride> = {};
+
+function asSpec(s: Spec): Spec {
+  return {
+    style: s.style,
+    guests: s.guests,
+    stage: s.stage,
+    bar: s.bar,
+    extras: [...s.extras],
+    accessible: s.accessible,
+  };
+}
+
+function overridesEqual(
+  a: Record<string, LayoutOverride>,
+  b: Record<string, LayoutOverride>,
+): boolean {
+  const keysA = Object.keys(a).sort();
+  const keysB = Object.keys(b).sort();
+  if (keysA.length !== keysB.length) return false;
+  for (let i = 0; i < keysA.length; i++) {
+    if (keysA[i] !== keysB[i]) return false;
+    const ka = keysA[i]!;
+    const pa = a[ka]!;
+    const pb = b[ka]!;
+    if (pa.x !== pb.x || pa.z !== pb.z || pa.rotY !== pb.rotY) return false;
+  }
+  return true;
+}
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
@@ -65,11 +90,16 @@ export function PlanClient() {
   const rooms = useVenueRooms();
   const [enquiry, setEnquiry] = useState<Enquiry | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [draft, setDraft] = useState<Spec | null>(null);
+  const [draftSpec, setDraftSpec] = useState<Spec | null>(null);
+  const [draftOverrides, setDraftOverrides] =
+    useState<Record<string, LayoutOverride>>(EMPTY_OVERRIDES);
+  const [guestsDraft, setGuestsDraft] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSent, setJustSent] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -88,96 +118,144 @@ export function PlanClient() {
     return () => unsub();
   }, [id]);
 
-  const spec: Spec | undefined = enquiry?.final ?? enquiry?.parsed;
+  const approvedSpec: Spec | undefined = enquiry?.final ?? enquiry?.parsed;
+  const approvedOverrides = enquiry?.final?.overrides ?? EMPTY_OVERRIDES;
   const roomOverride = enquiry?.roomOverride ?? null;
   const pipeline = enquiry ? pipelineOf(enquiry) : null;
   const accepted = pipeline === "accepted";
+  const pending =
+    enquiry?.changeRequest?.status === "pending"
+      ? enquiry.changeRequest
+      : null;
+
+  // When the venue accepts (or dismisses), drop local adjust UI.
+  useEffect(() => {
+    if (!enquiry) return;
+    if (enquiry.changeRequest?.status === "pending") return;
+    if (adjustOpen) return;
+    setJustSent(false);
+  }, [enquiry, adjustOpen]);
+
+  const liveSpec = adjustOpen && draftSpec ? draftSpec : approvedSpec;
+  const liveOverrides =
+    adjustOpen && draftSpec ? draftOverrides : approvedOverrides;
 
   const feasibility = useMemo(() => {
-    if (!spec) return null;
-    return evaluateRooms(rooms, spec, roomOverride);
-  }, [rooms, spec, roomOverride]);
+    if (!liveSpec) return null;
+    return evaluateRooms(rooms, liveSpec, roomOverride);
+  }, [rooms, liveSpec, roomOverride]);
 
   const room = feasibility?.room ?? rooms[0] ?? DEMO_ROOMS[0]!;
 
-  const pendingOverrides =
-    enquiry?.changeRequest?.status === "pending"
-      ? (enquiry.changeRequest.overrides ?? EMPTY_OVERRIDES)
-      : EMPTY_OVERRIDES;
-
   const items = useMemo(() => {
-    if (!spec || !feasibility?.room) return [];
-    return applyOverrides(layout(feasibility.room, spec), {
-      ...(enquiry?.final?.overrides ?? {}),
-      ...pendingOverrides,
-    });
-  }, [spec, feasibility, enquiry?.final?.overrides, pendingOverrides]);
-
-  const onLayoutOverridesChange = useCallback(
-    async (next: Record<string, LayoutOverride>) => {
-      if (!spec || accepted) return;
-      const prev =
-        enquiry?.changeRequest?.status === "pending"
-          ? enquiry.changeRequest
-          : null;
-      await updateDoc(doc(getDb(), "enquiries", id), {
-        changeRequest: {
-          status: "pending",
-          spec: prev?.spec ?? spec,
-          note: prev?.note ?? null,
-          overrides: next,
-          at: new Date().toISOString(),
-        },
-        status: "client_changes",
-      });
-    },
-    [accepted, enquiry?.changeRequest, id, spec],
-  );
+    if (!liveSpec || !feasibility?.room) return [];
+    return applyOverrides(
+      layout(feasibility.room, liveSpec),
+      liveOverrides,
+    );
+  }, [liveSpec, feasibility, liveOverrides]);
 
   const liveQuote = useMemo(() => {
-    if (!spec || !feasibility?.room?.pricing) return null;
+    if (!liveSpec || !feasibility?.room?.pricing) return null;
     const named = rooms.find((r) => r.name === feasibility.room!.name);
     const priced = named?.pricing ? named : feasibility.room;
-    return quote(priced, spec);
-  }, [spec, feasibility, rooms]);
+    return quote(priced, liveSpec);
+  }, [liveSpec, feasibility, rooms]);
 
   const included = useMemo(() => {
-    if (!spec) return [] as string[];
+    if (!liveSpec) return [] as string[];
     const chips: string[] = [];
-    for (const e of spec.extras) chips.push(EXTRA_LABEL[e] ?? e);
-    if (spec.accessible) chips.push("Accessible route");
-    if (spec.stage !== "none") chips.push(`Stage (${spec.stage})`);
-    if (spec.bar !== "none") chips.push(`Bar (${spec.bar})`);
+    for (const e of liveSpec.extras) chips.push(EXTRA_LABEL[e] ?? e);
+    if (liveSpec.accessible) chips.push("Accessible route");
+    if (liveSpec.stage !== "none") chips.push(`Stage (${liveSpec.stage})`);
+    if (liveSpec.bar !== "none") chips.push(`Bar (${liveSpec.bar})`);
     return chips;
-  }, [spec]);
+  }, [liveSpec]);
 
-  function openAdjust() {
-    if (!spec) return;
-    setDraft({ ...spec, extras: [...spec.extras] });
+  const specDiff = useMemo(() => {
+    if (!approvedSpec || !draftSpec) return [];
+    return diffSpec(approvedSpec, draftSpec);
+  }, [approvedSpec, draftSpec]);
+
+  const overridesDirty = useMemo(
+    () => !overridesEqual(draftOverrides, approvedOverrides),
+    [draftOverrides, approvedOverrides],
+  );
+
+  const noteDirty = note.trim().length > 0;
+  const hasChanges =
+    specDiff.length > 0 || overridesDirty || noteDirty;
+
+  const openAdjust = useCallback(() => {
+    if (!approvedSpec) return;
+    // Seed from a pending request if one exists, else the approved plan.
+    const seedSpec = pending ? asSpec(pending.spec) : asSpec(approvedSpec);
+    const seedOverrides = pending?.overrides
+      ? { ...pending.overrides }
+      : { ...approvedOverrides };
+    setDraftSpec(seedSpec);
+    setDraftOverrides(seedOverrides);
+    setGuestsDraft(String(seedSpec.guests));
+    setNote(pending?.note ?? "");
+    setSaveError(null);
+    setJustSent(false);
+    setAdjustOpen(true);
+  }, [approvedSpec, approvedOverrides, pending]);
+
+  const closeAdjust = useCallback(() => {
+    setAdjustOpen(false);
+    setDraftSpec(null);
+    setDraftOverrides(EMPTY_OVERRIDES);
     setNote("");
     setSaveError(null);
-    setAdjustOpen(true);
-  }
+  }, []);
+
+  const onDraftChange = useCallback(
+    <K extends keyof Spec>(field: K, value: Spec[K]) => {
+      setDraftSpec((prev) => (prev ? { ...prev, [field]: value } : prev));
+      if (field === "guests" && typeof value === "number") {
+        setGuestsDraft(String(value));
+      }
+    },
+    [],
+  );
+
+  const onGuestsDraft = useCallback((value: string) => {
+    setGuestsDraft(value);
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 1000) return;
+    setDraftSpec((prev) => (prev ? { ...prev, guests: n } : prev));
+  }, []);
+
+  const onLayoutOverridesChange = useCallback(
+    (next: Record<string, LayoutOverride>) => {
+      // Local draft only — Firestore stays unchanged until Send.
+      setDraftOverrides(next);
+    },
+    [],
+  );
 
   async function submitChanges() {
-    if (!draft || saving) return;
+    if (!draftSpec || !approvedSpec || saving || !hasChanges) return;
     setSaving(true);
     setSaveError(null);
     try {
+      const diff = diffSpec(approvedSpec, draftSpec);
       await updateDoc(doc(getDb(), "enquiries", id), {
         changeRequest: {
           status: "pending",
-          spec: draft,
+          spec: asSpec(draftSpec),
           note: note.trim() || null,
-          overrides:
-            enquiry?.changeRequest?.status === "pending"
-              ? enquiry.changeRequest.overrides
-              : undefined,
+          overrides: overridesDirty ? draftOverrides : undefined,
+          diff,
           at: new Date().toISOString(),
         },
         status: "client_changes",
       });
+      setJustSent(true);
       setAdjustOpen(false);
+      setDraftSpec(null);
+      setDraftOverrides(EMPTY_OVERRIDES);
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : "Could not send changes",
@@ -213,7 +291,7 @@ export function PlanClient() {
     );
   }
 
-  if (!enquiry || !spec) {
+  if (!enquiry || !approvedSpec || !liveSpec) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-8">
         <p className="font-mono text-sm text-[color:var(--muted)]">
@@ -227,7 +305,8 @@ export function PlanClient() {
     formatDate(enquiry.eventDate) ??
     formatDate(enquiry.receivedAt)?.replace(/,.*/, "") ??
     "Date TBC";
-  const hero = `${eventLabel(enquiry, spec)} · ${room.name} · ${dateLabel} · ${spec.guests} guests`;
+  const hero = `${eventLabel(enquiry, liveSpec)} · ${room.name} · ${dateLabel} · ${liveSpec.guests} guests`;
+  const showPending = Boolean(pending) || justSent;
 
   return (
     <main className="min-h-screen text-[color:var(--ink)]">
@@ -244,12 +323,11 @@ export function PlanClient() {
           <h1 className="mt-3 font-sans text-xl font-extrabold tracking-tight sm:text-2xl">
             {hero}
           </h1>
-          {pipeline === "client_changes" &&
-            enquiry.changeRequest?.status === "pending" && (
-              <p className="nb-chip nb-chip-yellow mt-3">
-                Change request sent — waiting on the venue
-              </p>
-            )}
+          {showPending && (
+            <p className="nb-chip nb-chip-yellow mt-3">
+              Pending venue review
+            </p>
+          )}
         </header>
 
         {accepted ? (
@@ -263,21 +341,27 @@ export function PlanClient() {
           </div>
         ) : null}
 
+        {(justSent || (pending && !adjustOpen)) && !accepted && (
+          <div className="nb-banner nb-banner-ok mt-5 px-4 py-3 font-mono text-[12px] font-bold text-[color:var(--fits)]">
+            Sent — the venue will review your changes
+          </div>
+        )}
+
         <div className="nb-panel relative mt-5 aspect-[4/3] w-full overflow-hidden !p-0 sm:aspect-[16/10]">
           <RoomCanvas
             room={room}
             items={items}
-            spec={spec}
+            spec={liveSpec}
             layoutEdit={
-              accepted
+              accepted || !adjustOpen
                 ? undefined
                 : {
-                    overrides: pendingOverrides,
+                    overrides: draftOverrides,
                     onOverridesChange: onLayoutOverridesChange,
                   }
             }
             hud={{
-              subtitle: `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`,
+              subtitle: `${liveSpec.style[0]!.toUpperCase()}${liveSpec.style.slice(1)} · ${liveSpec.guests} guests`,
               status: feasibility?.status,
               used: feasibility?.used,
               capacity: feasibility?.capacity,
@@ -312,7 +396,7 @@ export function PlanClient() {
             </p>
           )}
 
-          {!accepted && (
+          {!accepted && !adjustOpen && (
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -320,187 +404,65 @@ export function PlanClient() {
                 disabled={saving}
                 className="nb-btn nb-btn-blue nb-btn-pill flex-1"
               >
-                Request changes
+                Adjust your event
               </button>
               <button
                 type="button"
                 onClick={() => void acceptHold()}
-                disabled={saving}
+                disabled={saving || Boolean(pending)}
                 className="nb-btn nb-btn-red nb-btn-pill flex-1"
               >
                 Accept & hold the date
               </button>
             </div>
           )}
-        </div>
-      </div>
 
-      {adjustOpen && draft && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/50 p-0 sm:items-center sm:p-6"
-          role="dialog"
-          aria-modal
-          aria-label="Request changes"
-        >
-          <div className="nb-frame max-h-[92vh] w-full max-w-md overflow-y-auto !rounded-b-none p-5 sm:max-h-[85vh] sm:!rounded-[var(--radius)]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
-                Request changes
+          {!accepted && adjustOpen && draftSpec && (
+            <section className="nb-frame nb-frame-blue space-y-5 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+                  Adjust your event
+                </p>
+                <button
+                  type="button"
+                  onClick={closeAdjust}
+                  className="nb-chip"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="font-mono text-[11px] leading-relaxed text-[color:var(--muted)]">
+                Preview updates live below. Use <strong>Edit layout</strong> on
+                the plan to move furniture. Nothing is sent until you confirm.
               </p>
+
+              <SpecForm
+                variant="client"
+                spec={draftSpec}
+                onChange={onDraftChange}
+                guestsDraft={guestsDraft}
+                onGuestsDraft={onGuestsDraft}
+                note={note}
+                onNoteChange={setNote}
+              />
+
               <button
                 type="button"
-                onClick={() => setAdjustOpen(false)}
-                className="nb-chip"
+                disabled={saving || !hasChanges}
+                onClick={() => void submitChanges()}
+                className="nb-btn nb-btn-ink w-full"
               >
-                Close
+                {saving
+                  ? "Sending…"
+                  : hasChanges
+                    ? "Send changes to venue"
+                    : "No changes yet"}
               </button>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <label className="block">
-                <span className="nb-label">Layout</span>
-                <select
-                  className="nb-input"
-                  value={draft.style}
-                  onChange={(e) =>
-                    setDraft({ ...draft, style: e.target.value as Style })
-                  }
-                >
-                  {STYLES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div>
-                <span className="nb-label">Guests</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="nb-btn !min-h-0 !w-auto px-3 py-2"
-                    onClick={() =>
-                      setDraft({
-                        ...draft,
-                        guests: Math.max(1, draft.guests - 5),
-                      })
-                    }
-                  >
-                    −5
-                  </button>
-                  <span className="min-w-[3rem] text-center font-sans text-xl font-bold tabular-nums">
-                    {draft.guests}
-                  </span>
-                  <button
-                    type="button"
-                    className="nb-btn !min-h-0 !w-auto px-3 py-2"
-                    onClick={() =>
-                      setDraft({
-                        ...draft,
-                        guests: Math.min(1000, draft.guests + 5),
-                      })
-                    }
-                  >
-                    +5
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <span className="nb-label">Extras</span>
-                <div className="flex flex-wrap gap-2">
-                  {EXTRAS.map((extra) => {
-                    const on = draft.extras.includes(extra);
-                    return (
-                      <button
-                        key={extra}
-                        type="button"
-                        onClick={() => {
-                          const extras = on
-                            ? draft.extras.filter((x) => x !== extra)
-                            : [...draft.extras, extra];
-                          setDraft({ ...draft, extras });
-                        }}
-                        className={`nb-chip ${on ? "nb-chip-teal" : ""}`}
-                      >
-                        {EXTRA_LABEL[extra]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="nb-label">Stage wall</span>
-                  <select
-                    className="nb-input"
-                    value={draft.stage}
-                    onChange={(e) =>
-                      setDraft({ ...draft, stage: e.target.value as Wall })
-                    }
-                  >
-                    {WALLS.map((w) => (
-                      <option key={w} value={w}>
-                        {w}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="nb-label">Bar wall</span>
-                  <select
-                    className="nb-input"
-                    value={draft.bar}
-                    onChange={(e) =>
-                      setDraft({ ...draft, bar: e.target.value as Wall })
-                    }
-                  >
-                    {WALLS.map((w) => (
-                      <option key={w} value={w}>
-                        {w}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <label className="flex items-center gap-2 font-mono text-[12px] font-bold">
-                <input
-                  type="checkbox"
-                  className="size-5 accent-[color:var(--ink)]"
-                  checked={draft.accessible}
-                  onChange={(e) =>
-                    setDraft({ ...draft, accessible: e.target.checked })
-                  }
-                />
-                Accessible route
-              </label>
-
-              <label className="block">
-                <span className="nb-label">Note to the venue</span>
-                <textarea
-                  rows={3}
-                  className="nb-input resize-y"
-                  placeholder="Anything else we should know…"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void submitChanges()}
-              className="nb-btn nb-btn-ink mt-5 w-full"
-            >
-              {saving ? "Sending…" : "Send change request"}
-            </button>
-          </div>
+            </section>
+          )}
         </div>
-      )}
+      </div>
     </main>
   );
 }
