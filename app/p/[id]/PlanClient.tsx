@@ -100,6 +100,10 @@ export function PlanClient() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSent, setJustSent] = useState(false);
+  const [askText, setAskText] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
+  const [askInfo, setAskInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -248,6 +252,7 @@ export function PlanClient() {
           note: note.trim() || null,
           overrides: overridesDirty ? draftOverrides : undefined,
           diff,
+          source: "adjust",
           at: new Date().toISOString(),
         },
         status: "client_changes",
@@ -281,6 +286,40 @@ export function PlanClient() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitAsk() {
+    const question = askText.trim();
+    if (!question || asking || confirmed || pending) return;
+    setAsking(true);
+    setAskError(null);
+    setAskInfo(null);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enquiryId: id, question }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        unchanged?: boolean;
+        message?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? `Ask failed (${res.status})`);
+      }
+      if (data.unchanged) {
+        setAskInfo(data.message ?? "Nothing in the plan needed to change.");
+      } else {
+        setAskText("");
+        setJustSent(true);
+        setAskInfo("Sent to the venue as a change request — nothing applied yet.");
+      }
+    } catch (err) {
+      setAskError(err instanceof Error ? err.message : "Ask the venue failed");
+    } finally {
+      setAsking(false);
     }
   }
 
@@ -430,7 +469,7 @@ export function PlanClient() {
               <button
                 type="button"
                 onClick={openAdjust}
-                disabled={saving}
+                disabled={saving || asking}
                 className="nb-btn nb-btn-blue nb-btn-pill flex-1"
               >
                 Adjust your event
@@ -438,7 +477,7 @@ export function PlanClient() {
               <button
                 type="button"
                 onClick={() => void confirmBooking()}
-                disabled={saving || Boolean(pending)}
+                disabled={saving || asking || Boolean(pending)}
                 className="nb-btn nb-btn-red nb-btn-pill flex-1"
                 title={
                   pending
@@ -449,6 +488,52 @@ export function PlanClient() {
                 Confirm booking
               </button>
             </div>
+          )}
+
+          {!confirmed && (
+            <section className="nb-panel p-4">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+                Ask the venue
+              </p>
+              <p className="mt-1 font-mono text-[11px] leading-relaxed text-[color:var(--muted)]">
+                Describe a change in plain English. We&apos;ll draft an updated
+                plan for the venue to approve — nothing changes until they do.
+              </p>
+              <textarea
+                rows={3}
+                className="nb-input mt-3 resize-y"
+                placeholder="e.g. Can we drop the dance floor and seat 140 instead?"
+                value={askText}
+                disabled={asking || Boolean(pending)}
+                onChange={(e) => setAskText(e.target.value)}
+              />
+              {askError && (
+                <p className="mt-2 font-mono text-[11px] font-bold text-[color:var(--cannot)]">
+                  {askError}
+                </p>
+              )}
+              {askInfo && !askError && (
+                <p className="mt-2 font-mono text-[11px] font-bold text-[color:var(--fits)]">
+                  {askInfo}
+                </p>
+              )}
+              <button
+                type="button"
+                className="nb-btn nb-btn-ink mt-3 w-full"
+                disabled={
+                  asking ||
+                  Boolean(pending) ||
+                  askText.trim().length === 0
+                }
+                onClick={() => void submitAsk()}
+              >
+                {asking
+                  ? "Asking…"
+                  : pending
+                    ? "Waiting on venue…"
+                    : "Send question"}
+              </button>
+            </section>
           )}
 
           {!confirmed && adjustOpen && draftSpec && (

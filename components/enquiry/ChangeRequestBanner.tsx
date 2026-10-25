@@ -86,7 +86,9 @@ export function ChangeRequestBanner({
   return (
     <div className="nb-banner nb-banner-warn border-[3px] shadow-[4px_4px_0_0_#151515]">
       <p className="font-sans text-sm font-extrabold tracking-tight text-[color:var(--warning)] sm:text-base">
-        Client requested changes
+        {changeRequest.source === "ask"
+          ? "Client asked the venue"
+          : "Client requested changes"}
       </p>
 
       {bits.length > 0 && (

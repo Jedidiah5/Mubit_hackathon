@@ -106,6 +106,12 @@ export type ChangeRequest = {
   diff?: SpecChange[];
   /** Optional venue reply when the request is dismissed (shown to the client). */
   replyNote?: string;
+  /**
+   * How the request was created:
+   * - adjust = client SpecForm / layout edits
+   * - ask = "Ask the venue" → runParse on composed enquiry + question
+   */
+  source?: "adjust" | "ask";
 };
 
 /** Raw inbound fields — written before /api/parse runs. */
