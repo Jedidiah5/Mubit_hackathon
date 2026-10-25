@@ -311,21 +311,25 @@ export function EnquiryClient() {
 
   const onAcceptClientChanges = useCallback(async () => {
     const req = enquiry?.changeRequest;
-    const current = specRef.current;
-    if (!req || req.status !== "pending" || !current || !enquiry?.parsed) return;
+    if (!req || req.status !== "pending" || !enquiry?.parsed) return;
+    const baseline: Spec = {
+      style: (enquiry.final ?? enquiry.parsed).style,
+      guests: (enquiry.final ?? enquiry.parsed).guests,
+      stage: (enquiry.final ?? enquiry.parsed).stage,
+      bar: (enquiry.final ?? enquiry.parsed).bar,
+      extras: [...(enquiry.final ?? enquiry.parsed).extras],
+      accessible: (enquiry.final ?? enquiry.parsed).accessible,
+    };
     const next = req.spec;
     const feas = evaluateRooms(rooms, next, roomOverride);
     skipRemoteSpec.current = true;
     specRef.current = next;
     setLocalSpec(next);
     setGuestsDraft(String(next.guests));
-    const mergedOverrides = {
-      ...(enquiry.final?.overrides ?? {}),
-      ...(req.overrides ?? {}),
-    };
+    // Replace final.spec + final.overrides with the request (no merge).
     const finalDoc =
-      Object.keys(mergedOverrides).length > 0
-        ? { ...next, overrides: mergedOverrides }
+      req.overrides && Object.keys(req.overrides).length > 0
+        ? { ...next, overrides: req.overrides }
         : next;
     await updateDoc(doc(getDb(), "enquiries", id), {
       final: finalDoc,
@@ -335,30 +339,41 @@ export function EnquiryClient() {
       approvedAt: new Date().toISOString(),
       verdict: "corrected",
     });
-    // Corrections only for spec field diffs — never for furniture overrides.
-    const changes = diffSpec(enquiry.parsed, next);
-    if (changes.length > 0) {
-      await setDoc(doc(getDb(), "corrections", id), {
+    // One corrections doc per changed SPEC field — overrides never create one.
+    const changes =
+      req.diff && req.diff.length > 0 ? req.diff : diffSpec(baseline, next);
+    const email = trimEnquiry(enquiry.body);
+    const requestId = enquiry.requestId ?? "";
+    const at = new Date().toISOString();
+    for (const change of changes) {
+      await setDoc(doc(getDb(), "corrections", `${id}_${change.field}`), {
         enquiryId: id,
-        requestId: enquiry.requestId ?? "",
-        email: trimEnquiry(enquiry.body),
-        parsed: enquiry.parsed,
-        final: next,
-        changes,
-        at: new Date().toISOString(),
+        requestId,
+        email,
+        parsed: { ...baseline, [change.field]: change.from },
+        final: { ...next, [change.field]: change.to },
+        changes: [change],
+        at,
         source: "client",
       });
     }
   }, [enquiry, id, rooms, roomOverride]);
 
-  const onDismissClientChanges = useCallback(async () => {
-    const req = enquiry?.changeRequest;
-    if (!req || req.status !== "pending") return;
-    await updateDoc(doc(getDb(), "enquiries", id), {
-      changeRequest: { ...req, status: "dismissed" },
-      status: "proposed",
-    });
-  }, [enquiry, id]);
+  const onDismissClientChanges = useCallback(
+    async (replyNote: string) => {
+      const req = enquiry?.changeRequest;
+      if (!req || req.status !== "pending") return;
+      await updateDoc(doc(getDb(), "enquiries", id), {
+        changeRequest: {
+          ...req,
+          status: "dismissed",
+          replyNote: replyNote || null,
+        },
+        status: "proposed",
+      });
+    },
+    [enquiry, id],
+  );
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room) return null;
@@ -520,7 +535,7 @@ export function EnquiryClient() {
                   changeRequest={pendingChange}
                   current={spec}
                   onAccept={() => void onAcceptClientChanges()}
-                  onDismiss={() => void onDismissClientChanges()}
+                  onDismiss={(reply) => void onDismissClientChanges(reply)}
                 />
               )}
             </div>

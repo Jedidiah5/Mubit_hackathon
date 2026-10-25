@@ -1,6 +1,14 @@
 "use client";
 
-import { EXTRAS, STYLES, WALLS, type Extra, type Spec, type Style, type Wall } from "@/lib/types";
+import {
+  EXTRAS,
+  STYLES,
+  WALLS,
+  type Extra,
+  type Spec,
+  type Style,
+  type Wall,
+} from "@/lib/types";
 
 const EXTRA_LABEL: Record<Extra, string> = {
   dance_floor: "Dance floor",
@@ -11,6 +19,13 @@ const EXTRA_LABEL: Record<Extra, string> = {
   photo_booth: "Photo booth",
 };
 
+const STYLE_LABEL: Record<Style, string> = {
+  banquet: "Banquet",
+  cabaret: "Cabaret",
+  theatre: "Theatre",
+  reception: "Reception",
+};
+
 type Props = {
   spec: Spec;
   onChange: <K extends keyof Spec>(field: K, value: Spec[K]) => void;
@@ -18,6 +33,13 @@ type Props = {
   onGuestsDraft: (value: string) => void;
   /** Denser floating island for the enquiry canvas. */
   compact?: boolean;
+  /**
+   * Light client plan page: style chips, ±5 guests, extras checkboxes,
+   * wall pickers. Optional note field for the venue.
+   */
+  variant?: "default" | "client";
+  note?: string;
+  onNoteChange?: (value: string) => void;
 };
 
 export function SpecForm({
@@ -26,6 +48,9 @@ export function SpecForm({
   guestsDraft,
   onGuestsDraft,
   compact = false,
+  variant = "default",
+  note,
+  onNoteChange,
 }: Props) {
   function toggleExtra(extra: Extra) {
     const has = spec.extras.includes(extra);
@@ -33,6 +58,164 @@ export function SpecForm({
       ? spec.extras.filter((e) => e !== extra)
       : [...spec.extras, extra];
     onChange("extras", next);
+  }
+
+  function bumpGuests(delta: number) {
+    const n = Number.parseInt(guestsDraft, 10);
+    const base = Number.isFinite(n) ? n : spec.guests;
+    const next = Math.min(1000, Math.max(1, base + delta));
+    onGuestsDraft(String(next));
+    onChange("guests", next);
+  }
+
+  if (variant === "client") {
+    return (
+      <div className="space-y-5">
+        <div>
+          <p className="nb-label">Layout</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {STYLES.map((s) => {
+              const on = spec.style === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onChange("style", s)}
+                  className={`nb-chip ${on ? "nb-chip-teal" : ""}`}
+                >
+                  {STYLE_LABEL[s]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p className="nb-label">Guests</p>
+          <div className="mt-1.5 flex items-center gap-3">
+            <button
+              type="button"
+              className="nb-btn !min-h-0 !w-auto px-3 py-2"
+              onClick={() => bumpGuests(-5)}
+            >
+              −5
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              className="nb-input !w-24 !py-2 text-center font-sans text-lg font-bold tabular-nums"
+              value={guestsDraft}
+              onChange={(e) => onGuestsDraft(e.target.value)}
+              onBlur={() => {
+                const n = Number.parseInt(guestsDraft, 10);
+                if (!Number.isFinite(n) || n < 1 || n > 1000) {
+                  onGuestsDraft(String(spec.guests));
+                  return;
+                }
+                onChange("guests", n);
+              }}
+            />
+            <button
+              type="button"
+              className="nb-btn !min-h-0 !w-auto px-3 py-2"
+              onClick={() => bumpGuests(5)}
+            >
+              +5
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block min-w-0">
+            <span className="nb-label">Stage wall</span>
+            <select
+              className="nb-input"
+              value={spec.stage}
+              onChange={(e) => onChange("stage", e.target.value as Wall)}
+            >
+              {WALLS.map((w) => (
+                <option key={w} value={w}>
+                  {w === "none" ? "None" : w}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className="nb-label">Bar wall</span>
+            <select
+              className="nb-input"
+              value={spec.bar}
+              onChange={(e) => onChange("bar", e.target.value as Wall)}
+            >
+              {WALLS.map((w) => (
+                <option key={w} value={w}>
+                  {w === "none" ? "None" : w}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend className="nb-label">Extras</legend>
+          <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {EXTRAS.map((extra) => {
+              const on = spec.extras.includes(extra);
+              return (
+                <label
+                  key={extra}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] border-2 border-[color:var(--ink)] px-3 py-2.5 font-mono text-[12px] font-bold ${
+                    on
+                      ? "bg-[color:var(--panel-mint)]"
+                      : "bg-[color:var(--panel-snow)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => toggleExtra(extra)}
+                    className="size-4 accent-[color:var(--ink)]"
+                  />
+                  {EXTRA_LABEL[extra]}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <label
+          className={`flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-sm)] border-2 border-[color:var(--ink)] px-3 py-2.5 ${
+            spec.accessible
+              ? "bg-[color:var(--panel-blue)]"
+              : "bg-[color:var(--panel-snow)]"
+          }`}
+        >
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em]">
+            Accessible route
+          </span>
+          <input
+            type="checkbox"
+            checked={spec.accessible}
+            onChange={(e) => onChange("accessible", e.target.checked)}
+            className="size-5 accent-[color:var(--ink)]"
+          />
+        </label>
+
+        {onNoteChange && (
+          <label className="block">
+            <span className="nb-label">Note to the venue</span>
+            <textarea
+              rows={3}
+              className="nb-input resize-y"
+              placeholder="Anything else we should know…"
+              value={note ?? ""}
+              onChange={(e) => onNoteChange(e.target.value)}
+            />
+          </label>
+        )}
+      </div>
+    );
   }
 
   if (compact) {

@@ -8,7 +8,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { FixedTag } from "@/components/inbox/FixedTag";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
@@ -125,6 +125,12 @@ function PipelineChip({ status }: { status: PipelineStatus }) {
   );
 }
 
+function pendingChangeKey(row: EnquiryListItem): string | null {
+  const cr = row.changeRequest;
+  if (!cr || cr.status !== "pending") return null;
+  return `${row.id}:${cr.at ?? "pending"}`;
+}
+
 export default function InboxPage() {
   const rooms = useVenueRooms();
   const [rows, setRows] = useState<EnquiryListItem[]>([]);
@@ -137,6 +143,9 @@ export default function InboxPage() {
   /** `${id}:${fixedBy.at}` that arrived live, not on first load: flash once. */
   const [freshFixes, setFreshFixes] = useState<Set<string>>(() => new Set());
   const [origin, setOrigin] = useState("");
+  /** Enquiry ids that just received a pending client change request. */
+  const [flashIds, setFlashIds] = useState<Set<string>>(() => new Set());
+  const seenPending = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -186,6 +195,42 @@ export default function InboxPage() {
           setFreshFixes((prev) => new Set([...prev, ...arrived]));
         }
         firstSnapshot = false;
+
+        const pendingKeys = new Set(
+          next
+            .map(pendingChangeKey)
+            .filter((k): k is string => Boolean(k)),
+        );
+        if (seenPending.current === null) {
+          // First snapshot — seed without flashing (avoid animating on reload).
+          seenPending.current = pendingKeys;
+        } else {
+          const fresh: string[] = [];
+          for (const key of pendingKeys) {
+            if (!seenPending.current.has(key)) {
+              const enquiryId = key.split(":")[0]!;
+              fresh.push(enquiryId);
+            }
+          }
+          if (fresh.length > 0) {
+            setFlashIds((prev) => {
+              const n = new Set(prev);
+              for (const id of fresh) n.add(id);
+              return n;
+            });
+            // Auto-focus the Client changes tab for the demo beat.
+            setTab("client_changes");
+            window.setTimeout(() => {
+              setFlashIds((prev) => {
+                const n = new Set(prev);
+                for (const id of fresh) n.delete(id);
+                return n;
+              });
+            }, 2800);
+          }
+          seenPending.current = pendingKeys;
+        }
+
         setRows(next);
         setLoading(false);
         setError(null);
@@ -369,11 +414,22 @@ export default function InboxPage() {
             const guests = guessed ? null : guestsOf(row);
             const est = guessed ? null : estTotalOf(row, rooms);
             const fixed = showFixedBy(row) ? row.fixedBy : null;
-            const flash = fixed && freshFixes.has(`${row.id}:${fixed.at}`);
+            const fixFlash = fixed && freshFixes.has(`${row.id}:${fixed.at}`);
             const pipe = pipelineOf(row);
             const feas = feasStatusOf(row);
+            const clientPending = row.changeRequest?.status === "pending";
+            const changeFlash = flashIds.has(row.id);
             return (
-              <li key={row.id} className={flash ? "btf-flash" : undefined}>
+              <li
+                key={row.id}
+                className={
+                  changeFlash
+                    ? "inbox-row-flash"
+                    : fixFlash
+                      ? "btf-flash"
+                      : undefined
+                }
+              >
                 <Link
                   href={`/enquiry/${row.id}`}
                   className="grid grid-cols-1 gap-3 px-4 py-4 transition hover:bg-[color:var(--panel-2)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] lg:items-center lg:gap-4"
@@ -394,7 +450,13 @@ export default function InboxPage() {
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
                   <span className="flex flex-col gap-0.5">
-                    <PipelineChip status={pipe} />
+                    {clientPending ? (
+                      <span className="nb-chip nb-chip-yellow !normal-case">
+                        Client changes
+                      </span>
+                    ) : (
+                      <PipelineChip status={pipe} />
+                    )}
                     {!guessed && feas && (
                       <StatusChip
                         status={feas}

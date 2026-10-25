@@ -89,6 +89,11 @@ export type LayoutOverride = {
   rotY: number;
 };
 
+/** One changed Spec field: from → to. */
+export type SpecChange = {
+  [K in keyof Spec]: { field: K; from: Spec[K]; to: Spec[K] };
+}[keyof Spec];
+
 /** Organiser-submitted tweak waiting on the coordinator. */
 export type ChangeRequest = {
   status: "pending" | "accepted" | "dismissed";
@@ -97,6 +102,10 @@ export type ChangeRequest = {
   at: string;
   /** Manual furniture moves from the client plan page (not AI corrections). */
   overrides?: Record<string, LayoutOverride>;
+  /** Spec field diffs vs the approved plan (from {@link diffSpec}). */
+  diff?: SpecChange[];
+  /** Optional venue reply when the request is dismissed (shown to the client). */
+  replyNote?: string;
 };
 
 /** Raw inbound fields — written before /api/parse runs. */
@@ -155,11 +164,6 @@ export type FixedBy = {
 export type Verdict = "good" | "corrected";
 
 export type EnquiryListItem = Enquiry & { id: string };
-
-/** One changed field: model value → coordinator value. */
-export type SpecChange = {
-  [K in keyof Spec]: { field: K; from: Spec[K]; to: Spec[K] };
-}[keyof Spec];
 
 /**
  * corrections/{enquiryId} — one doc per enquiry, overwritten on every edit,
