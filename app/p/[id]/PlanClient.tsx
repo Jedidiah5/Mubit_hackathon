@@ -61,7 +61,15 @@ function overridesEqual(
     const ka = keysA[i]!;
     const pa = a[ka]!;
     const pb = b[ka]!;
-    if (pa.x !== pb.x || pa.z !== pb.z || pa.rotY !== pb.rotY) return false;
+    if (
+      pa.x !== pb.x ||
+      pa.z !== pb.z ||
+      pa.rotY !== pb.rotY ||
+      pa.kind !== pb.kind ||
+      Boolean(pa.removed) !== Boolean(pb.removed)
+    ) {
+      return false;
+    }
   }
   return true;
 }
@@ -156,6 +164,7 @@ export function PlanClient() {
     return applyOverrides(
       layout(feasibility.room, liveSpec),
       liveOverrides,
+      feasibility.room,
     );
   }, [liveSpec, feasibility, liveOverrides]);
 

@@ -24,9 +24,12 @@ import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
 import { showFixedBy } from "@/lib/ripple";
 import {
+  EXTRAS,
   pipelineOf,
   type Enquiry,
+  type Extra,
   type Feasibility,
+  type LayoutKind,
   type LayoutOverride,
   type Spec,
 } from "@/lib/types";
@@ -181,6 +184,7 @@ export function EnquiryClient() {
     return applyOverrides(
       layout(feasibility.room, spec),
       enquiry?.final?.overrides,
+      feasibility.room,
     );
   }, [spec, feasibility, enquiry?.final?.overrides]);
 
@@ -241,6 +245,23 @@ export function EnquiryClient() {
       void persistSpec(next);
     },
     [persistSpec],
+  );
+
+  /** Deleting a stage, bar or extra in Edit layout is a spec change. */
+  const onRemoveFeature = useCallback(
+    (kind: LayoutKind) => {
+      const current = specRef.current;
+      if (!current) return;
+      if (kind === "stage") onSpecChange("stage", "none");
+      else if (kind === "bar") onSpecChange("bar", "none");
+      else if ((EXTRAS as readonly string[]).includes(kind)) {
+        onSpecChange(
+          "extras",
+          current.extras.filter((e: Extra) => e !== kind),
+        );
+      }
+    },
+    [onSpecChange],
   );
 
   const onGuestsDraft = useCallback(
@@ -440,6 +461,7 @@ export function EnquiryClient() {
               ? {
                   overrides: enquiry.final?.overrides,
                   onOverridesChange: onLayoutOverridesChange,
+                  onRemoveFeature,
                 }
               : undefined
           }

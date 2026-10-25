@@ -1,22 +1,24 @@
 "use client";
 
-import { Outlines } from "@react-three/drei";
-import type { LayoutItem, LayoutKind, LayoutOverride } from "@/lib/types";
+import { Html, Outlines } from "@react-three/drei";
+import type { LayoutItem, LayoutKind, LayoutOverride, Room } from "@/lib/types";
 import { footprintSize, orientedSize } from "@/lib/layout/footprint";
+import { TABLE_PICK, pieceLabel } from "@/lib/layout/movable";
 import { palette } from "../palette";
 
 const ACCENT = "#c8ff00";
 const BAD = "#e24b4b";
 
 type Props = {
+  room: Room;
   kind: LayoutKind;
-  pose: LayoutOverride;
+  pose: Pick<LayoutOverride, "x" | "z" | "rotY">;
   valid: boolean;
 };
 
 /** Translucent stand-in for the selected piece at the candidate pose. */
-export function GhostPiece({ kind, pose, valid }: Props) {
-  const size = orientedSize(footprintSize(kind), pose.rotY);
+export function GhostPiece({ room, kind, pose, valid }: Props) {
+  const size = orientedSize(footprintSize(kind, room, pose.rotY), pose.rotY);
   const color = valid ? ACCENT : BAD;
   const y = ghostHeight(kind);
 
@@ -95,27 +97,72 @@ function ghostHeight(kind: LayoutKind): number {
     case "dj_booth":
     case "photo_booth":
       return 1.4;
+    case "sign":
+      return 1.6;
+    case "tv":
+      return 1.7;
     default:
       return 0.8;
   }
 }
 
-/** Accent outline at the live (pre-move) position while hovering. */
-export function HoverHighlight({ item }: { item: LayoutItem }) {
-  const size = orientedSize(footprintSize(item.kind), item.rotY);
-  const r = Math.max(size.w, size.d) * 0.55;
+const EDGE = 0.12;
+
+/**
+ * What a click would grab: the piece's pick area outlined at its live
+ * position (a disc for tables, the footprint for everything else) plus its
+ * name. Drawn over the furniture so it reads from straight above.
+ */
+export function HoverHighlight({ room, item }: { room: Room; item: LayoutItem }) {
+  const disc = TABLE_PICK[item.kind];
+  const size = orientedSize(
+    footprintSize(item.kind, room, item.rotY),
+    item.rotY,
+  );
+  const line = (
+    <meshBasicMaterial
+      color={palette.stageEdge}
+      transparent
+      opacity={0.95}
+      depthTest={false}
+      depthWrite={false}
+    />
+  );
+  const bars: [number, number, number, number][] = [
+    // [x, z, w, d] — the four sides of the footprint
+    [0, -size.d / 2 + EDGE / 2, size.w, EDGE],
+    [0, size.d / 2 - EDGE / 2, size.w, EDGE],
+    [-size.w / 2 + EDGE / 2, 0, EDGE, size.d],
+    [size.w / 2 - EDGE / 2, 0, EDGE, size.d],
+  ];
+
   return (
-    <mesh
-      position={[item.x, 0.03, item.z]}
-      rotation={[-Math.PI / 2, 0, 0]}
-    >
-      <ringGeometry args={[r * 0.72, r, 48]} />
-      <meshBasicMaterial
-        color={palette.stageEdge}
-        transparent
-        opacity={0.85}
-        depthWrite={false}
-      />
-    </mesh>
+    <group position={[item.x, 0, item.z]}>
+      {disc ? (
+        <mesh
+          position={[0, 0.03, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          renderOrder={10}
+        >
+          <ringGeometry args={[disc.full - EDGE, disc.full, 48]} />
+          {line}
+        </mesh>
+      ) : (
+        bars.map(([x, z, w, d], i) => (
+          <mesh
+            key={i}
+            position={[x, 0.03, z]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            renderOrder={10}
+          >
+            <planeGeometry args={[w, d]} />
+            {line}
+          </mesh>
+        ))
+      )}
+      <Html center position={[0, 1.8, 0]} style={{ pointerEvents: "none" }}>
+        <div className="btf-pill btf-pill--dark">{pieceLabel(item)}</div>
+      </Html>
+    </group>
   );
 }

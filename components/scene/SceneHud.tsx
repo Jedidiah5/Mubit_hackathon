@@ -23,6 +23,9 @@ type Props = SceneHudProps & {
   onPlanViewChange?: (plan: boolean) => void;
   onRotate: (dir: 1 | -1) => void;
   onFit: () => void;
+  /** Guests walking around; the toggle shows only when given. */
+  motion?: boolean;
+  onMotionChange?: (on: boolean) => void;
 };
 
 const STATUS_LABEL: Record<FeasibilityStatus, string> = {
@@ -44,6 +47,8 @@ export function SceneHud({
   onPlanViewChange,
   onRotate,
   onFit,
+  motion,
+  onMotionChange,
 }: Props) {
   const pct =
     used != null && capacity != null && capacity > 0
@@ -133,6 +138,16 @@ export function SceneHud({
             onClick={() => onPlanViewChange(!planView)}
           >
             {planView ? "Isometric" : "Plan view"}
+          </button>
+        )}
+        {onMotionChange && (
+          <button
+            type="button"
+            className={`btf-pill btf-pill--btn ${motion ? "is-active" : ""}`}
+            aria-pressed={motion}
+            onClick={() => onMotionChange(!motion)}
+          >
+            {motion ? "Guests moving" : "Guests still"}
           </button>
         )}
       </div>

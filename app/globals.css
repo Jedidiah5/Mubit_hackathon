@@ -446,7 +446,7 @@ textarea.nb-input {
   gap: 8px;
   justify-content: flex-end;
   pointer-events: auto;
-  max-width: min(100% - 20px, 280px);
+  max-width: min(100% - 20px, 460px);
 }
 .enquiry-with-mail .btf-edit-hud__tr {
   top: 10px;
@@ -517,6 +517,27 @@ textarea.nb-input {
   transform: translateX(-50%);
   pointer-events: none;
   max-width: min(90%, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* Enquiry page: the overlay grid (z-30) covers the bottom corners and centre,
+   so lift the edit HUD above it — the pad sits over the Fits card while
+   editing — and show the toast in the open top-centre under the toggle. */
+.enquiry-with-mail .btf-edit-hud {
+  z-index: 31;
+}
+.enquiry-with-mail .btf-edit-hud__pad {
+  padding: 8px;
+  background: var(--hud-bg);
+  border: 2px solid var(--hud-line);
+  border-radius: 14px;
+  box-shadow: var(--hud-shadow);
+}
+.enquiry-with-mail .btf-edit-hud__toast {
+  top: 60px;
+  bottom: auto;
 }
 .btf-edit-hud__toast .btf-pill {
   white-space: normal;
@@ -611,6 +632,10 @@ textarea.nb-input {
   background: #fff3cc;
 }
 .btf-pill--cannot {
+  color: var(--cannot);
+  background: #ffd6db;
+}
+.btf-pill--danger {
   color: var(--cannot);
   background: #ffd6db;
 }

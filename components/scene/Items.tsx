@@ -9,23 +9,30 @@ import {
   LinearFilter,
   SRGBColorSpace,
 } from "three";
-import { accessibleRouteRects, stageWidth } from "@/lib/layout/shared";
-import type { LayoutItem, LayoutKind, Room, Spec, Wall } from "@/lib/types";
+import {
+  accessibleRouteRects,
+  stageWidth,
+  wallFromRotY,
+} from "@/lib/layout/shared";
+import type { LayoutItem, LayoutKind, Room, Spec } from "@/lib/types";
 import { popScale, unitNoise } from "./buildAnim";
 import { AnimatedInstance, Pool, seedFor } from "./instancing";
 import { palette } from "./palette";
 import { People } from "./People";
+import { Walkers, pickWalkers } from "./Walkers";
 
 type Props = {
   items: LayoutItem[];
   time: () => number;
   room: Room;
   spec?: Spec;
+  /** Let some standing guests walk around (receptions). */
+  motion?: boolean;
 };
 
 const GUEST_KINDS = ["guest_seated", "guest_standing", "guest_overflow"] as const;
 
-export function Items({ items, time, room, spec }: Props) {
+export function Items({ items, time, room, spec, motion = false }: Props) {
   const byKind = useMemo(() => {
     const map = new Map<LayoutKind, LayoutItem[]>();
     for (const it of items) {
@@ -35,6 +42,15 @@ export function Items({ items, time, room, spec }: Props) {
     }
     return map;
   }, [items]);
+
+  const walkers = useMemo(
+    () => (motion ? pickWalkers(byKind.get("guest_standing") ?? []) : []),
+    [motion, byKind],
+  );
+  const walkerIds = useMemo(
+    () => new Set(walkers.map((w) => w.it.id)),
+    [walkers],
+  );
 
   return (
     <group>
@@ -47,7 +63,15 @@ export function Items({ items, time, room, spec }: Props) {
         return (
           // Rigged characters once the models are in; capsule stand-ins meanwhile.
           <Suspense key={kind} fallback={<Guests items={guests} time={time} kind={kind} />}>
-            <People items={guests} time={time} kind={kind} />
+            <People
+              items={guests}
+              time={time}
+              kind={kind}
+              skip={kind === "guest_standing" ? walkerIds : undefined}
+            />
+            {kind === "guest_standing" && walkers.length > 0 && (
+              <Walkers walkers={walkers} items={items} room={room} time={time} />
+            )}
           </Suspense>
         );
       })}
@@ -58,7 +82,7 @@ export function Items({ items, time, room, spec }: Props) {
           item={it}
           index={i}
           time={time}
-          width={stageWidth(room, wallFromRot(it.rotY))}
+          width={stageWidth(room, wallFromRotY(it.rotY))}
         />
       ))}
       {(byKind.get("bar") ?? []).map((it, i) => (
@@ -88,16 +112,14 @@ export function Items({ items, time, room, spec }: Props) {
       {(byKind.get("projector") ?? []).map((it, i) => (
         <FeatureProjector key={`proj-${i}`} item={it} index={i} time={time} />
       ))}
+      {(byKind.get("sign") ?? []).map((it, i) => (
+        <FeatureSign key={it.id} item={it} index={i} time={time} />
+      ))}
+      {(byKind.get("tv") ?? []).map((it, i) => (
+        <FeatureTV key={it.id} item={it} index={i} time={time} />
+      ))}
     </group>
   );
-}
-
-function wallFromRot(rotY: number): Wall {
-  const r = ((rotY % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-  if (Math.abs(r) < 0.1 || Math.abs(r - Math.PI * 2) < 0.1) return "north";
-  if (Math.abs(r - Math.PI) < 0.1) return "south";
-  if (Math.abs(r - Math.PI / 2) < 0.1) return "west";
-  return "east";
 }
 
 type Timed = { items: LayoutItem[]; time: () => number };
@@ -1047,6 +1069,82 @@ function FeatureProjector({ item, index, time }: FeatureProps) {
           emissive={palette.screen}
           emissiveIntensity={0.35}
           roughness={0.9}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Easel with a board — welcome sign or table plan. Board faces +z. */
+function FeatureSign({ item, index, time }: FeatureProps) {
+  const ref = useRef<Group>(null);
+  useFeatureScale(ref, "sign", index, item, time);
+  return (
+    <group
+      ref={ref}
+      position={[item.x, 0, item.z]}
+      rotation={[0, item.rotY, 0]}
+      scale={0.001}
+    >
+      {/* Legs: two front, one back */}
+      {[-0.25, 0.25].map((x) => (
+        <mesh key={x} position={[x, 0.75, 0.05]} rotation={[-0.12, 0, 0]} castShadow>
+          <boxGeometry args={[0.04, 1.5, 0.04]} />
+          <meshStandardMaterial color={palette.tableBase} roughness={0.7} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.72, -0.18]} rotation={[0.28, 0, 0]} castShadow>
+        <boxGeometry args={[0.04, 1.45, 0.04]} />
+        <meshStandardMaterial color={palette.tableBase} roughness={0.7} />
+      </mesh>
+      {/* Board */}
+      <mesh position={[0, 1.15, 0.1]} rotation={[-0.12, 0, 0]} castShadow>
+        <boxGeometry args={[0.66, 0.86, 0.03]} />
+        <meshStandardMaterial color={palette.wallCap} roughness={0.8} />
+      </mesh>
+      {/* Lettering stripes */}
+      {[1.38, 1.24, 1.1, 0.96].map((y, i) => (
+        <mesh key={y} position={[0, y, 0.125 + (1.15 - y) * 0.12]} rotation={[-0.12, 0, 0]}>
+          <boxGeometry args={[i === 0 ? 0.46 : 0.36, i === 0 ? 0.06 : 0.03, 0.005]} />
+          <meshStandardMaterial color={i === 0 ? palette.stageEdge : palette.wallDado} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** TV screen on a wheeled stand. Screen faces +z. */
+function FeatureTV({ item, index, time }: FeatureProps) {
+  const ref = useRef<Group>(null);
+  useFeatureScale(ref, "tv", index, item, time);
+  return (
+    <group
+      ref={ref}
+      position={[item.x, 0, item.z]}
+      rotation={[0, item.rotY, 0]}
+      scale={0.001}
+    >
+      {/* Base and pole */}
+      <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.9, 0.06, 0.5]} />
+        <meshStandardMaterial color={palette.speaker} roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.7, -0.05]} castShadow>
+        <boxGeometry args={[0.08, 1.3, 0.08]} />
+        <meshStandardMaterial color={palette.truss} metalness={0.4} roughness={0.4} />
+      </mesh>
+      {/* Bezel and screen */}
+      <mesh position={[0, 1.35, 0]} castShadow>
+        <boxGeometry args={[1.3, 0.76, 0.06]} />
+        <meshStandardMaterial color={palette.speaker} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 1.35, 0.032]}>
+        <boxGeometry args={[1.22, 0.68, 0.005]} />
+        <meshStandardMaterial
+          color={palette.window}
+          emissive={palette.window}
+          emissiveIntensity={0.55}
+          roughness={0.2}
         />
       </mesh>
     </group>

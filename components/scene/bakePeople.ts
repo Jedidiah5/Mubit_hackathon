@@ -11,13 +11,16 @@
  */
 
 import {
+  type AnimationAction,
   type AnimationClip,
   AnimationMixer,
   Box3,
   BufferAttribute,
   BufferGeometry,
   Color,
+  Group,
   Matrix4,
+  MeshStandardMaterial,
   type Object3D,
   Quaternion,
   type SkinnedMesh,
@@ -246,4 +249,79 @@ export function bakeBody(RiggedModel: RiggedModel): BakedBody {
   };
   bakeCache.set(RiggedModel, baked);
   return baked;
+}
+
+/** Standing scale and the offset that puts the soles at y = 0, centred. */
+const frameCache = new WeakMap<RiggedModel, { scale: number; offset: Vector3 }>();
+
+function standFrame(model: RiggedModel) {
+  const hit = frameCache.get(model);
+  if (hit) return hit;
+  const box = new Box3().setFromObject(poseRoot(model, "stand"));
+  const scale = HEIGHT_M / Math.max(0.1, box.max.y - box.min.y);
+  const offset = new Vector3(
+    -((box.min.x + box.max.x) / 2) * scale,
+    -box.min.y * scale,
+    -((box.min.z + box.max.z) / 2) * scale,
+  );
+  const frame = { scale, offset };
+  frameCache.set(model, frame);
+  return frame;
+}
+
+export type LiveBody = {
+  /** Place / turn this; the body inside is scaled and grounded. */
+  root: Group;
+  mixer: AnimationMixer;
+  walk: AnimationAction | null;
+  idle: AnimationAction | null;
+};
+
+/**
+ * A live, animated copy of a body for a guest who walks around: same scale,
+ * grounding and slot colours as the baked guests (see bakeBody), but skinned
+ * so the Walk and Idle clips can play. Only a handful exist at once.
+ */
+export function liveBody(
+  model: RiggedModel,
+  colour: (slot: Slot, fixed: string) => string,
+): LiveBody {
+  const { scale, offset } = standFrame(model);
+  const body = cloneSkinned(model.scene);
+  body.scale.setScalar(scale);
+  body.position.copy(offset);
+  const meshes = skinnedMeshes(body);
+  const slots = classify(
+    meshes.map((mesh) => ({
+      mesh,
+      part: partOf(mesh),
+      matName: (mesh.material as { name?: string }).name ?? "",
+      count: mesh.geometry.getAttribute("position").count,
+    })),
+  );
+  for (const mesh of meshes) {
+    const src = mesh.material as { color?: Color };
+    const fixed = src.color ? `#${src.color.getHexString()}` : "#888888";
+    // Match the baked guests' look (Items.tsx People material).
+    mesh.material = new MeshStandardMaterial({
+      color: colour(slots.get(mesh) ?? "fixed", fixed),
+      roughness: 0.85,
+      flatShading: true,
+    });
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+  }
+  const root = new Group();
+  root.add(body);
+  const mixer = new AnimationMixer(body);
+  const clip = (name: string) =>
+    model.animations.find((c) => c.name === name) ?? null;
+  const walkClip = clip("Walk");
+  const idleClip = clip("Idle");
+  return {
+    root,
+    mixer,
+    walk: walkClip ? mixer.clipAction(walkClip) : null,
+    idle: idleClip ? mixer.clipAction(idleClip) : null,
+  };
 }

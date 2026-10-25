@@ -16,7 +16,13 @@ import {
   OrthographicCamera as ThreeOrthoCamera,
   Vector3,
 } from "three";
-import type { LayoutItem, LayoutOverride, Room, Spec } from "@/lib/types";
+import type {
+  LayoutItem,
+  LayoutKind,
+  LayoutOverride,
+  Room,
+  Spec,
+} from "@/lib/types";
 import { BUILD_DURATION_S } from "./buildAnim";
 import { EditLayoutHud } from "./edit/EditLayoutHud";
 import {
@@ -49,6 +55,11 @@ export type LayoutEditProps = {
   onOverridesChange: (
     next: Record<string, LayoutOverride>,
   ) => void | Promise<void>;
+  /**
+   * Delete a spec feature (stage, bar, extras) by changing the spec. Without
+   * it those pieces can be moved but not deleted.
+   */
+  onRemoveFeature?: (kind: LayoutKind) => void;
 };
 
 type Props = {
@@ -81,6 +92,13 @@ export function RoomCanvas({
 }: Props) {
   const [yaw, setYaw] = useState(ISO_YAW);
   const [fitNonce, setFitNonce] = useState(0);
+  // Reception guests walk around unless the viewer asked for reduced motion.
+  const [motion, setMotion] = useState(
+    () =>
+      typeof window === "undefined" ||
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const hasStanding = items.some((i) => i.kind === "guest_standing");
   const [viewYaw, setViewYaw] = useState(ISO_YAW);
 
   const overrides = layoutEdit?.overrides ?? {};
@@ -90,6 +108,7 @@ export function RoomCanvas({
     accessible: Boolean(spec?.accessible),
     overrides,
     onOverridesChange: layoutEdit?.onOverridesChange ?? (() => undefined),
+    onRemoveFeature: layoutEdit?.onRemoveFeature,
   });
 
   const rotate = useCallback((dir: 1 | -1) => {
@@ -99,11 +118,22 @@ export function RoomCanvas({
     });
   }, []);
 
+  // Edit from straight above: nothing overlaps on screen, so the floor point
+  // under the cursor is the piece you meant.
+  const editing = Boolean(layoutEdit && edit.editing);
+
+  // While editing, guests step out (only furniture shows) and the selected
+  // piece is drawn as the ghost instead.
   const displayItems = useMemo(
     () =>
-      edit.editing ? omitSelected(items, edit.selectedId) : items,
-    [items, edit.editing, edit.selectedId],
+      editing
+        ? omitSelected(items, edit.selectedId).filter(
+            (i) => !i.kind.startsWith("guest_"),
+          )
+        : items,
+    [items, editing, edit.selectedId],
   );
+  const plan = planView || editing;
 
   return (
     <div
@@ -147,16 +177,18 @@ export function RoomCanvas({
           items={displayItems}
           allItems={items}
           spec={spec}
-          planView={planView}
+          planView={plan}
           loading={loading}
           yaw={yaw}
           fitNonce={fitNonce}
-          editMode={Boolean(layoutEdit && edit.editing)}
+          editMode={editing}
           onViewYaw={setViewYaw}
+          motion={motion}
           edit={
-            layoutEdit && edit.editing
+            editing
               ? {
                   selectedId: edit.selectedId,
+                  selectedKind: edit.selectedKind,
                   candidate: edit.candidate,
                   hoverId: edit.hoverId,
                   valid: edit.valid,
@@ -168,6 +200,7 @@ export function RoomCanvas({
                   onRotate: edit.rotate,
                   onConfirm: edit.confirm,
                   onCancel: edit.cancel,
+                  onRemove: edit.remove,
                 }
               : null
           }
@@ -178,10 +211,12 @@ export function RoomCanvas({
       <SceneHud
         {...hud}
         room={room}
-        planView={planView}
-        onPlanViewChange={onPlanViewChange}
+        planView={plan}
+        onPlanViewChange={editing ? undefined : onPlanViewChange}
         onRotate={rotate}
         onFit={() => setFitNonce((n) => n + 1)}
+        motion={motion}
+        onMotionChange={hasStanding && !editing ? setMotion : undefined}
       />
 
       {layoutEdit && (
@@ -197,6 +232,10 @@ export function RoomCanvas({
           onRotate={edit.rotate}
           onConfirm={edit.confirm}
           onCancel={edit.cancel}
+          canRemove={edit.canRemove}
+          onRemove={edit.remove}
+          onAdd={edit.add}
+          note={editing ? seatsNote(items, spec) : null}
         />
       )}
     </div>
@@ -265,19 +304,32 @@ function Lighting({ room }: { room: Room }) {
   );
 }
 
+/** "Seats 110 of 120 guests" when tables can't seat everyone (seated styles). */
+function seatsNote(items: LayoutItem[], spec?: Spec): string | null {
+  if (!spec || (spec.style !== "banquet" && spec.style !== "cabaret")) {
+    return null;
+  }
+  const seats = items.filter((i) => i.kind === "chair").length;
+  return seats < spec.guests
+    ? `Seats ${seats} of ${spec.guests} guests`
+    : null;
+}
+
 type EditSceneBind = {
   selectedId: string | null;
-  candidate: LayoutOverride | null;
+  selectedKind: LayoutKind | null;
+  candidate: Pick<LayoutOverride, "x" | "z" | "rotY"> | null;
   hoverId: string | null;
   valid: boolean;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
-  onMoveCandidate: (pose: LayoutOverride) => void;
+  onMoveCandidate: (pose: Pick<LayoutOverride, "x" | "z" | "rotY">) => void;
   viewYaw: number;
   onNudge: (dx: number, dz: number) => void;
   onRotate: () => void;
   onConfirm: () => void;
   onCancel: () => void;
+  onRemove: () => void;
 };
 
 function SceneBody({
@@ -292,6 +344,7 @@ function SceneBody({
   editMode,
   onViewYaw,
   edit,
+  motion,
 }: {
   room: Room;
   /** Items actually drawn (selected piece omitted while editing). */
@@ -306,20 +359,25 @@ function SceneBody({
   editMode: boolean;
   onViewYaw: (yaw: number) => void;
   edit: EditSceneBind | null;
+  motion: boolean;
 }) {
   const clock = useRef(0);
-  const itemKey = useMemo(
+  // Replay the build animation when the event changes (room, spec, first
+  // load) — not when the coordinator moves, adds or deletes a piece.
+  const buildKey = useMemo(
     () =>
       `${room.name}:${room.widthM}x${room.lengthM}|` +
-      allItems
-        .map((i) => `${i.kind}:${i.x.toFixed(2)}:${i.z.toFixed(2)}`)
-        .join("|"),
-    [allItems, room.name, room.widthM, room.lengthM],
+      (spec
+        ? `${JSON.stringify(spec)}|${allItems.length > 0}`
+        : allItems
+            .map((i) => `${i.kind}:${i.x.toFixed(2)}:${i.z.toFixed(2)}`)
+            .join("|")),
+    [allItems, spec, room.name, room.widthM, room.lengthM],
   );
 
   useEffect(() => {
     clock.current = 0;
-  }, [itemKey]);
+  }, [buildKey]);
 
   useFrame((_, dt) => {
     clock.current = Math.min(BUILD_DURATION_S + 60, clock.current + dt);
@@ -339,12 +397,19 @@ function SceneBody({
         onViewYaw={onViewYaw}
       />
       <RoomShell room={room} yaw={yaw} planView={planView} />
-      <Items items={items} time={time} room={room} spec={spec} />
+      <Items
+        items={items}
+        time={time}
+        room={room}
+        spec={spec}
+        motion={motion}
+      />
       {edit && (
         <EditLayoutScene
           room={room}
           items={allItems}
           selectedId={edit.selectedId}
+          selectedKind={edit.selectedKind}
           candidate={edit.candidate}
           hoverId={edit.hoverId}
           valid={edit.valid}
@@ -356,6 +421,7 @@ function SceneBody({
           onRotate={edit.onRotate}
           onConfirm={edit.onConfirm}
           onCancel={edit.onCancel}
+          onRemove={edit.onRemove}
         />
       )}
       {showLoading && (
@@ -630,8 +696,10 @@ function CameraRig({
     }
     cam.updateProjectionMatrix();
 
-    const snapped =
-      Math.round(currentYaw.current / QUARTER) * QUARTER;
+    // Plan view always draws north up (see cam.up above), whatever the yaw.
+    const snapped = planView
+      ? 0
+      : Math.round(currentYaw.current / QUARTER) * QUARTER;
     if (
       lastReportedYaw.current === null ||
       Math.abs(snapped - lastReportedYaw.current) > 1e-3
