@@ -15,7 +15,7 @@ import { diffSpec } from "@/lib/corrections";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
-import { layout } from "@/lib/layout";
+import { applyOverrides, layout } from "@/lib/layout";
 import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
@@ -164,8 +164,11 @@ export function EnquiryClient() {
 
   const items = useMemo(() => {
     if (!spec || !feasibility?.room) return [];
-    return layout(feasibility.room, spec);
-  }, [spec, feasibility]);
+    return applyOverrides(
+      layout(feasibility.room, spec),
+      enquiry?.final?.overrides,
+    );
+  }, [spec, feasibility, enquiry?.final?.overrides]);
 
   const persistSpec = useCallback(
     async (next: Spec, override: string | null = roomOverride) => {

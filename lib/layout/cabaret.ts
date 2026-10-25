@@ -32,8 +32,9 @@ export function layoutCabaret(room: Room, spec: Spec): LayoutItem[] {
   let remaining = seated;
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
 
-  for (const { x, z } of centres) {
-    items.push(item("table_round", x, z, 0));
+  centres.forEach(({ x, z }, ti) => {
+    const groupId = `table-${ti + 1}`;
+    items.push(item("table_round", x, z, 0, groupId, groupId));
     const guestsHere = Math.min(CHAIRS_PER_CABARET, remaining);
     remaining -= guestsHere;
     let guestLeft = guestsHere;
@@ -45,13 +46,24 @@ export function layoutCabaret(room: Room, spec: Spec): LayoutItem[] {
       const cx = x + Math.sin(angle) * CHAIR_RADIUS_M;
       const cz = z + Math.cos(angle) * CHAIR_RADIUS_M;
       const rotY = wallFacingOut(wall);
-      items.push(item("chair", cx, cz, rotY));
+      items.push(
+        item("chair", cx, cz, rotY, `${groupId}-chair-${i}`, groupId),
+      );
       if (guestLeft > 0) {
-        items.push(item("guest_seated", cx, cz, rotY));
+        items.push(
+          item(
+            "guest_seated",
+            cx,
+            cz,
+            rotY,
+            `${groupId}-guest-${guestsHere - guestLeft}`,
+            groupId,
+          ),
+        );
         guestLeft -= 1;
       }
     }
-  }
+  });
 
   items.push(...placeOverflow(room, overflow, blocks));
   return items;

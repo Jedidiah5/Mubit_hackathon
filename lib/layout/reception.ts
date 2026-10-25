@@ -27,11 +27,13 @@ export function layoutReception(room: Room, spec: Spec): LayoutItem[] {
   );
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
 
-  for (const { x, z } of tables) {
-    items.push(item("high_table", x, z, 0));
-  }
+  tables.forEach(({ x, z }, ti) => {
+    const id = `table-${ti + 1}`;
+    items.push(item("high_table", x, z, 0, id));
+  });
 
   let remaining = standing;
+  let standingN = 0;
   const anchors =
     tables.length > 0
       ? tables
@@ -56,7 +58,16 @@ export function layoutReception(room: Room, spec: Spec): LayoutItem[] {
         z = anchor.z;
         if (isBlocked(x, z, 0.3, blocks)) continue;
       }
-      items.push(item("guest_standing", x, z, angle + Math.PI));
+      standingN += 1;
+      items.push(
+        item(
+          "guest_standing",
+          x,
+          z,
+          angle + Math.PI,
+          `guest_standing-${standingN}`,
+        ),
+      );
       remaining -= 1;
     }
     anchorIdx += 1;
@@ -69,7 +80,10 @@ export function layoutReception(room: Room, spec: Spec): LayoutItem[] {
     );
     for (let i = 0; i < remaining && i < fillers.length; i++) {
       const p = fillers[i]!;
-      items.push(item("guest_standing", p.x, p.z, 0));
+      standingN += 1;
+      items.push(
+        item("guest_standing", p.x, p.z, 0, `guest_standing-${standingN}`),
+      );
     }
   }
 

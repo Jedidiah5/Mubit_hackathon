@@ -28,8 +28,9 @@ export function layoutBanquet(room: Room, spec: Spec): LayoutItem[] {
   let remaining = seated;
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
 
-  for (const { x, z } of tableCentres) {
-    items.push(item("table_round", x, z, 0));
+  tableCentres.forEach(({ x, z }, ti) => {
+    const groupId = `table-${ti + 1}`;
+    items.push(item("table_round", x, z, 0, groupId, groupId));
     const guestsHere = Math.min(CHAIRS_PER_ROUND, remaining);
     remaining -= guestsHere;
     let guestLeft = guestsHere;
@@ -39,13 +40,24 @@ export function layoutBanquet(room: Room, spec: Spec): LayoutItem[] {
       const cx = x + Math.sin(angle) * CHAIR_RADIUS_M;
       const cz = z + Math.cos(angle) * CHAIR_RADIUS_M;
       const rotY = Math.atan2(x - cx, z - cz);
-      items.push(item("chair", cx, cz, rotY));
+      items.push(
+        item("chair", cx, cz, rotY, `${groupId}-chair-${i}`, groupId),
+      );
       if (guestLeft > 0) {
-        items.push(item("guest_seated", cx, cz, rotY));
+        items.push(
+          item(
+            "guest_seated",
+            cx,
+            cz,
+            rotY,
+            `${groupId}-guest-${guestsHere - guestLeft}`,
+            groupId,
+          ),
+        );
         guestLeft -= 1;
       }
     }
-  }
+  });
 
   // Anyone still unseated due to packing edge cases sits at remaining chairs
   // were already allocated; leftover capacity guests shouldn't overflow.

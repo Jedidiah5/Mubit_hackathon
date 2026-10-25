@@ -113,7 +113,7 @@ export type Enquiry = EnquiryInbound & {
   model?: string;
   /** Past corrections sent as notes with the parse call. */
   notesUsed?: number;
-  final?: Spec;
+  final?: FinalSpec;
   feasibility?: Feasibility;
   /**
    * Pipeline status for the organiser journey.
@@ -194,10 +194,29 @@ export const LAYOUT_KINDS = [
 
 export type LayoutKind = (typeof LAYOUT_KINDS)[number];
 
+/** Manual move of a furniture piece (or table group). Metres, yaw in radians. */
+export type LayoutOverride = {
+  x: number;
+  z: number;
+  rotY: number;
+};
+
+/**
+ * Approved spec on an enquiry. `overrides` are keyed by LayoutItem.id or
+ * groupId (e.g. "table-3") and applied after lib/layout.
+ */
+export type FinalSpec = Spec & {
+  overrides?: Record<string, LayoutOverride>;
+};
+
 /** Placed item from lib/layout. Metres, y rotation in radians. Origin = room centre, north = −z. */
 export type LayoutItem = {
+  /** Stable for a given spec + room, e.g. "stage", "table-3", "table-3-chair-0". */
+  id: string;
   kind: LayoutKind;
   x: number;
   z: number;
   rotY: number;
+  /** Shared by a table and its chairs / seated guests (e.g. "table-3"). */
+  groupId?: string;
 };

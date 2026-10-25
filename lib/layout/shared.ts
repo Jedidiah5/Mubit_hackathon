@@ -89,8 +89,12 @@ export function item(
   x: number,
   z: number,
   rotY = 0,
+  id: string = kind,
+  groupId?: string,
 ): LayoutItem {
-  return { kind, x, z, rotY };
+  return groupId !== undefined
+    ? { id, kind, x, z, rotY, groupId }
+    : { id, kind, x, z, rotY };
 }
 
 export function stageWidth(room: Room, wall: Wall): number {
@@ -530,8 +534,10 @@ export function placeOverflow(
     for (let c = 0; c < cols && placed < count; c++) {
       const x = (c - (cols - 1) / 2) * spacing;
       if (isBlocked(x, z, clearance, blocks)) continue;
-      items.push(item("guest_overflow", x, z, Math.PI));
       placed += 1;
+      items.push(
+        item("guest_overflow", x, z, Math.PI, `guest_overflow-${placed}`),
+      );
     }
     row += 1;
   }
@@ -546,8 +552,10 @@ export function placeOverflow(
     guard += 1;
     if (Math.abs(x) > hx - 0.5 || z < -hz + 0.5) continue;
     if (isBlocked(x, z, clearance, blocks)) continue;
-    items.push(item("guest_overflow", x, z, Math.PI));
     placed += 1;
+    items.push(
+      item("guest_overflow", x, z, Math.PI, `guest_overflow-${placed}`),
+    );
   }
 
   return items;
