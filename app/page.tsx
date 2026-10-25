@@ -9,11 +9,11 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
-import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { StatusChip } from "@/components/inbox/StatusChip";
+import { PageHeader, PageShell } from "@/components/PageHeader";
+import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
 import {
@@ -95,16 +95,31 @@ const EMPTY: Record<Tab, string> = {
   accepted: "No dates held yet. When a client accepts, they land here.",
 };
 
-const PIPELINE_CHIP: Record<PipelineStatus, { label: string; cls: string }> = {
-  received: { label: "Received", cls: "nb-chip" },
-  proposed: { label: "Proposed", cls: "nb-chip nb-chip-teal" },
-  client_changes: { label: "Client changes", cls: "nb-chip nb-chip-yellow" },
-  accepted: { label: "Accepted", cls: "nb-chip nb-chip-blue" },
+const PIPELINE_META: Record<
+  PipelineStatus,
+  { label: string; color: string }
+> = {
+  received: { label: "Received", color: "var(--muted)" },
+  proposed: { label: "Proposed", color: "var(--fits)" },
+  client_changes: { label: "Client changes", color: "var(--warning)" },
+  accepted: { label: "Accepted", color: "var(--accent-blue)" },
 };
 
 function PipelineChip({ status }: { status: PipelineStatus }) {
-  const chip = PIPELINE_CHIP[status];
-  return <span className={chip.cls}>{chip.label}</span>;
+  const chip = PIPELINE_META[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
+      style={{ color: chip.color }}
+    >
+      <span
+        className="inline-block size-1.5 rounded-full"
+        style={{ background: chip.color }}
+        aria-hidden
+      />
+      {chip.label}
+    </span>
+  );
 }
 
 export default function InboxPage() {
@@ -230,23 +245,13 @@ export default function InboxPage() {
   }, [rows, processing]);
 
   return (
-    <main className="min-h-screen text-[color:var(--ink)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-6 sm:px-8 sm:py-10">
-        <header className="nb-frame nb-frame-blue mb-6 space-y-5 p-4 sm:mb-8 sm:p-6">
-          <AppNav current="/" />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-3">
-                <span className="nb-mark" aria-hidden>
-                  ✦
-                </span>
-                <h1 className="font-sans text-3xl font-extrabold tracking-tight sm:text-4xl">
-                  Inbox
-                </h1>
-              </div>
-              <p className="font-mono text-xs font-bold text-[color:var(--muted)]">
-                The Wharf Rooms · {countLabel}
-              </p>
+    <PageShell>
+        <PageHeader
+          current="/"
+          title="Inbox"
+          subtitle={`The Wharf Rooms · ${countLabel}`}
+          meta={
+            <>
               {origin && (
                 <p className="mt-2 break-all font-mono text-[11px] text-[color:var(--muted)]">
                   Enquiry form:{" "}
@@ -260,8 +265,10 @@ export default function InboxPage() {
                   {processProgress}
                 </p>
               )}
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            </>
+          }
+          actions={
+            <>
               <button
                 type="button"
                 onClick={() => void processAll()}
@@ -279,9 +286,9 @@ export default function InboxPage() {
               >
                 Paste new enquiry
               </button>
-            </div>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {error && (
           <p className="nb-banner nb-banner-bad mb-6 font-mono text-xs font-bold text-[color:var(--cannot)]">
@@ -364,7 +371,7 @@ export default function InboxPage() {
                     </span>
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
-                  <span className="flex flex-wrap gap-1.5">
+                  <span className="flex flex-col gap-0.5">
                     <PipelineChip status={pipe} />
                     {!guessed && feas && (
                       <StatusChip
@@ -393,12 +400,11 @@ export default function InboxPage() {
             );
           })}
         </ul>
-      </div>
 
       <PasteEnquiryModal
         open={pasteOpen}
         onClose={() => setPasteOpen(false)}
       />
-    </main>
+    </PageShell>
   );
 }

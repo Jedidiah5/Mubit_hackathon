@@ -14,7 +14,7 @@
   --panel-mint: #eef6f4;
   --panel-lemon: #faf7ef;
   --panel-lilac: #f3f0fa;
-  --panel-blue: #eef3f8;
+  --panel-blue: #d6e8ff;
   --panel-red: #faf0ef;
   --panel-snow: #fffcf7;
   --line: #151515;
@@ -97,14 +97,26 @@ h3 {
   background: var(--panel-snow);
   box-shadow: var(--shadow);
 }
-.nb-frame-mint,
-.nb-frame-lilac,
-.nb-frame-coral,
-.nb-frame-peach,
-.nb-frame-snow,
-.nb-frame-blue,
-.nb-frame-red {
+.nb-frame-mint {
+  background: var(--panel-mint);
+}
+.nb-frame-lilac {
+  background: var(--panel-lilac);
+}
+.nb-frame-coral {
+  background: var(--panel-coral);
+}
+.nb-frame-peach {
+  background: var(--panel-peach);
+}
+.nb-frame-snow {
   background: var(--panel-snow);
+}
+.nb-frame-blue {
+  background: var(--panel-blue);
+}
+.nb-frame-red {
+  background: var(--panel-red);
 }
 
 .nb-panel {
@@ -263,22 +275,24 @@ textarea.nb-input {
 }
 
 .nb-tablist {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 0;
-  overflow-x: auto;
+  overflow: hidden;
   border: 2.5px solid var(--ink);
   border-radius: var(--radius-btn);
   background: var(--panel-snow);
   box-shadow: var(--shadow-sm);
-  -webkit-overflow-scrolling: touch;
 }
 .nb-tab {
-  flex: 1 0 auto;
-  min-width: max-content;
+  display: grid;
+  place-items: center;
+  min-width: 0;
   border: 0;
   border-right: 2.5px solid var(--ink);
   background: transparent;
-  padding: 0.8rem 1.1rem;
+  padding: 0.7rem 0.85rem;
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
@@ -288,6 +302,7 @@ textarea.nb-input {
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
+  box-sizing: border-box;
 }
 .nb-tab:last-child {
   border-right: 0;
@@ -651,8 +666,5 @@ textarea.nb-input {
   .nb-input {
     min-height: 48px;
     font-size: 16px; /* avoid iOS zoom */
-  }
-  .nb-tablist {
-    width: 100%;
   }
 }

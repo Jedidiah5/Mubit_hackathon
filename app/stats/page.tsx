@@ -10,7 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import adapterResults from "@/data/adapter-results.json";
 import evalResults from "@/data/eval-results.json";
-import { AppNav } from "@/components/AppNav";
+import { PageHeader, PageShell } from "@/components/PageHeader";
 import { isCorrection } from "@/lib/corrections";
 import { getDb } from "@/lib/firebase";
 import type { Correction } from "@/lib/types";
@@ -96,34 +96,33 @@ export default function StatsPage() {
     .at(-1);
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
-        <header className="mb-10 space-y-4 border-b border-[color:var(--line)] pb-6">
-          <AppNav current="/stats" />
-          <div>
-            <h1 className="font-sans text-3xl tracking-tight">Stats</h1>
-            <p className="mt-2 font-mono text-xs text-[color:var(--ink)]/45">
+    <PageShell>
+        <PageHeader
+          current="/stats"
+          title="Stats"
+          subtitle={
+            <>
               Does correcting the drafts make them right?
               {lastRun
                 ? ` · eval ${new Date(lastRun).toLocaleString("en-GB")}`
                 : " · run npm run eval"}
-            </p>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {error && (
-          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
+          <p className="nb-banner nb-banner-bad mb-6 font-mono text-xs font-bold text-[color:var(--cannot)]">
             {error}
           </p>
         )}
 
-        <section className="mb-12 overflow-x-auto">
-          <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
+        <section className="nb-panel mb-8 overflow-x-auto p-4 sm:p-5">
+          <h2 className="mb-4 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
             Held-out emails that depend on house rules
           </h2>
           <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ink)]/40">
+              <tr className="border-b-2 border-[color:var(--ink)] font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)]">
                 <th className="py-2 pr-4 font-normal">Setup</th>
                 <th className="py-2 pr-4 text-right font-normal">All fields right</th>
                 <th className="py-2 pr-4 text-right font-normal">Field accuracy</th>
@@ -134,10 +133,10 @@ export default function StatsPage() {
               {EVAL_ROWS.map(({ mode, label, hint }) => {
                 const run = evalRuns[mode];
                 return (
-                  <tr key={mode} className="border-b border-[color:var(--line)]">
-                    <td className="py-3 pr-4">
+                  <tr key={mode} className="border-b border-[color:var(--ink)]/20">
+                    <td className="py-3 pr-4 font-bold">
                       {label}
-                      <span className="block font-mono text-[11px] text-[color:var(--ink)]/45">
+                      <span className="block font-mono text-[11px] font-normal text-[color:var(--muted)]">
                         {hint}
                         {run && mode === "notes"
                           ? ` · ${run.avgNotes.toFixed(1)} notes per email`
@@ -153,10 +152,10 @@ export default function StatsPage() {
                 );
               })}
               {adapterRuns.map((a) => (
-                <tr key={a.label} className="border-b border-[color:var(--line)]">
-                  <td className="py-3 pr-4">
+                <tr key={a.label} className="border-b border-[color:var(--ink)]/20">
+                  <td className="py-3 pr-4 font-bold">
                     {a.label}
-                    <span className="block font-mono text-[11px] text-[color:var(--ink)]/45">
+                    <span className="block font-mono text-[11px] font-normal text-[color:var(--muted)]">
                       trained by Mubit on the kept answers · no notes
                     </span>
                   </td>
@@ -168,36 +167,36 @@ export default function StatsPage() {
             </tbody>
           </table>
 
-          <p className="mt-3 font-mono text-[11px] text-[color:var(--ink)]/35">
+          <p className="mt-3 font-mono text-[11px] text-[color:var(--muted)]">
             n={Object.values(evalRuns)[0]?.n ?? 0} · guests within ±5% · eval
             calls are never recorded as training data · adapter rows from
             data/adapter-results.json
           </p>
         </section>
 
-        <section>
+        <section className="nb-panel p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
+            <h2 className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
               Corrections
             </h2>
-            <p className="font-mono text-xs text-[color:var(--ink)]/45">
+            <p className="font-mono text-xs text-[color:var(--muted)]">
               {count == null ? "…" : `${count} enquiries corrected`} · latest 20
             </p>
           </div>
 
           {corrections.length === 0 ? (
-            <p className="font-mono text-sm text-[color:var(--ink)]/40">
+            <p className="font-mono text-sm text-[color:var(--muted)]">
               No corrections yet. Edit a spec on an enquiry to log one.
             </p>
           ) : (
-            <ul className="divide-y divide-[color:var(--line)] border-y border-[color:var(--line)]">
+            <ul className="divide-y-2 divide-[color:var(--ink)] border-y-2 border-[color:var(--ink)]">
               {corrections.map((c) => (
                 <li
                   key={c.id}
                   className="grid gap-1 px-1 py-3 font-mono text-xs sm:grid-cols-[1fr_auto]"
                 >
                   <span className="min-w-0 text-[color:var(--ink)]/70">
-                    <span className="mb-1 block truncate font-sans text-[13px] text-[color:var(--ink)]">
+                    <span className="mb-1 block truncate font-sans text-[13px] font-bold text-[color:var(--ink)]">
                       {c.email}
                     </span>
                     {c.changes.map((ch) => (
@@ -207,15 +206,15 @@ export default function StatsPage() {
                         </span>
                         <span className="text-[color:var(--cannot)]">{fmtVal(ch.from)}</span>
                         {" → "}
-                        <span className="text-[#4ade80]">{fmtVal(ch.to)}</span>
+                        <span className="text-[color:var(--fits)]">{fmtVal(ch.to)}</span>
                       </span>
                     ))}
-                    <span className="mt-0.5 block text-[10px] text-[color:var(--ink)]/35">
+                    <span className="mt-0.5 block text-[10px] text-[color:var(--muted)]">
                       {c.enquiryId}
                       {c.requestId ? ` · ${c.requestId}` : ""}
                     </span>
                   </span>
-                  <span className="text-[color:var(--ink)]/35 sm:text-right">
+                  <span className="text-[color:var(--muted)] sm:text-right">
                     {c.at
                       ? new Date(c.at).toLocaleString("en-GB", {
                           day: "2-digit",
@@ -230,7 +229,6 @@ export default function StatsPage() {
             </ul>
           )}
         </section>
-      </div>
-    </main>
+    </PageShell>
   );
 }

@@ -9,11 +9,19 @@ type Props = {
 export function ReviewTag({ parsed, approvedAt, needsInfo }: Props) {
   if (!parsed) return null;
   if (approvedAt) {
-    return <span className="nb-chip">✓ Approved</span>;
+    return (
+      <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)]">
+        ✓ Approved
+      </span>
+    );
   }
   return needsInfo ? (
-    <span className="nb-chip nb-chip-red">Needs info</span>
+    <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--cannot)]">
+      Needs info
+    </span>
   ) : (
-    <span className="nb-chip nb-chip-orange">Needs review</span>
+    <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--warning)]">
+      Needs review
+    </span>
   );
 }

@@ -7,10 +7,10 @@ const LABEL: Record<FeasibilityStatus, string> = {
   cannot: "Can't host",
 };
 
-const CHIP: Record<FeasibilityStatus, string> = {
-  fits: "nb-chip nb-chip-teal",
-  warning: "nb-chip nb-chip-yellow",
-  cannot: "nb-chip nb-chip-red",
+const COLOR: Record<FeasibilityStatus, string> = {
+  fits: "#0d8f6a",
+  warning: "#9a6b00",
+  cannot: "#c0392b",
 };
 
 type Props = {
@@ -22,10 +22,13 @@ type Props = {
 export function StatusChip({ status, used, capacity }: Props) {
   if (!status) {
     return (
-      <span className="nb-chip text-[color:var(--muted)]">Not processed</span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)]">
+        Not processed
+      </span>
     );
   }
 
+  const color = COLOR[status];
   const tight =
     status === "fits" &&
     used != null &&
@@ -33,9 +36,21 @@ export function StatusChip({ status, used, capacity }: Props) {
     isTight(used, capacity);
 
   return (
-    <span className={CHIP[status]}>
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
+      style={{ color }}
+    >
+      <span
+        className="inline-block size-1.5 rounded-full"
+        style={{ background: color }}
+        aria-hidden
+      />
       {LABEL[status]}
-      {tight && <span aria-label="near capacity">· tight</span>}
+      {tight && (
+        <span style={{ color: COLOR.warning }} aria-label="near capacity">
+          · tight
+        </span>
+      )}
     </span>
   );
 }
