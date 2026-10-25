@@ -402,7 +402,9 @@ textarea.nb-input {
   }
   .enquiry-with-mail .btf-hud__br {
     top: 50%;
-    right: 10px;
+    /* Just left of the 220px review column (plus the overlay's 12px padding
+       and gap), so tall review / change-request cards never cover it */
+    right: calc(220px + 12px + 12px + 10px);
     bottom: auto;
     transform: translateY(-50%);
   }
