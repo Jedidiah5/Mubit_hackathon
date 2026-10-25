@@ -106,6 +106,12 @@ export type ChangeRequest = {
   diff?: SpecChange[];
   /** Optional venue reply when the request is dismissed (shown to the client). */
   replyNote?: string;
+  /**
+   * How the request was created:
+   * - adjust = client SpecForm / layout edits
+   * - ask = "Ask the venue" → runParse on composed enquiry + question
+   */
+  source?: "adjust" | "ask";
 };
 
 /** Raw inbound fields — written before /api/parse runs. */
@@ -191,12 +197,13 @@ export function pipelineOf(
     "status" | "approvedAt" | "confirmedAt" | "acceptedAt" | "changeRequest"
   >,
 ): PipelineStatus {
+  // Legacy docs may still hold status "accepted" (pre-confirmed rename).
+  const legacyStatus = e.status as string | undefined;
   if (
     e.confirmedAt ||
     e.status === "confirmed" ||
     e.acceptedAt ||
-    // Legacy docs written before "accepted" was renamed "confirmed".
-    (e.status as string | undefined) === "accepted"
+    legacyStatus === "accepted"
   ) {
     return "confirmed";
   }
