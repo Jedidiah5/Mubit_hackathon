@@ -44,6 +44,10 @@ type EvalRun = {
 type AdapterRun = {
   label: string;
   base?: string;
+  /** What it was trained on; replaces the default line under the label. */
+  hint?: string;
+  /** Not trained yet: why, in place of a grade. */
+  pending?: string;
   exact: number | null;
   accuracy: number | null;
   medianLatencyMs: number | null;
@@ -196,7 +200,8 @@ export default function StatsPage() {
                       {pct(run?.exact)}
                       {run?.runs && run.runs > 1 && (
                         <span className="block font-mono text-[11px] text-[color:var(--muted)]">
-                          {pct(run.exactMin)}–{pct(run.exactMax)} · {run.runs} runs
+                          {Math.round((run.exactMin ?? 0) * 100)}–
+                          {Math.round((run.exactMax ?? 0) * 100)}% · {run.runs} runs
                         </span>
                       )}
                     </td>
@@ -213,9 +218,14 @@ export default function StatsPage() {
                     {a.label}
                     {a.base ? ` · ${a.base}` : ""}
                     <span className="block font-mono text-[11px] font-normal text-[color:var(--muted)]">
-                      trained by Mubit on the kept answers · no notes
+                      {a.hint ?? "trained by Mubit on the kept answers · no notes"}
                     </span>
                     {a.grade && <AdapterGrade grade={a.grade} />}
+                    {!a.grade && a.pending && (
+                      <span className="nb-chip mt-2 !font-mono !text-[11px] !font-normal">
+                        {a.pending}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-right align-top tabular-nums">
                     {a.exact == null ? <NotTested /> : pct(a.exact)}
