@@ -28,7 +28,7 @@ async function loadRooms(): Promise<Room[]> {
 
 /**
  * Write parse result onto an enquiry. Keeps pipeline status as "received"
- * (does not overwrite proposed / accepted / client_changes).
+ * (does not overwrite proposed / confirmed / client_changes).
  */
 export async function persistParseToEnquiry(
   enquiryId: string,

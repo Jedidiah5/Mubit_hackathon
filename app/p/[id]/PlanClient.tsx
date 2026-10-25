@@ -122,7 +122,7 @@ export function PlanClient() {
   const approvedOverrides = enquiry?.final?.overrides ?? EMPTY_OVERRIDES;
   const roomOverride = enquiry?.roomOverride ?? null;
   const pipeline = enquiry ? pipelineOf(enquiry) : null;
-  const accepted = pipeline === "accepted";
+  const confirmed = pipeline === "confirmed";
   const pending =
     enquiry?.changeRequest?.status === "pending"
       ? enquiry.changeRequest
@@ -265,18 +265,19 @@ export function PlanClient() {
     }
   }
 
-  async function acceptHold() {
-    if (saving || accepted) return;
+  async function confirmBooking() {
+    if (saving || confirmed || pending) return;
     setSaving(true);
     setSaveError(null);
     try {
       await updateDoc(doc(getDb(), "enquiries", id), {
-        status: "accepted",
-        acceptedAt: new Date().toISOString(),
+        status: "confirmed",
+        confirmedAt: new Date().toISOString(),
       });
+      closeAdjust();
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Could not accept proposal",
+        err instanceof Error ? err.message : "Could not confirm booking",
       );
     } finally {
       setSaving(false);
@@ -323,25 +324,40 @@ export function PlanClient() {
           <h1 className="mt-3 font-sans text-xl font-extrabold tracking-tight sm:text-2xl">
             {hero}
           </h1>
-          {showPending && (
+          {confirmed && (
+            <p className="nb-chip nb-chip-teal mt-3">Booking confirmed</p>
+          )}
+          {showPending && !confirmed && (
             <p className="nb-chip nb-chip-yellow mt-3">
               Pending venue review
             </p>
           )}
         </header>
 
-        {accepted ? (
+        {confirmed ? (
           <div className="nb-banner nb-banner-ok mt-5 px-5 py-8 text-center">
             <p className="font-sans text-2xl font-bold tracking-tight text-[color:var(--fits)]">
-              Date held
+              Booking confirmed
             </p>
             <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
-              The venue will confirm shortly
+              The venue will be in touch
+            </p>
+            {liveQuote && (
+              <p className="mt-4 font-sans text-lg font-extrabold tabular-nums text-[color:var(--ink)]">
+                {formatGbp(liveQuote.total)}{" "}
+                <span className="font-mono text-[11px] font-bold text-[color:var(--muted)]">
+                  inc. VAT
+                </span>
+              </p>
+            )}
+            <p className="mt-2 font-mono text-[11px] text-[color:var(--muted)]">
+              {liveSpec.style[0]!.toUpperCase()}
+              {liveSpec.style.slice(1)} · {liveSpec.guests} guests · {room.name}
             </p>
           </div>
         ) : null}
 
-        {(justSent || (pending && !adjustOpen)) && !accepted && (
+        {(justSent || (pending && !adjustOpen)) && !confirmed && (
           <div className="nb-banner nb-banner-ok mt-5 px-4 py-3 font-mono text-[12px] font-bold text-[color:var(--fits)]">
             Sent — the venue will review your changes
           </div>
@@ -349,7 +365,7 @@ export function PlanClient() {
 
         {enquiry.changeRequest?.status === "dismissed" &&
           enquiry.changeRequest.replyNote?.trim() &&
-          !accepted && (
+          !confirmed && (
             <div className="nb-banner nb-banner-warn mt-5 px-4 py-3">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
                 Venue reply
@@ -366,7 +382,7 @@ export function PlanClient() {
             items={items}
             spec={liveSpec}
             layoutEdit={
-              accepted || !adjustOpen
+              confirmed || !adjustOpen
                 ? undefined
                 : {
                     overrides: draftOverrides,
@@ -409,7 +425,7 @@ export function PlanClient() {
             </p>
           )}
 
-          {!accepted && !adjustOpen && (
+          {!confirmed && !adjustOpen && (
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -421,16 +437,21 @@ export function PlanClient() {
               </button>
               <button
                 type="button"
-                onClick={() => void acceptHold()}
+                onClick={() => void confirmBooking()}
                 disabled={saving || Boolean(pending)}
                 className="nb-btn nb-btn-red nb-btn-pill flex-1"
+                title={
+                  pending
+                    ? "Wait for the venue to review your change request"
+                    : undefined
+                }
               >
-                Accept & hold the date
+                Confirm booking
               </button>
             </div>
           )}
 
-          {!accepted && adjustOpen && draftSpec && (
+          {!confirmed && adjustOpen && draftSpec && (
             <section className="nb-frame nb-frame-blue space-y-5 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">

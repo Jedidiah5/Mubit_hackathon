@@ -20,11 +20,12 @@ import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
-import type {
-  Enquiry,
-  Feasibility,
-  LayoutOverride,
-  Spec,
+import {
+  pipelineOf,
+  type Enquiry,
+  type Feasibility,
+  type LayoutOverride,
+  type Spec,
 } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -269,6 +270,9 @@ export function EnquiryClient() {
   );
 
   const approved = Boolean(enquiry?.approvedAt);
+  const confirmed = enquiry
+    ? pipelineOf(enquiry) === "confirmed"
+    : false;
   const parsedSpec = enquiry?.parsed;
   const pendingChange =
     enquiry?.changeRequest?.status === "pending"
@@ -513,6 +517,16 @@ export function EnquiryClient() {
         <div className="pointer-events-auto col-start-1 row-start-2 self-start lg:col-start-3 lg:row-start-1 lg:justify-self-stretch">
           {spec ? (
             <div className="space-y-2 lg:max-w-none">
+              {confirmed && (
+                <div className="nb-banner nb-banner-warn backdrop-blur-md">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
+                    Confirmed
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-[color:var(--ink)]">
+                    Client has confirmed this plan
+                  </p>
+                </div>
+              )}
               <ReviewBanner
                 approvedAt={enquiry.approvedAt ?? null}
                 verdict={enquiry.verdict ?? null}
