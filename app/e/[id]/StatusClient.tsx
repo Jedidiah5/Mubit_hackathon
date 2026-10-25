@@ -11,11 +11,11 @@ const STEPS = [
   "Received",
   "Venue reviewing",
   "Proposal ready",
-  "Accepted",
+  "Confirmed",
 ] as const;
 
 function currentStep(pipeline: PipelineStatus, hasParsed: boolean): number {
-  if (pipeline === "accepted") return 3;
+  if (pipeline === "confirmed") return 3;
   if (pipeline === "proposed" || pipeline === "client_changes") return 2;
   if (hasParsed) return 1;
   return 0;
@@ -48,7 +48,7 @@ export function StatusClient() {
   const proposalReady =
     pipeline === "proposed" ||
     pipeline === "client_changes" ||
-    pipeline === "accepted";
+    pipeline === "confirmed";
 
   const summary = useMemo(() => {
     if (!enquiry?.body) return "";
@@ -146,9 +146,9 @@ export function StatusClient() {
                         Your proposal is ready to view
                       </p>
                     )}
-                    {i === 3 && pipeline === "accepted" && (
+                    {i === 3 && pipeline === "confirmed" && (
                       <p className="mt-1 font-mono text-[11px] font-bold text-[color:var(--fits)]">
-                        Date held — the venue will confirm shortly
+                        Booking confirmed — the venue will be in touch
                       </p>
                     )}
                   </div>

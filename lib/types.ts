@@ -78,7 +78,7 @@ export const PIPELINES = [
   "received",
   "proposed",
   "client_changes",
-  "accepted",
+  "confirmed",
 ] as const;
 export type PipelineStatus = (typeof PIPELINES)[number];
 
@@ -143,7 +143,9 @@ export type Enquiry = EnquiryInbound & {
   roomOverride?: string | null;
   /** Set when the coordinator approves; any later edit clears it (needs review). */
   approvedAt?: string | null;
-  /** Client accepted the proposal. */
+  /** Client confirmed the booking (locks the client plan page). */
+  confirmedAt?: string | null;
+  /** @deprecated Prefer confirmedAt — kept for older docs. */
   acceptedAt?: string | null;
   verdict?: Verdict | null;
   changeRequest?: ChangeRequest | null;
@@ -184,9 +186,19 @@ export type Correction = {
 
 /** Normalise enquiry.status to a pipeline value (handles legacy Fits values). */
 export function pipelineOf(
-  e: Pick<Enquiry, "status" | "approvedAt" | "acceptedAt" | "changeRequest">,
+  e: Pick<
+    Enquiry,
+    "status" | "approvedAt" | "confirmedAt" | "acceptedAt" | "changeRequest"
+  >,
 ): PipelineStatus {
-  if (e.acceptedAt || e.status === "accepted") return "accepted";
+  if (
+    e.confirmedAt ||
+    e.status === "confirmed" ||
+    e.acceptedAt ||
+    e.status === "accepted"
+  ) {
+    return "confirmed";
+  }
   if (
     e.changeRequest?.status === "pending" ||
     e.status === "client_changes"

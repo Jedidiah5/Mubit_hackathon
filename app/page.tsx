@@ -88,14 +88,15 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "received", label: "Received" },
   { id: "proposed", label: "Proposed" },
   { id: "client_changes", label: "Client changes" },
-  { id: "accepted", label: "Accepted" },
+  { id: "confirmed", label: "Confirmed" },
 ];
 
 const EMPTY: Record<Tab, string> = {
   received: "Nothing waiting. New form and email enquiries land here.",
   proposed: "No proposals out yet. Approve & draft reply to move one here.",
   client_changes: "No client tweak requests waiting.",
-  accepted: "No dates held yet. When a client accepts, they land here.",
+  confirmed:
+    "No bookings confirmed yet. When a client confirms, they land here.",
 };
 
 const PIPELINE_META: Record<
@@ -105,7 +106,7 @@ const PIPELINE_META: Record<
   received: { label: "Received", color: "var(--muted)" },
   proposed: { label: "Proposed", color: "var(--fits)" },
   client_changes: { label: "Client changes", color: "var(--warning)" },
-  accepted: { label: "Accepted", color: "var(--accent-blue)" },
+  confirmed: { label: "Confirmed", color: "var(--accent-blue)" },
 };
 
 function PipelineChip({ status }: { status: PipelineStatus }) {
@@ -178,6 +179,7 @@ export default function InboxPage() {
             feasibility: data.feasibility,
             approvedAt: data.approvedAt as string | null | undefined,
             acceptedAt: data.acceptedAt as string | null | undefined,
+            confirmedAt: data.confirmedAt as string | null | undefined,
             changeRequest: data.changeRequest,
             email: data.email as string | undefined,
             source: data.source,
@@ -253,7 +255,7 @@ export default function InboxPage() {
       received: [],
       proposed: [],
       client_changes: [],
-      accepted: [],
+      confirmed: [],
     };
     for (const row of rows) groups[pipelineOf(row)].push(row);
     return groups;
