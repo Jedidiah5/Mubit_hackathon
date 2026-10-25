@@ -73,6 +73,32 @@ export type Feasibility = {
   notes: string[];
 };
 
+/** Organiser / coordinator pipeline (not feasibility Fits/Can't host). */
+export const PIPELINES = [
+  "received",
+  "proposed",
+  "client_changes",
+  "accepted",
+] as const;
+export type PipelineStatus = (typeof PIPELINES)[number];
+
+/** Manual move of a furniture piece (or table group). Metres, yaw in radians. */
+export type LayoutOverride = {
+  x: number;
+  z: number;
+  rotY: number;
+};
+
+/** Organiser-submitted tweak waiting on the coordinator. */
+export type ChangeRequest = {
+  status: "pending" | "accepted" | "dismissed";
+  spec: Spec;
+  note?: string;
+  at: string;
+  /** Manual furniture moves from the client plan page (not AI corrections). */
+  overrides?: Record<string, LayoutOverride>;
+};
+
 /** Raw inbound fields — written before /api/parse runs. */
 export type EnquiryInbound = {
   from: string;
@@ -83,20 +109,35 @@ export type EnquiryInbound = {
 
 /** enquiries/{id} — parse fields appear once processed. */
 export type Enquiry = EnquiryInbound & {
+  /** Organiser email when source is the public form. */
+  email?: string;
+  source?: "form" | "email" | "paste" | "inbound" | "seed";
+  /** Free-text event type from the form (e.g. Wedding). */
+  eventType?: string;
+  /** ISO date (yyyy-mm-dd) when known. */
+  eventDate?: string;
   parsed?: Spec;
   requestId?: string;
   latencyMs?: number;
   model?: string;
   /** Past corrections sent as notes with the parse call. */
   notesUsed?: number;
-  final?: Spec;
+  final?: FinalSpec;
   feasibility?: Feasibility;
-  status?: FeasibilityStatus;
+  /**
+   * Pipeline status for the organiser journey.
+   * Legacy docs may still hold a FeasibilityStatus here — readers should
+   * normalise via {@link pipelineOf}.
+   */
+  status?: PipelineStatus | FeasibilityStatus;
   /** Manual room pick by name; clears when empty → bestRoom again. */
   roomOverride?: string | null;
   /** Set when the coordinator approves; any later edit clears it (needs review). */
   approvedAt?: string | null;
+  /** Client accepted the proposal. */
+  acceptedAt?: string | null;
   verdict?: Verdict | null;
+  changeRequest?: ChangeRequest | null;
   /** Re-parsed after a similar enquiry's correction, and that changed it. */
   fixedBy?: FixedBy | null;
 };
@@ -133,7 +174,26 @@ export type Correction = {
   final: Spec;
   changes: SpecChange[];
   at: string;
+  /** Who authored the correction — coordinator (default) or client. */
+  source?: "coordinator" | "client";
 };
+
+/** Normalise enquiry.status to a pipeline value (handles legacy Fits values). */
+export function pipelineOf(
+  e: Pick<Enquiry, "status" | "approvedAt" | "acceptedAt" | "changeRequest">,
+): PipelineStatus {
+  if (e.acceptedAt || e.status === "accepted") return "accepted";
+  if (
+    e.changeRequest?.status === "pending" ||
+    e.status === "client_changes"
+  ) {
+    return "client_changes";
+  }
+  if (e.approvedAt || e.status === "proposed") return "proposed";
+  if (e.status === "received") return "received";
+  // Legacy: status held FeasibilityStatus — treat as still with the venue.
+  return "received";
+}
 
 export const LAYOUT_KINDS = [
   "table_round",
@@ -154,10 +214,22 @@ export const LAYOUT_KINDS = [
 
 export type LayoutKind = (typeof LAYOUT_KINDS)[number];
 
+/**
+ * Approved spec on an enquiry. `overrides` are keyed by LayoutItem.id or
+ * groupId (e.g. "table-3") and applied after lib/layout.
+ */
+export type FinalSpec = Spec & {
+  overrides?: Record<string, LayoutOverride>;
+};
+
 /** Placed item from lib/layout. Metres, y rotation in radians. Origin = room centre, north = −z. */
 export type LayoutItem = {
+  /** Stable for a given spec + room, e.g. "stage", "table-3", "table-3-chair-0". */
+  id: string;
   kind: LayoutKind;
   x: number;
   z: number;
   rotY: number;
+  /** Shared by a table and its chairs / seated guests (e.g. "table-3"). */
+  groupId?: string;
 };

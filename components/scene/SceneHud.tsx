@@ -13,6 +13,8 @@ export type SceneHudProps = {
   footnote?: string;
   /** Hide everything except view controls. */
   minimal?: boolean;
+  /** Bottom colour legend — off by default on enquiry (keeps canvas clear). */
+  showLegend?: boolean;
 };
 
 type Props = SceneHudProps & {
@@ -37,6 +39,7 @@ export function SceneHud({
   capacity,
   footnote,
   minimal,
+  showLegend = false,
   planView,
   onPlanViewChange,
   onRotate,
@@ -140,7 +143,7 @@ export function SceneHud({
         </div>
       )}
 
-      {!minimal && (
+      {!minimal && showLegend && (
         <div className="btf-hud__bc">
           <div className="btf-pill btf-pill--sm btf-legend">
             <span><i style={{ background: "#f7f2e8", border: "1px solid #bbb" }} /> Tables</span>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { persistParseToEnquiry } from "@/lib/persist-parse";
 import { runParse } from "@/lib/run-parse";
 
 type ParseBody = {
@@ -29,7 +30,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await runParse(body.text, { enquiryId: body.enquiryId });
+    const enquiryId =
+      typeof body.enquiryId === "string" ? body.enquiryId : undefined;
+    const result = await runParse(body.text, { enquiryId });
+    if (enquiryId) {
+      await persistParseToEnquiry(enquiryId, result);
+    }
     return NextResponse.json(result);
   } catch (err) {
     const message =

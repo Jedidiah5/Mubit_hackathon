@@ -12,24 +12,32 @@ type Props = { current?: string };
 
 export function AppNav({ current }: Props) {
   return (
-    <nav className="flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-[0.16em]">
-      <Link href="/" className="font-bold text-[color:var(--ink)]">
+    <nav className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <Link
+        href="/"
+        className="nb-chip nb-chip-red shrink-0 !normal-case tracking-tight"
+        style={{ fontFamily: "var(--font-sans)", fontSize: "12px" }}
+      >
         BriefToFloor
       </Link>
-      <span className="text-[color:var(--line)]">/</span>
-      {LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={
-            current === link.href
-              ? "text-[color:var(--ink)]"
-              : "text-[color:var(--muted)] hover:text-[color:var(--ink)]"
-          }
-        >
-          {link.label}
-        </Link>
-      ))}
+      <div
+        className="nb-tablist grid !w-auto shrink-0 grid-cols-4 !shadow-none sm:!shadow-[var(--shadow-sm)]"
+        role="navigation"
+        aria-label="Main"
+      >
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`nb-tab no-underline !min-w-[4.75rem] !flex-none text-center ${
+              current === link.href ? "is-active" : ""
+            }`}
+            aria-current={current === link.href ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

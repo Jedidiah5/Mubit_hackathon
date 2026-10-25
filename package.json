@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "tsx --test lib/__tests__/**/*.test.ts",
     "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts",
+    "seed:proposed": "tsx --env-file=.env.local scripts/seed-proposed.ts",
     "eval": "tsx --env-file=.env.local scripts/eval.ts",
     "ratings": "tsx --env-file=.env.local scripts/ratings.ts",
     "replay": "tsx --env-file=.env.local scripts/replay.ts",

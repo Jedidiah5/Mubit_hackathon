@@ -51,6 +51,7 @@ export async function createEnquiry(input: EnquiryInput): Promise<string> {
     body: input.body,
     receivedAt: new Date().toISOString(),
     source: input.source ?? "inbound",
+    status: "received",
   });
   return ref.id;
 }
@@ -81,7 +82,6 @@ export async function parseEnquiry(
     model: parsed.model,
     notesUsed: parsed.notesUsed,
     feasibility: firestoreFeasibility(feasibility),
-    status: feasibility.status,
     roomOverride: null,
   });
 

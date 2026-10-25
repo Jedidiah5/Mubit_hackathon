@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeRequestBanner } from "@/components/enquiry/ChangeRequestBanner";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
 import { FixedByNote } from "@/components/enquiry/FixedByNote";
 import { RippleToast, useRipple } from "@/components/enquiry/RippleToast";
@@ -16,14 +17,24 @@ import { diffSpec } from "@/lib/corrections";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { evaluateRooms } from "@/lib/evaluate";
 import { getDb } from "@/lib/firebase";
-import { layout } from "@/lib/layout";
+import { applyOverrides, layout } from "@/lib/layout";
 import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
 import { showFixedBy } from "@/lib/ripple";
-import type { Enquiry, Feasibility, Spec } from "@/lib/types";
+import type {
+  Enquiry,
+  Feasibility,
+  LayoutOverride,
+  Spec,
+} from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
+
+function asSpec(final: Spec & { overrides?: unknown }): Spec {
+  const { style, guests, stage, bar, extras, accessible } = final;
+  return { style, guests, stage, bar, extras, accessible };
+}
 
 const RoomCanvas = dynamic(
   () => import("@/components/scene").then((m) => m.RoomCanvas),
@@ -92,6 +103,7 @@ export function EnquiryClient() {
   const [draftKind, setDraftKind] = useState<"reply" | "followup">("reply");
   const [localSpec, setLocalSpec] = useState<Spec | null>(null);
   const [guestsDraft, setGuestsDraft] = useState("");
+  const [emailExpanded, setEmailExpanded] = useState(false);
   const guestsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const specRef = useRef<Spec | null>(null);
   const skipRemoteSpec = useRef(false);
@@ -143,18 +155,7 @@ export function EnquiryClient() {
           throw new Error(data.error ?? `Parse failed (${res.status})`);
         }
 
-        const feasibility = evaluateRooms(rooms, data.spec, null);
-        await updateDoc(doc(getDb(), "enquiries", id), {
-          parsed: data.spec,
-          final: data.spec,
-          requestId: data.requestId ?? "",
-          latencyMs: data.latencyMs,
-          model: data.model,
-          notesUsed: data.notesUsed,
-          feasibility: firestoreFeasibility(feasibility),
-          status: feasibility.status,
-          roomOverride: null,
-        });
+        // /api/parse with enquiryId persists parsed + final + feasibility.
         if (data.error) setParseError(`Validated with fallback: ${data.error}`);
       } catch (err) {
         setParseError(err instanceof Error ? err.message : "Parse failed");
@@ -163,7 +164,7 @@ export function EnquiryClient() {
         setParsing(false);
       }
     })();
-  }, [enquiry, id, rooms]);
+  }, [enquiry, id]);
 
   const roomOverride = enquiry?.roomOverride ?? null;
 
@@ -176,20 +177,25 @@ export function EnquiryClient() {
 
   const items = useMemo(() => {
     if (!spec || !feasibility?.room) return [];
-    return layout(feasibility.room, spec);
-  }, [spec, feasibility]);
+    return applyOverrides(
+      layout(feasibility.room, spec),
+      enquiry?.final?.overrides,
+    );
+  }, [spec, feasibility, enquiry?.final?.overrides]);
 
   const persistSpec = useCallback(
     async (next: Spec, override: string | null = roomOverride) => {
       skipRemoteSpec.current = true;
       const feas = evaluateRooms(rooms, next, override);
+      // Keep furniture overrides; only spec fields create corrections.
+      const preserved = enquiry?.final?.overrides;
       await updateDoc(doc(getDb(), "enquiries", id), {
-        final: next,
+        final: preserved ? { ...next, overrides: preserved } : next,
         feasibility: firestoreFeasibility(feas),
-        status: feas.status,
         roomOverride: override,
         approvedAt: null,
         verdict: null,
+        status: "received",
       });
       if (!enquiry?.parsed) return;
       // One doc per enquiry, overwritten: intermediate edits never pile up.
@@ -201,9 +207,26 @@ export function EnquiryClient() {
         final: next,
         changes: diffSpec(enquiry.parsed, next),
         at: new Date().toISOString(),
+        source: "coordinator",
       });
     },
     [id, enquiry, roomOverride, rooms],
+  );
+
+  const onLayoutOverridesChange = useCallback(
+    async (next: Record<string, LayoutOverride>) => {
+      const current = specRef.current ?? enquiry?.final ?? enquiry?.parsed;
+      if (!current) return;
+      const base = asSpec(current);
+      await updateDoc(doc(getDb(), "enquiries", id), {
+        final:
+          Object.keys(next).length > 0
+            ? { ...base, overrides: next }
+            : base,
+      });
+      // No corrections doc — furniture positions are not model mistakes.
+    },
+    [id, enquiry],
   );
 
   const onSpecChange = useCallback(
@@ -240,9 +263,9 @@ export function EnquiryClient() {
       await updateDoc(doc(getDb(), "enquiries", id), {
         roomOverride: name,
         feasibility: firestoreFeasibility(feas),
-        status: feas.status,
         approvedAt: null,
         verdict: null,
+        status: "received",
       });
     },
     [id, rooms],
@@ -250,6 +273,10 @@ export function EnquiryClient() {
 
   const approved = Boolean(enquiry?.approvedAt);
   const parsedSpec = enquiry?.parsed;
+  const pendingChange =
+    enquiry?.changeRequest?.status === "pending"
+      ? enquiry.changeRequest
+      : null;
 
   const subject = enquiry?.subject;
   const body = enquiry?.body;
@@ -275,11 +302,63 @@ export function EnquiryClient() {
     const changes = diffSpec(parsedSpec, current);
     await updateDoc(doc(getDb(), "enquiries", id), {
       approvedAt: new Date().toISOString(),
+      status: "proposed",
       verdict: changes.length > 0 ? "corrected" : "good",
     });
     // Teach once, fixes everywhere: similar waiting drafts get re-parsed.
     if (changes.some((ch) => ch.field !== "guests")) void startRipple();
   }, [approved, parsedSpec, id, startRipple]);
+
+  const onAcceptClientChanges = useCallback(async () => {
+    const req = enquiry?.changeRequest;
+    const current = specRef.current;
+    if (!req || req.status !== "pending" || !current || !enquiry?.parsed) return;
+    const next = req.spec;
+    const feas = evaluateRooms(rooms, next, roomOverride);
+    skipRemoteSpec.current = true;
+    specRef.current = next;
+    setLocalSpec(next);
+    setGuestsDraft(String(next.guests));
+    const mergedOverrides = {
+      ...(enquiry.final?.overrides ?? {}),
+      ...(req.overrides ?? {}),
+    };
+    const finalDoc =
+      Object.keys(mergedOverrides).length > 0
+        ? { ...next, overrides: mergedOverrides }
+        : next;
+    await updateDoc(doc(getDb(), "enquiries", id), {
+      final: finalDoc,
+      feasibility: firestoreFeasibility(feas),
+      changeRequest: { ...req, status: "accepted" },
+      status: "proposed",
+      approvedAt: new Date().toISOString(),
+      verdict: "corrected",
+    });
+    // Corrections only for spec field diffs — never for furniture overrides.
+    const changes = diffSpec(enquiry.parsed, next);
+    if (changes.length > 0) {
+      await setDoc(doc(getDb(), "corrections", id), {
+        enquiryId: id,
+        requestId: enquiry.requestId ?? "",
+        email: trimEnquiry(enquiry.body),
+        parsed: enquiry.parsed,
+        final: next,
+        changes,
+        at: new Date().toISOString(),
+        source: "client",
+      });
+    }
+  }, [enquiry, id, rooms, roomOverride]);
+
+  const onDismissClientChanges = useCallback(async () => {
+    const req = enquiry?.changeRequest;
+    if (!req || req.status !== "pending") return;
+    await updateDoc(doc(getDb(), "enquiries", id), {
+      changeRequest: { ...req, status: "dismissed" },
+      status: "proposed",
+    });
+  }, [enquiry, id]);
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room) return null;
@@ -323,71 +402,111 @@ export function EnquiryClient() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--ink)]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[color:var(--line)] px-4 py-3">
-        <div className="min-w-0">
-          <Link
-            href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink)] hover:underline"
-          >
-            ← Inbox
-          </Link>
-          <h1 className="truncate font-sans text-lg tracking-tight sm:text-xl">
-            {enquiry.subject}
-          </h1>
-          <p className="truncate font-mono text-[11px] text-[color:var(--ink)]/45">
-            {enquiry.from}
-          </p>
-        </div>
-        {parsing && (
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--warning)]">
-            Parsing via Mubit…
-          </span>
-        )}
-        {parseError && (
-          <span className="max-w-xs truncate font-mono text-[11px] text-[color:var(--cannot)]">
-            {parseError}
-          </span>
-        )}
-      </header>
+    <main
+      className={`enquiry-with-mail relative h-[100dvh] overflow-hidden text-[color:var(--ink)] ${
+        emailExpanded ? "email-open" : ""
+      }`}
+    >
+      {/* Full-bleed floor plan */}
+      <div className="absolute inset-0">
+        <RoomCanvas
+          room={previewRoom}
+          items={items}
+          spec={spec ?? undefined}
+          planView={planView}
+          onPlanViewChange={setPlanView}
+          loading={parsing || !spec}
+          layoutEdit={
+            spec
+              ? {
+                  overrides: enquiry.final?.overrides,
+                  onOverridesChange: onLayoutOverridesChange,
+                }
+              : undefined
+          }
+          hud={{
+            subtitle: spec
+              ? `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`
+              : undefined,
+            status: feasibility?.status,
+            used: feasibility?.used,
+            capacity: feasibility?.capacity,
+            showLegend: false,
+          }}
+        />
+      </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.6fr)_minmax(280px,0.95fr)]">
-        <section className="min-h-0 overflow-auto border-b border-[color:var(--line)] p-4 lg:border-b-0 lg:border-r">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink)]">
-            Email
-          </p>
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-[color:var(--ink)]/80">
-            {enquiry.body}
-          </pre>
-        </section>
-
-        <section className="relative min-h-[360px] border-b border-[color:var(--line)] lg:min-h-0 lg:border-b-0 lg:border-r">
-          <div className="absolute inset-0">
-            <RoomCanvas
-              room={previewRoom}
-              items={items}
-              spec={spec ?? undefined}
-              planView={planView}
-              onPlanViewChange={setPlanView}
-              loading={parsing || !spec}
-              hud={{
-                subtitle: spec
-                  ? `${spec.style[0]!.toUpperCase()}${spec.style.slice(1)} · ${spec.guests} guests`
-                  : undefined,
-                status: feasibility?.status,
-                used: feasibility?.used,
-                capacity: feasibility?.capacity,
-                footnote: enquiry.model
-                  ? `${enquiry.model} · ${enquiry.latencyMs ?? "—"} ms`
-                  : undefined,
-              }}
-            />
+      {/*
+        Overlay grid — corners only, centre stays open for the floor plan.
+        ┌──────────┬────────────┬──────────┐
+        │ mail     │            │ review   │
+        ├──────────┤   canvas   ├──────────┤
+        │ fit      │            │ quote+cta│
+        └──────────┴─── spec ───┴──────────┘
+      */}
+      <div className="enquiry-overlay pointer-events-none absolute inset-0 z-30 grid grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto_auto] gap-2 p-3 lg:grid-cols-[220px_minmax(0,1fr)_220px] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-3">
+        {/* TL — nav + email */}
+        <div className="pointer-events-auto col-start-1 row-start-1 flex max-w-full flex-col gap-2 self-start lg:max-w-none">
+          <div className="rounded-[16px] border-[2.5px] border-[color:var(--ink)] bg-[color:var(--panel-snow)]/95 px-2.5 py-2 shadow-[3px_3px_0_0_#151515] backdrop-blur-sm">
+            <div className="mb-1 flex flex-wrap items-center gap-1.5">
+              <Link href="/" className="nb-chip inline-flex !px-2 !py-0.5 !shadow-none">
+                ← Inbox
+              </Link>
+              {parsing && (
+                <span className="nb-chip nb-chip-yellow !px-2 !py-0.5">Parsing…</span>
+              )}
+            </div>
+            <h1 className="truncate font-sans text-sm font-extrabold tracking-tight">
+              {enquiry.subject}
+            </h1>
           </div>
-        </section>
 
-        <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">
+          <div className="rounded-[20px] rounded-tl-md border-[3px] border-[color:var(--ink)] bg-[#cfe4ff] px-3 py-2.5 shadow-[4px_4px_0_0_#151515]">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span
+                className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-[color:var(--ink)] bg-white"
+                aria-hidden
+              >
+                <svg viewBox="0 0 24 24" width="12" height="12" aria-label="Gmail">
+                  <path
+                    fill="#EA4335"
+                    d="M2 6.5A2.5 2.5 0 0 1 4.5 4h15A2.5 2.5 0 0 1 22 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5v-11Z"
+                  />
+                  <path
+                    fill="#fff"
+                    d="M3.2 6.2 12 12.6l8.8-6.4v1.7L12 14.4 3.2 7.9V6.2Z"
+                  />
+                </svg>
+              </span>
+              <p className="min-w-0 truncate font-sans text-[12px] font-extrabold">
+                {enquiry.from.split("<")[0]?.trim() || enquiry.from}
+              </p>
+            </div>
+            <pre
+              className={`whitespace-pre-wrap font-sans text-[12px] leading-snug ${
+                emailExpanded
+                  ? "max-h-[28vh] overflow-y-auto"
+                  : "max-h-[2.8rem] overflow-hidden"
+              }`}
+            >
+              {enquiry.body}
+            </pre>
+            {enquiry.body.length > 100 && (
+              <button
+                type="button"
+                onClick={() => setEmailExpanded((v) => !v)}
+                className="mt-1.5 font-sans text-[11px] font-extrabold underline underline-offset-2"
+              >
+                {emailExpanded ? "Less" : "More"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* TR — review (own row on mobile so it doesn't stack on the email) */}
+        <div className="pointer-events-auto col-start-1 row-start-2 self-start lg:col-start-3 lg:row-start-1 lg:justify-self-stretch">
           {spec ? (
-            <>
+            <div className="space-y-2 lg:max-w-none">
               {showFixedBy(enquiry) && (
                 <FixedByNote fixedBy={enquiry.fixedBy} />
               )}
@@ -396,72 +515,90 @@ export function EnquiryClient() {
                 verdict={enquiry.verdict ?? null}
                 missing={missing}
               />
-              <SpecForm
-                spec={spec}
-                onChange={onSpecChange}
-                guestsDraft={guestsDraft}
-                onGuestsDraft={onGuestsDraft}
-              />
-              {feasibility && (
-                <FeasibilityCard
-                  feasibility={feasibility}
-                  styleLabel={spec.style}
-                  rooms={rooms}
-                  roomOverride={roomOverride}
-                  onRoomOverride={onRoomOverride}
+              {pendingChange && (
+                <ChangeRequestBanner
+                  changeRequest={pendingChange}
+                  current={spec}
+                  onAccept={() => void onAcceptClientChanges()}
+                  onDismiss={() => void onDismissClientChanges()}
                 />
               )}
-              {liveQuote && feasibility?.room && (
-                <QuoteCard quote={liveQuote} roomName={feasibility.room.name} />
-              )}
-              {blocked && !approved ? (
-                <div className="mt-auto flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={onFollowUp}
-                    className="bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
-                  >
-                    Draft follow-up email
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onApprove()}
-                    className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)] underline-offset-4 hover:underline"
-                  >
-                    I have the details · approve anyway
-                  </button>
-                </div>
-              ) : (
+            </div>
+          ) : (
+            <div className="rounded-[16px] border-[2.5px] border-[color:var(--ink)] bg-[color:var(--panel-snow)]/95 px-3 py-2 shadow-[3px_3px_0_0_#151515]">
+              <p className="font-mono text-xs text-[color:var(--muted)]">
+                {parsing ? "Extracting…" : "No spec yet"}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* BL — feasibility (desktop only) */}
+        {spec && feasibility && (
+          <div className="pointer-events-auto col-start-1 row-start-3 hidden self-end lg:block">
+            <FeasibilityCard
+              compact
+              feasibility={feasibility}
+              styleLabel={spec.style}
+              rooms={rooms}
+              roomOverride={roomOverride}
+              onRoomOverride={onRoomOverride}
+            />
+          </div>
+        )}
+
+        {/* BC — compact spec */}
+        {spec && (
+          <div className="pointer-events-auto col-start-1 row-start-4 self-end lg:col-start-2 lg:row-start-3">
+            <SpecForm
+              compact
+              spec={spec}
+              onChange={onSpecChange}
+              guestsDraft={guestsDraft}
+              onGuestsDraft={onGuestsDraft}
+            />
+          </div>
+        )}
+
+        {/* BR — quote + CTA */}
+        {spec && (
+          <div className="pointer-events-auto col-start-1 row-start-5 flex flex-col gap-2 self-end lg:col-start-3 lg:row-start-3">
+            {liveQuote && feasibility?.room && (
+              <QuoteCard
+                compact
+                quote={liveQuote}
+                roomName={feasibility.room.name}
+              />
+            )}
+            {blocked && !approved ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onFollowUp}
+                  className="nb-btn nb-btn-ink nb-btn-pill w-full !py-2.5 !text-sm"
+                >
+                  Draft follow-up
+                </button>
                 <button
                   type="button"
                   onClick={() => void onApprove()}
-                  className="mt-auto bg-[color:var(--ink)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
+                  className="nb-btn nb-btn-pill w-full !py-2.5 !text-sm"
                 >
-                  {approved ? "Draft reply" : "Approve & draft reply"}
+                  Approve anyway
                 </button>
-              )}
-            </>
-          ) : (
-            <p className="font-mono text-sm text-[color:var(--ink)]/45">
-              {parsing
-                ? "Extracting room setup…"
-                : "No spec yet — open again after parse."}
-            </p>
-          )}
-        </section>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void onApprove()}
+                className="nb-btn nb-btn-red nb-btn-pill w-full !py-2.5 !text-sm"
+              >
+                {approved ? "Draft reply" : "Approve & draft reply"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
-
-      <footer className="shrink-0 border-t border-[color:var(--line)] px-4 py-2 font-mono text-[11px] text-[color:var(--ink)]/40">
-        {enquiry.model
-          ? `parsed by ${enquiry.model} via Mubit · ${enquiry.latencyMs ?? "—"} ms · ${
-              enquiry.notesUsed
-                ? `${enquiry.notesUsed} past correction${enquiry.notesUsed === 1 ? "" : "s"} applied · `
-                : ""
-            }${enquiry.requestId || "no request id"}`
-          : parsing
-            ? "calling Mubit…"
-            : "not parsed yet"}
-      </footer>
 
       <RippleToast state={ripple.state} onDismiss={ripple.dismiss} />
 

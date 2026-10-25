@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { AppNav } from "@/components/AppNav";
 import { DEMO_ROOMS } from "@/lib/data/venue";
 import { bestRoom } from "@/lib/feasibility";
 import { layout } from "@/lib/layout";
@@ -12,20 +13,7 @@ const RoomCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          placeItems: "center",
-          background: "linear-gradient(180deg,#9ec5e8,#e6eef5 55%,#cfc4b0)",
-          fontFamily: "ui-monospace, monospace",
-          fontSize: 12,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "#1d2433",
-        }}
-      >
+      <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,#9ec5e8,#e6eef5_55%,#cfc4b0)] font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--ink)]">
         Loading scene…
       </div>
     ),
@@ -91,31 +79,34 @@ export default function DevScenePage() {
   const items = useMemo(() => layout(room, spec), [room, spec]);
 
   return (
-    <main className="flex h-dvh flex-col bg-[color:var(--background)] text-[color:var(--ink)]">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[color:var(--line)] px-5 py-3">
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink)]">
-            /dev/scene
+    <main className="flex h-dvh flex-col text-[color:var(--ink)]">
+      <header className="flex shrink-0 flex-col gap-3 border-b-2 border-[color:var(--ink)] bg-[color:var(--panel-snow)] px-4 py-3 sm:px-5">
+        <AppNav current="/dev/scene" />
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+              /dev/scene
+            </p>
+            <h1 className="font-sans text-lg font-extrabold tracking-tight sm:text-xl">
+              {room.name} · {STYLE_LABEL[spec.style]} · {spec.guests} guests
+            </h1>
           </div>
-          <div className="font-sans text-lg tracking-tight">
-            {room.name} · {STYLE_LABEL[spec.style]} · {spec.guests} guests
+          <div className="flex flex-wrap gap-1.5">
+            {Object.keys(PRESETS).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setPresetKey(k)}
+                className={`rounded-full border-2 border-[color:var(--ink)] px-3 py-1.5 font-sans text-[11px] font-bold shadow-[2px_2px_0_0_#151515] transition ${
+                  k === presetKey
+                    ? "bg-[color:var(--accent-3)]"
+                    : "bg-[color:var(--panel-snow)] hover:bg-[color:var(--panel-2)]"
+                }`}
+              >
+                {k}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.keys(PRESETS).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setPresetKey(k)}
-              className={`border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
-                k === presetKey
-                  ? "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--panel-2)]"
-                  : "border-[color:var(--line)] text-[color:var(--ink)]/70 hover:border-[color:var(--ink)]/60"
-              }`}
-            >
-              {k}
-            </button>
-          ))}
         </div>
       </header>
 
@@ -132,6 +123,7 @@ export default function DevScenePage() {
             used: feasibility.used,
             capacity: feasibility.capacity,
             footnote: `${items.length} items · drag to orbit · shift-drag to pan · scroll to zoom`,
+            showLegend: true,
           }}
         />
       </div>

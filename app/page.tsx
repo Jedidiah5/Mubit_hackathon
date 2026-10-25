@@ -2,32 +2,30 @@
 
 import {
   collection,
-  doc,
   onSnapshot,
   orderBy,
   query,
-  updateDoc,
   type Timestamp,
 } from "firebase/firestore";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
 import { FixedTag } from "@/components/inbox/FixedTag";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
-import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { StatusChip } from "@/components/inbox/StatusChip";
-import { evaluateRooms } from "@/lib/evaluate";
-import { firestoreFeasibility } from "@/lib/feasibility-serialize";
+import { PageHeader, PageShell } from "@/components/PageHeader";
+import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
 import { showFixedBy } from "@/lib/ripple";
-import type {
-  EnquiryListItem,
-  FeasibilityStatus,
-  FixedBy,
-  Room,
-  Spec,
+import {
+  pipelineOf,
+  type EnquiryListItem,
+  type FeasibilityStatus,
+  type FixedBy,
+  type PipelineStatus,
+  type Room,
+  type Spec,
 } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -65,9 +63,13 @@ function guestsOf(row: EnquiryListItem): number | null {
   return spec?.guests ?? null;
 }
 
+function feasStatusOf(row: EnquiryListItem): FeasibilityStatus | undefined {
+  return row.feasibility?.status;
+}
+
 function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
   const spec: Spec | undefined = row.final ?? row.parsed;
-  if (!spec || !row.status) return null;
+  if (!spec || !feasStatusOf(row)) return null;
   const name = row.feasibility?.room?.name;
   const fromList = name ? rooms.find((r) => r.name === name) : undefined;
   const room =
@@ -80,44 +82,48 @@ function estTotalOf(row: EnquiryListItem, rooms: Room[]): string | null {
   return formatGbp(quote(room, spec).total);
 }
 
-type ParseResponse = {
-  spec: Spec;
-  requestId: string | null;
-  latencyMs: number;
-  model: string;
-  notesUsed: number;
-  error?: string;
-};
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Inbox = still with the coordinator. Once approved (any edit clears it, so it
- * moves back), the reply depends on feasibility: "needs a change" offers the
- * room on condition the client cuts guests, "can't host" is a decline.
- */
-type Tab = "inbox" | "accepted" | "change" | "declined";
+type Tab = PipelineStatus;
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "inbox", label: "Inbox" },
+  { id: "received", label: "Received" },
+  { id: "proposed", label: "Proposed" },
+  { id: "client_changes", label: "Client changes" },
   { id: "accepted", label: "Accepted" },
-  { id: "change", label: "Needs a change" },
-  { id: "declined", label: "Declined" },
 ];
 
-function tabOf(row: EnquiryListItem): Tab {
-  if (!row.approvedAt) return "inbox";
-  if (row.status === "cannot") return "declined";
-  if (row.status === "warning") return "change";
-  return "accepted";
-}
-
 const EMPTY: Record<Tab, string> = {
-  inbox: "Inbox clear. Every enquiry has been approved.",
-  accepted: "Nothing accepted yet. Approve an enquiry that fits and it lands here.",
-  change: "None waiting on a change. Approved enquiries slightly over capacity land here.",
-  declined: "No declines. Approved enquiries the venue can't host land here.",
+  received: "Nothing waiting. New form and email enquiries land here.",
+  proposed: "No proposals out yet. Approve & draft reply to move one here.",
+  client_changes: "No client tweak requests waiting.",
+  accepted: "No dates held yet. When a client accepts, they land here.",
 };
+
+const PIPELINE_META: Record<
+  PipelineStatus,
+  { label: string; color: string }
+> = {
+  received: { label: "Received", color: "var(--muted)" },
+  proposed: { label: "Proposed", color: "var(--fits)" },
+  client_changes: { label: "Client changes", color: "var(--warning)" },
+  accepted: { label: "Accepted", color: "var(--accent-blue)" },
+};
+
+function PipelineChip({ status }: { status: PipelineStatus }) {
+  const chip = PIPELINE_META[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em]"
+      style={{ color: chip.color }}
+    >
+      <span
+        className="inline-block size-1.5 rounded-full"
+        style={{ background: chip.color }}
+        aria-hidden
+      />
+      {chip.label}
+    </span>
+  );
+}
 
 export default function InboxPage() {
   const rooms = useVenueRooms();
@@ -127,9 +133,14 @@ export default function InboxPage() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("inbox");
+  const [tab, setTab] = useState<Tab>("received");
   /** `${id}:${fixedBy.at}` that arrived live, not on first load: flash once. */
   const [freshFixes, setFreshFixes] = useState<Set<string>>(() => new Set());
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     let firstSnapshot = true;
@@ -151,12 +162,18 @@ export default function InboxPage() {
             receivedAt: asIso(data.receivedAt),
             parsed: data.parsed as Spec | undefined,
             final: data.final as Spec | undefined,
-            status: data.status as FeasibilityStatus | undefined,
+            status: data.status,
             requestId: data.requestId as string | undefined,
             latencyMs: data.latencyMs as number | undefined,
             model: data.model as string | undefined,
             feasibility: data.feasibility,
             approvedAt: data.approvedAt as string | null | undefined,
+            acceptedAt: data.acceptedAt as string | null | undefined,
+            changeRequest: data.changeRequest,
+            email: data.email as string | undefined,
+            source: data.source,
+            eventType: data.eventType as string | undefined,
+            eventDate: data.eventDate as string | undefined,
             fixedBy: data.fixedBy as FixedBy | null | undefined,
           };
         });
@@ -188,12 +205,12 @@ export default function InboxPage() {
 
   const byTab = useMemo(() => {
     const groups: Record<Tab, EnquiryListItem[]> = {
-      inbox: [],
+      received: [],
+      proposed: [],
+      client_changes: [],
       accepted: [],
-      change: [],
-      declined: [],
     };
-    for (const row of rows) groups[tabOf(row)].push(row);
+    for (const row of rows) groups[pipelineOf(row)].push(row);
     return groups;
   }, [rows]);
   const visible = byTab[tab];
@@ -222,22 +239,11 @@ export default function InboxPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: row.body, enquiryId: row.id }),
         });
-        const data = (await res.json()) as ParseResponse;
+        const data = (await res.json()) as { error?: string };
         if (!res.ok) {
           throw new Error(data.error ?? `Parse failed (${res.status})`);
         }
-        const feasibility = evaluateRooms(rooms, data.spec, null);
-        await updateDoc(doc(getDb(), "enquiries", row.id), {
-          parsed: data.spec,
-          final: data.spec,
-          requestId: data.requestId ?? "",
-          latencyMs: data.latencyMs,
-          model: data.model,
-          notesUsed: data.notesUsed,
-          feasibility: firestoreFeasibility(feasibility),
-          status: feasibility.status,
-          roomOverride: null,
-        });
+        // Server persists parsed + final when enquiryId is set.
       } catch (err) {
         setError(
           err instanceof Error
@@ -247,65 +253,67 @@ export default function InboxPage() {
       }
       const elapsed = Date.now() - started;
       if (i < queue.length - 1 && elapsed < 1000) {
-        await sleep(1000 - elapsed);
+        await new Promise((r) => setTimeout(r, 1000 - elapsed));
       }
     }
 
     setProcessing(false);
     setProcessProgress(null);
-  }, [rows, rooms, processing]);
+  }, [rows, processing]);
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col px-5 py-8 sm:px-8">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-6">
-          <div className="space-y-4">
-            <AppNav current="/" />
-            <div>
-              <h1 className="font-sans text-3xl tracking-tight sm:text-4xl">
-                Inbox
-              </h1>
-              <p className="mt-2 font-mono text-xs text-[color:var(--muted)]">
-                The Wharf Rooms · {countLabel}
-              </p>
+    <PageShell>
+        <PageHeader
+          current="/"
+          title="Inbox"
+          subtitle={`The Wharf Rooms · ${countLabel}`}
+          meta={
+            <>
+              {origin && (
+                <p className="mt-2 break-all font-mono text-[11px] text-[color:var(--muted)]">
+                  Enquiry form:{" "}
+                  <span className="nb-chip nb-chip-yellow !normal-case tracking-normal">
+                    {origin}/enquire
+                  </span>
+                </p>
+              )}
               {processProgress && (
-                <p className="mt-1 font-mono text-[11px] text-[color:var(--warning)]">
+                <p className="mt-2 font-mono text-[11px] font-bold text-[color:var(--warning)]">
                   {processProgress}
                 </p>
               )}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void processAll()}
-              disabled={processing || unprocessed.length === 0}
-              className="border border-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)] transition hover:bg-[color:var(--panel)] disabled:opacity-40"
-            >
-              {processing
-                ? "Processing…"
-                : `Process all${unprocessed.length ? ` (${unprocessed.length})` : ""}`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPasteOpen(true)}
-              className="bg-[color:var(--ink)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)] transition hover:opacity-90"
-            >
-              Paste new enquiry
-            </button>
-          </div>
-        </header>
+            </>
+          }
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => void processAll()}
+                disabled={processing || unprocessed.length === 0}
+                className="nb-btn"
+              >
+                {processing
+                  ? "Processing…"
+                  : `Process all${unprocessed.length ? ` (${unprocessed.length})` : ""}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPasteOpen(true)}
+                className="nb-btn nb-btn-red nb-btn-pill"
+              >
+                Paste new enquiry
+              </button>
+            </>
+          }
+        />
 
         {error && (
-          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
+          <p className="nb-banner nb-banner-bad mb-6 font-mono text-xs font-bold text-[color:var(--cannot)]">
             {error}
           </p>
         )}
 
-        <div
-          role="tablist"
-          className="mb-6 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-[color:var(--line)] font-mono text-[10px] uppercase tracking-[0.16em]"
-        >
+        <div role="tablist" className="nb-tablist mb-5">
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
@@ -315,14 +323,10 @@ export default function InboxPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
-                className={`border-b-2 pb-2.5 transition ${
-                  active
-                    ? "border-[color:var(--ink)] text-[color:var(--ink)]"
-                    : "border-transparent text-[color:var(--muted)] hover:text-[color:var(--ink)]"
-                }`}
+                className={`nb-tab ${active ? "is-active" : ""}`}
               >
                 {t.label}
-                <span className="ml-1.5 tabular-nums opacity-60">
+                <span className="ml-1.5 tabular-nums opacity-70">
                   {loading ? "·" : byTab[t.id].length}
                 </span>
               </button>
@@ -330,7 +334,7 @@ export default function InboxPage() {
           })}
         </div>
 
-        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)] md:grid">
+        <div className="mb-3 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] gap-4 px-3 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--muted)] lg:grid">
           <span>From</span>
           <span>Subject</span>
           <span className="text-right">Guests</span>
@@ -339,39 +343,42 @@ export default function InboxPage() {
           <span className="text-right">Received</span>
         </div>
 
-        <ul className="divide-y divide-[color:var(--line)] border-y border-[color:var(--line)] bg-[color:var(--panel)]/60">
+        <ul className="nb-frame nb-frame-snow divide-y-2 divide-[color:var(--ink)] overflow-hidden !rounded-[var(--radius)] !p-0">
           {loading && rows.length === 0 && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               Listening for enquiries…
             </li>
           )}
           {!loading && rows.length === 0 && !error && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               Inbox empty. Seed with{" "}
-              <code className="text-[color:var(--ink)]">npm run seed:inbox</code> or
-              paste a new enquiry.
+              <code className="font-bold text-[color:var(--ink)]">
+                npm run seed:inbox
+              </code>{" "}
+              or paste a new enquiry.
             </li>
           )}
           {!loading && rows.length > 0 && visible.length === 0 && (
-            <li className="px-3 py-10 font-mono text-sm text-[color:var(--muted)]">
+            <li className="px-4 py-10 font-mono text-sm text-[color:var(--muted)]">
               {EMPTY[tab]}
             </li>
           )}
           {visible.map((row) => {
             const missing = missingDetails(enquiryText(row));
-            // No count in the email → the model's number and price are guesses.
             const guessed = missing.includes("guests") && !row.approvedAt;
             const guests = guessed ? null : guestsOf(row);
             const est = guessed ? null : estTotalOf(row, rooms);
             const fixed = showFixedBy(row) ? row.fixedBy : null;
             const flash = fixed && freshFixes.has(`${row.id}:${fixed.at}`);
+            const pipe = pipelineOf(row);
+            const feas = feasStatusOf(row);
             return (
               <li key={row.id} className={flash ? "btf-flash" : undefined}>
                 <Link
                   href={`/enquiry/${row.id}`}
-                  className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] md:items-center md:gap-4"
+                  className="grid grid-cols-1 gap-3 px-4 py-4 transition hover:bg-[color:var(--panel-2)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_minmax(7rem,1fr)_6.5rem_7rem] lg:items-center lg:gap-4"
                 >
-                  <span className="truncate font-sans text-sm">
+                  <span className="truncate font-sans text-sm font-bold">
                     {senderName(row.from)}
                   </span>
                   <span className="min-w-0">
@@ -380,13 +387,17 @@ export default function InboxPage() {
                     </span>
                     {fixed && <FixedTag fixedBy={fixed} />}
                   </span>
-                  <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
+                  <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] lg:text-right">
+                    <span className="mr-2 font-mono text-[10px] uppercase lg:hidden">
+                      Guests
+                    </span>
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}
                   </span>
-                  <span>
-                    {!guessed && (
+                  <span className="flex flex-col gap-0.5">
+                    <PipelineChip status={pipe} />
+                    {!guessed && feas && (
                       <StatusChip
-                        status={row.status}
+                        status={feas}
                         used={row.feasibility?.used}
                         capacity={row.feasibility?.capacity}
                       />
@@ -397,10 +408,13 @@ export default function InboxPage() {
                       needsInfo={needsInfo(missing)}
                     />
                   </span>
-                  <span className="font-mono text-sm tabular-nums text-[color:var(--ink)] md:text-right">
+                  <span className="font-mono text-sm font-bold tabular-nums text-[color:var(--ink)] lg:text-right">
+                    <span className="mr-2 font-mono text-[10px] font-normal uppercase text-[color:var(--muted)] lg:hidden">
+                      Est.
+                    </span>
                     {est ?? "—"}
                   </span>
-                  <span className="font-mono text-[11px] text-[color:var(--muted)] md:text-right">
+                  <span className="font-mono text-[11px] text-[color:var(--muted)] lg:text-right">
                     {formatWhen(row.receivedAt)}
                   </span>
                 </Link>
@@ -408,12 +422,11 @@ export default function InboxPage() {
             );
           })}
         </ul>
-      </div>
 
       <PasteEnquiryModal
         open={pasteOpen}
         onClose={() => setPasteOpen(false)}
       />
-    </main>
+    </PageShell>
   );
 }

@@ -11,6 +11,28 @@ export {
   layoutTheatre,
 };
 export * from "./shared";
+export { applyOverrides } from "./applyOverrides";
+export {
+  TABLE_GROUP_SIZE,
+  footprintBounds,
+  footprintSize,
+  itemFootprintBounds,
+  orientedSize,
+  rectInside,
+  rectsOverlap,
+} from "./footprint";
+export type { FootprintSize } from "./footprint";
+export { placementProblem } from "./placement";
+export type { PlacementIssue } from "./placement";
+export {
+  MOVABLE_KINDS,
+  PLACEMENT_TOAST,
+  isMovableKind,
+  movableAnchors,
+  pickId,
+  snapHalfMetre,
+} from "./movable";
+export type { MovableKind } from "./movable";
 
 /** Spec + room → placed furniture and guests (metres, origin at centre, north = −z). */
 export function layout(room: Room, spec: Spec): LayoutItem[] {

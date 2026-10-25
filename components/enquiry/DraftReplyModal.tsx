@@ -52,45 +52,34 @@ export function DraftReplyModal({ open, onClose, to, subject, body }: Props) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-xl flex-col border border-[color:var(--line)] bg-[color:var(--panel-2)] p-6 shadow-[0_12px_40px_rgba(29,36,51,0.12)]"
+        className="nb-frame flex max-h-[90vh] w-full max-w-xl flex-col p-5 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-baseline justify-between gap-4">
           <h2
             id={titleId}
-            className="font-sans text-xl tracking-tight text-[color:var(--ink)]"
+            className="font-sans text-xl font-bold tracking-tight text-[color:var(--ink)]"
           >
             Draft reply
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)]/50 hover:text-[color:var(--ink)]"
-          >
+          <button type="button" onClick={onClose} className="nb-chip">
             Close
           </button>
         </div>
 
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/40">
+        <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--muted)]">
           Template only · no LLM
         </p>
 
-        <pre className="mb-5 flex-1 overflow-auto whitespace-pre-wrap border border-[color:var(--line)] bg-[color:var(--panel)] p-4 font-mono text-sm leading-relaxed text-[color:var(--ink)]">
+        <pre className="nb-panel mb-5 flex-1 overflow-auto whitespace-pre-wrap p-4 font-mono text-sm leading-relaxed text-[color:var(--ink)]">
           {body}
         </pre>
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            onClick={copy}
-            className="border border-[color:var(--ink)] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--ink)]"
-          >
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <button type="button" onClick={copy} className="nb-btn">
             {copied ? "Copied" : "Copy"}
           </button>
-          <a
-            href={mailto}
-            className="bg-[color:var(--ink)] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--panel-2)]"
-          >
+          <a href={mailto} className="nb-btn nb-btn-ink text-center">
             Open in mail
           </a>
         </div>

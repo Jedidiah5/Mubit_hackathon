@@ -59,6 +59,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
 
   let remaining = seated;
   const halfAisle = THEATRE_AISLE_M / 2;
+  const nextSeat = { n: 0 };
 
   for (const row of rowStarts) {
     if (remaining <= 0) break;
@@ -75,6 +76,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         remaining,
         items,
         blocks,
+        nextSeat,
       );
       remaining -= leftSeats;
       if (remaining <= 0) break;
@@ -87,6 +89,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         remaining,
         items,
         blocks,
+        nextSeat,
       );
       remaining -= rightSeats;
     } else {
@@ -101,6 +104,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         remaining,
         items,
         blocks,
+        nextSeat,
       );
       remaining -= a;
       if (remaining <= 0) break;
@@ -113,6 +117,7 @@ export function layoutTheatre(room: Room, spec: Spec): LayoutItem[] {
         remaining,
         items,
         blocks,
+        nextSeat,
       );
       remaining -= b;
     }
@@ -131,6 +136,7 @@ function placeSide(
   budget: number,
   items: LayoutItem[],
   blocks: Bounds[],
+  nextSeat: { n: number },
 ): number {
   if (to < from || budget <= 0) return 0;
   const span = to - from;
@@ -144,8 +150,10 @@ function placeSide(
     const x = alongX ? along : fixed;
     const z = alongX ? fixed : along;
     if (isBlocked(x, z, CHAIR_W * 0.4, blocks)) continue;
-    items.push(item("chair", x, z, face));
-    items.push(item("guest_seated", x, z, face));
+    nextSeat.n += 1;
+    const sid = nextSeat.n;
+    items.push(item("chair", x, z, face, `chair-${sid}`));
+    items.push(item("guest_seated", x, z, face, `guest_seated-${sid}`));
     placed += 1;
   }
   return placed;

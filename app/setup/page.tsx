@@ -9,7 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
-import { AppNav } from "@/components/AppNav";
+import { PageHeader, PageShell } from "@/components/PageHeader";
 import { DEMO_VENUE, DEMO_VENUE_ID, type RoomDoc } from "@/lib/data/venue";
 import { getDb } from "@/lib/firebase";
 import { ensureDemoRoomsSeeded } from "@/lib/seed-rooms";
@@ -17,10 +17,8 @@ import { DEMO_EXTRAS_PRICING } from "@/lib/data/venue";
 import type { Room, RoomPricing, Style } from "@/lib/types";
 import { STYLES } from "@/lib/types";
 
-const inputClass =
-  "w-full border border-[color:var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-sm text-[color:var(--ink)] outline-none focus:border-[color:var(--ink)]";
-const labelClass =
-  "mb-1 block font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink)]/45";
+const inputClass = "nb-input !py-2 !text-sm";
+const labelClass = "nb-label";
 
 const EXTRA_FIELD_LABEL: Record<keyof RoomPricing["extras"], string> = {
   dance_floor: "Dance floor",
@@ -164,25 +162,29 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)] text-[color:var(--ink)]">
-      <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8">
-        <header className="mb-10 space-y-4 border-b border-[color:var(--line)] pb-6">
-          <AppNav current="/setup" />
-          <div>
-            <h1 className="font-sans text-3xl tracking-tight">Venue setup</h1>
-            <p className="mt-2 font-mono text-xs text-[color:var(--ink)]/45">
-              Demo rooms · seeded once from lib/data/venue.ts
-            </p>
-          </div>
-        </header>
+    <PageShell>
+        <PageHeader
+          current="/setup"
+          title="Setup"
+          subtitle="The Wharf Rooms · demo rooms from lib/data/venue.ts"
+          actions={
+            <button
+              type="button"
+              onClick={() => void saveVenueName()}
+              className="nb-btn nb-btn-ink"
+            >
+              Save venue name
+            </button>
+          }
+        />
 
         {error && (
-          <p className="mb-6 border border-[color:var(--cannot)]/40 bg-[color:var(--cannot)]/10 px-4 py-3 font-mono text-xs text-[color:var(--cannot)]">
+          <p className="nb-banner nb-banner-bad mb-6 font-mono text-xs font-bold text-[color:var(--cannot)]">
             {error}
           </p>
         )}
 
-        <label className="mb-8 block max-w-md">
+        <label className="nb-panel mb-8 block max-w-md p-4">
           <span className={labelClass}>Venue name</span>
           <div className="flex gap-2">
             <input
@@ -193,7 +195,7 @@ export default function SetupPage() {
             <button
               type="button"
               onClick={() => void saveVenueName()}
-              className="shrink-0 bg-[color:var(--ink)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--panel-2)]"
+              className="nb-btn nb-btn-ink shrink-0 !min-h-0 !px-3 !py-2 !text-[10px]"
             >
               Save
             </button>
@@ -201,14 +203,14 @@ export default function SetupPage() {
         </label>
 
         {!ready && (
-          <p className="font-mono text-sm text-[color:var(--ink)]/40">Loading rooms…</p>
+          <p className="font-mono text-sm text-[color:var(--muted)]">Loading rooms…</p>
         )}
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {rooms.map((room) => (
             <article
               key={room.id}
-              className="border border-[color:var(--line)] p-5"
+              className="nb-panel p-5"
             >
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-sans text-xl tracking-tight">{room.name}</h2>
@@ -429,7 +431,7 @@ export default function SetupPage() {
                   type="button"
                   onClick={() => void saveRoom(room)}
                   disabled={savingId === room.id}
-                  className="bg-[color:var(--ink)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--panel-2)] disabled:opacity-50"
+                  className="nb-btn nb-btn-ink !min-h-0 !px-4 !py-2 !text-[10px]"
                 >
                   {savingId === room.id ? "Saving…" : "Save room"}
                 </button>
@@ -437,7 +439,6 @@ export default function SetupPage() {
             </article>
           ))}
         </div>
-      </div>
-    </main>
+    </PageShell>
   );
 }

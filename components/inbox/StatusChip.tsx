@@ -8,9 +8,9 @@ const LABEL: Record<FeasibilityStatus, string> = {
 };
 
 const COLOR: Record<FeasibilityStatus, string> = {
-  fits: "#0f7d4c",
-  warning: "#9a5b00",
-  cannot: "#a3222f",
+  fits: "#0d8f6a",
+  warning: "#9a6b00",
+  cannot: "#c0392b",
 };
 
 type Props = {

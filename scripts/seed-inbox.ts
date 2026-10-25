@@ -43,6 +43,8 @@ async function main() {
       subject,
       body,
       receivedAt,
+      status: "received",
+      source: "seed",
     });
     console.log(`wrote enquiries/${id}`);
   }

@@ -1,0 +1,75 @@
+{
+  "id": "enq-demo-proposed",
+  "from": "Maya Okoro <maya@example.com>",
+  "email": "maya@example.com",
+  "subject": "Wedding enquiry",
+  "eventType": "Wedding",
+  "eventDate": "2026-06-14",
+  "body": "Event type: Wedding\nPreferred date: 2026-06-14\nApprox guests: 120\n\nWe're getting married in June and looking for a reception space for around 120 guests. Sit-down dinner, then speeches, then dancing. One guest uses a wheelchair — step-free throughout please.\n\n— Maya Okoro <maya@example.com>",
+  "receivedAt": "2026-10-24T10:00:00.000Z",
+  "source": "form",
+  "status": "proposed",
+  "approvedAt": "2026-10-24T11:30:00.000Z",
+  "verdict": "good",
+  "model": "seed",
+  "latencyMs": 0,
+  "notesUsed": 0,
+  "requestId": "seed-demo-proposed",
+  "parsed": {
+    "style": "banquet",
+    "guests": 120,
+    "stage": "north",
+    "bar": "east",
+    "extras": ["dance_floor", "dj_booth", "buffet"],
+    "accessible": true
+  },
+  "final": {
+    "style": "banquet",
+    "guests": 120,
+    "stage": "north",
+    "bar": "east",
+    "extras": ["dance_floor", "dj_booth", "buffet"],
+    "accessible": true
+  },
+  "feasibility": {
+    "status": "fits",
+    "used": 120,
+    "capacity": 140,
+    "notes": [],
+    "room": {
+      "venueId": "wharf-rooms",
+      "name": "Thames Hall",
+      "widthM": 20,
+      "lengthM": 15,
+      "capacity": {
+        "banquet": 140,
+        "cabaret": 110,
+        "theatre": 240,
+        "reception": 280
+      },
+      "stepFree": true,
+      "hasStage": true,
+      "hasAV": true,
+      "hasBar": true,
+      "rules": ["Prefer Thames Hall for 80+ seated dinners"],
+      "pricing": {
+        "hireFee": 1500,
+        "perHead": {
+          "banquet": 65,
+          "cabaret": 55,
+          "theatre": 25,
+          "reception": 35
+        },
+        "extras": {
+          "dance_floor": 300,
+          "dj_booth": 150,
+          "photo_booth": 250,
+          "projector": 100,
+          "lectern": 0,
+          "buffet_per_head": 10
+        },
+        "minSpend": 5000
+      }
+    }
+  }
+}
