@@ -1,6 +1,7 @@
 import { effectiveCapacity } from "../feasibility";
 import type { LayoutItem, Room, Spec } from "../types";
 import {
+  HIGH_TABLE_CLEARANCE_M,
   blockedRects,
   gridCentres,
   isBlocked,
@@ -23,7 +24,7 @@ export function layoutReception(room: Room, spec: Spec): LayoutItem[] {
 
   const bounds = seatingBounds(room, spec);
   const tables = gridCentres(bounds, HIGH_TABLE_SPACING).filter(
-    (p) => !isBlocked(p.x, p.z, 0.5, blocks),
+    (p) => !isBlocked(p.x, p.z, HIGH_TABLE_CLEARANCE_M, blocks),
   );
   const items: LayoutItem[] = [...placeFeatures(room, spec)];
 

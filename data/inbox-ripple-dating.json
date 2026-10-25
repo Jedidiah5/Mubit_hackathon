@@ -1,0 +1,47 @@
+[
+  {
+    "id": "rd-speed-dating-40",
+    "from": "Lena Fischer <lena@sparknights.co.uk>",
+    "subject": "Speed dating night",
+    "body": "Hi,\n\nWe run speed dating evenings and would love to try your venue. 40 singles, a host with a bell, and drinks at the bar.\n\nLena",
+    "receivedAt": "2026-10-25T01:30:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 40,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rd-singles-60",
+    "from": "Marcus Bell <marcus@over40socials.com>",
+    "subject": "Singles mingle for over-40s",
+    "body": "Hello,\n\nWe host speed dating for the over-40s. Next one is about 60 people. Drinks and light bites.\n\nMarcus",
+    "receivedAt": "2026-10-25T01:31:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 60,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rd-lgbtq-dating-50",
+    "from": "Jo Patel <jo@rainbowconnections.org>",
+    "subject": "Speed dating evening",
+    "body": "Hi there,\n\nRainbow Connections would like to book a speed dating evening for around 50 people. Music in the background, drinks available.\n\nJo",
+    "receivedAt": "2026-10-25T01:32:00.000Z",
+    "expected": {
+      "style": "cabaret",
+      "guests": 50,
+      "stage": "none",
+      "bar": "east",
+      "extras": [],
+      "accessible": false
+    }
+  }
+]

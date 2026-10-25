@@ -4,44 +4,74 @@
       "plain": {
         "model": "gpt-6-luna",
         "mode": "plain",
-        "ranAt": "2026-10-24T12:13:10.035Z",
-        "n": 15,
-        "exact": 0.5333333333333333,
+        "ranAt": "2026-10-25T01:23:33.708Z",
+        "n": 20,
+        "runs": 3,
+        "exact": 0.6333333333333333,
+        "exactMin": 0.6,
+        "exactMax": 0.65,
         "accuracy": {
-          "overall": 0.8925925925925925,
-          "style": 0.8666666666666667,
-          "stage": 1,
-          "bar": 0.8666666666666667,
+          "overall": 0.9388888888888887,
+          "style": 0.9333333333333333,
+          "stage": 0.9833333333333333,
+          "bar": 0.9166666666666666,
           "accessible": 1,
           "guests": 1,
-          "extras": 0.6222222222222222
+          "extras": 0.8
         },
-        "medianLatencyMs": 2664,
+        "medianLatencyMs": 1856,
         "avgNotes": 0,
-        "promptTokens": 3163,
-        "completionTokens": 2271,
-        "totalTokens": 5434
+        "promptTokens": 4412,
+        "completionTokens": 2729,
+        "totalTokens": 7141
       },
       "rules": {
         "model": "gpt-6-luna",
         "mode": "rules",
-        "ranAt": "2026-10-24T12:13:45.956Z",
-        "n": 15,
-        "exact": 0.8,
+        "ranAt": "2026-10-25T01:24:00.390Z",
+        "n": 20,
+        "runs": 3,
+        "exact": 0.8166666666666667,
+        "exactMin": 0.8,
+        "exactMax": 0.85,
         "accuracy": {
-          "overall": 0.9740740740740741,
+          "overall": 0.9768518518518519,
           "style": 1,
-          "stage": 1,
-          "bar": 1,
+          "stage": 0.9666666666666667,
+          "bar": 0.9833333333333333,
           "accessible": 1,
           "guests": 1,
-          "extras": 0.8444444444444446
+          "extras": 0.9111111111111111
         },
-        "medianLatencyMs": 1919,
+        "medianLatencyMs": 1604.5,
         "avgNotes": 0,
-        "promptTokens": 5188,
-        "completionTokens": 1546,
-        "totalTokens": 6734
+        "promptTokens": 7112,
+        "completionTokens": 2362,
+        "totalTokens": 9474
+      },
+      "notes": {
+        "model": "gpt-6-luna",
+        "mode": "notes",
+        "ranAt": "2026-10-25T01:24:52.326Z",
+        "n": 20,
+        "runs": 3,
+        "exact": 0.8333333333333334,
+        "exactMin": 0.75,
+        "exactMax": 0.9,
+        "accuracy": {
+          "overall": 0.9675925925925928,
+          "style": 0.9166666666666666,
+          "stage": 0.9666666666666667,
+          "bar": 1,
+          "accessible": 1,
+          "guests": 0.9833333333333333,
+          "extras": 0.9388888888888888
+        },
+        "medianLatencyMs": 2604.5,
+        "avgNotes": 6,
+        "promptTokens": 12638,
+        "completionTokens": 4848,
+        "totalTokens": 17486
       }
     }
   }

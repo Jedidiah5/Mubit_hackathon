@@ -30,6 +30,8 @@ type Props = {
   items: LayoutItem[];
   time: () => number;
   kind: GuestKind;
+  /** Guests drawn elsewhere (walking); looks still count them so nobody's outfit changes. */
+  skip?: Set<string>;
 };
 
 function pick<T>(arr: readonly T[], seed: number): T {
@@ -37,7 +39,7 @@ function pick<T>(arr: readonly T[], seed: number): T {
 }
 
 /** Deterministic look per guest: body model + colours for each slot. */
-function lookFor(it: LayoutItem, i: number, overflow: boolean) {
+export function lookFor(it: LayoutItem, i: number, overflow: boolean) {
   const s = i * 31 + Math.round(it.x * 10) * 7 + Math.round(it.z * 10) * 3;
   return {
     body: Math.floor(unitNoise(s + 1) * PEOPLE_MODELS.length) % PEOPLE_MODELS.length,
@@ -51,9 +53,9 @@ function lookFor(it: LayoutItem, i: number, overflow: boolean) {
   };
 }
 
-type Look = ReturnType<typeof lookFor>;
+export type Look = ReturnType<typeof lookFor>;
 
-function colourFor(look: Look, slot: Slot, fixed: string): string {
+export function colourFor(look: Look, slot: Slot, fixed: string): string {
   switch (slot) {
     case "skin":
       return look.skin;
@@ -70,7 +72,7 @@ function colourFor(look: Look, slot: Slot, fixed: string): string {
   }
 }
 
-export function People({ items, time, kind }: Props) {
+export function People({ items, time, kind, skip }: Props) {
   const gltfs = useGLTF([...PEOPLE_MODELS]) as unknown as RiggedModel[];
   const bodies = useMemo(() => gltfs.map((g) => bakeBody(g)), [gltfs]);
   const seated = kind === "guest_seated";
@@ -80,11 +82,12 @@ export function People({ items, time, kind }: Props) {
   const groups = useMemo(() => {
     const out: { it: LayoutItem; i: number; look: Look }[][] = PEOPLE_MODELS.map(() => []);
     items.forEach((it, i) => {
+      if (skip?.has(it.id)) return;
       const look = lookFor(it, i, overflow);
       out[look.body]!.push({ it, i, look });
     });
     return out;
-  }, [items, overflow]);
+  }, [items, overflow, skip]);
 
   if (items.length === 0) return null;
 

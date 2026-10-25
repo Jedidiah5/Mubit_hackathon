@@ -1,45 +1,54 @@
 "use client";
 
-import { Instance } from "@react-three/drei";
 import { type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import {
   MOVABLE_KINDS,
   movableAnchors,
+  pickAt,
   pickId,
   snapHalfMetre,
 } from "@/lib/layout/movable";
-import { footprintSize, orientedSize } from "@/lib/layout/footprint";
-import type { LayoutItem, LayoutOverride, Room } from "@/lib/types";
-import { Pool } from "../instancing";
+import type { LayoutItem, LayoutKind, LayoutOverride, Room } from "@/lib/types";
 import { GhostPiece, HoverHighlight } from "./GhostPiece";
 
 export type EditLayoutSceneProps = {
   room: Room;
   items: LayoutItem[];
   selectedId: string | null;
-  candidate: LayoutOverride | null;
+  /** Kind of the selected piece (also set while adding a new one). */
+  selectedKind: LayoutKind | null;
+  candidate: Pose | null;
   hoverId: string | null;
   valid: boolean;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
-  onMoveCandidate: (pose: LayoutOverride) => void;
+  onMoveCandidate: (pose: Pose) => void;
   /** Nearest 90° camera yaw (radians) for screen-space nudges. */
   viewYaw: number;
   onNudge?: (dx: number, dz: number) => void;
   onRotate?: () => void;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onRemove?: () => void;
 };
 
+type Pose = Pick<LayoutOverride, "x" | "z" | "rotY">;
+
+/** Pointer travel (px) above which a press is a pan, not a click. */
+const CLICK_SLOP_PX = 4;
+
 /**
- * R3F layer for Edit layout: instanced table hit proxies (instanceId → groupId),
- * feature hit boxes, floor raycast, ghost, and keyboard shortcuts.
+ * R3F layer for Edit layout: one invisible floor that picks pieces by
+ * footprint (lib/layout/movable `pickAt`), the hover outline, the ghost, and
+ * keyboard shortcuts. With a piece selected, clicking another table's top or a
+ * feature switches to it; clicking anywhere else moves the ghost there.
  */
 export function EditLayoutScene({
   room,
   items,
   selectedId,
+  selectedKind,
   candidate,
   hoverId,
   valid,
@@ -51,37 +60,31 @@ export function EditLayoutScene({
   onRotate,
   onConfirm,
   onCancel,
+  onRemove,
 }: EditLayoutSceneProps) {
   const anchors = useMemo(() => movableAnchors(items), [items]);
-  const tables = useMemo(
-    () =>
-      anchors.filter(
-        (a) => a.kind === "table_round" || a.kind === "high_table",
-      ),
-    [anchors],
-  );
-  const features = useMemo(
-    () =>
-      anchors.filter(
-        (a) => a.kind !== "table_round" && a.kind !== "high_table",
-      ),
-    [anchors],
-  );
-  const pickTables = useMemo(
-    () => tables.filter((t) => pickId(t) !== selectedId),
-    [tables, selectedId],
-  );
-  const tableIds = useMemo(
-    () => pickTables.map((t) => pickId(t)),
-    [pickTables],
-  );
 
-  const selected = selectedId
-    ? anchors.find((a) => pickId(a) === selectedId)
-    : null;
   const hovered = hoverId
     ? anchors.find((a) => pickId(a) === hoverId)
     : null;
+
+  /** The piece a click at this floor point would select, if any. */
+  const pieceUnder = (x: number, z: number) =>
+    selectedId
+      ? pickAt(items, room, x, z, { core: true, skip: selectedId })
+      : pickAt(items, room, x, z);
+
+  // Pointer over a piece → hand; moving a selection → crosshair.
+  useEffect(() => {
+    document.body.style.cursor = hoverId
+      ? "pointer"
+      : selectedId
+        ? "crosshair"
+        : "";
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [hoverId, selectedId]);
 
   // Keyboard
   useEffect(() => {
@@ -126,6 +129,11 @@ export function EditLayoutScene({
           e.preventDefault();
           onCancel?.();
           break;
+        case "Delete":
+        case "Backspace":
+          e.preventDefault();
+          onRemove?.();
+          break;
         default:
           break;
       }
@@ -140,39 +148,42 @@ export function EditLayoutScene({
     onRotate,
     onConfirm,
     onCancel,
+    onRemove,
   ]);
 
-  const pickTable = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    const id = tableIds[e.instanceId ?? -1];
-    if (id) onSelect(id);
+  const onFloorMove = (e: ThreeEvent<PointerEvent>) => {
+    const id = pieceUnder(e.point.x, e.point.z);
+    if (id !== hoverId) onHover(id);
   };
-  const hoverTable = (e: ThreeEvent<PointerEvent>) => {
+
+  const onFloorClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    const id = tableIds[e.instanceId ?? -1];
-    if (id) onHover(id);
+    // Dragging the floor pans the camera; don't treat the release as a click.
+    if (e.delta > CLICK_SLOP_PX) return;
+    const id = pieceUnder(e.point.x, e.point.z);
+    if (id) {
+      onSelect(id);
+      return;
+    }
+    if (!selectedId || !candidate) return;
+    onMoveCandidate({
+      ...candidate,
+      x: snapHalfMetre(e.point.x),
+      z: snapHalfMetre(e.point.z),
+    });
   };
 
   return (
     <group>
-      {/* Invisible floor for placing the ghost */}
+      {/* The only pick target: the floor, a little past the walls */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.005, 0]}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!selectedId || !candidate) return;
-          onMoveCandidate({
-            ...candidate,
-            x: snapHalfMetre(e.point.x),
-            z: snapHalfMetre(e.point.z),
-          });
-        }}
-        onPointerMissed={() => {
-          /* keep selection */
-        }}
+        onPointerMove={onFloorMove}
+        onPointerOut={() => onHover(null)}
+        onClick={onFloorClick}
       >
-        <planeGeometry args={[room.widthM, room.lengthM]} />
+        <planeGeometry args={[room.widthM + 4, room.lengthM + 4]} />
         <meshBasicMaterial
           transparent
           opacity={0.001}
@@ -180,74 +191,17 @@ export function EditLayoutScene({
         />
       </mesh>
 
-      {/* Table groups — one instanced hit volume; instanceId → groupId */}
-      {pickTables.length > 0 && (
-        <Pool
-          count={pickTables.length}
-          onClick={pickTable}
-          onPointerOver={hoverTable}
-          onPointerOut={() => onHover(null)}
-        >
-          <boxGeometry args={[3.0, 1.0, 3.0]} />
-          <meshBasicMaterial
-            transparent
-            opacity={0.001}
-            depthWrite={false}
-          />
-          {pickTables.map((t, i) => (
-            <Instance
-              key={tableIds[i]}
-              position={[t.x, 0.5, t.z]}
-              rotation={[0, t.rotY, 0]}
-            />
-          ))}
-        </Pool>
+      {hovered && hoverId !== selectedId && (
+        <HoverHighlight room={room} item={hovered} />
       )}
 
-      {/* Feature hit boxes */}
-      {features.map((f) => {
-        const id = pickId(f);
-        if (id === selectedId) return null;
-        const size = orientedSize(footprintSize(f.kind), f.rotY);
-        const h =
-          f.kind === "dance_floor"
-            ? 0.2
-            : f.kind === "stage"
-              ? 0.7
-              : 1.2;
-        return (
-          <mesh
-            key={id}
-            position={[f.x, h / 2, f.z]}
-            rotation={[0, f.rotY, 0]}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(id);
-            }}
-            onPointerOver={(e) => {
-              e.stopPropagation();
-              onHover(id);
-              document.body.style.cursor = "pointer";
-            }}
-            onPointerOut={() => {
-              onHover(null);
-              document.body.style.cursor = "auto";
-            }}
-          >
-            <boxGeometry args={[size.w, h, size.d]} />
-            <meshBasicMaterial
-              transparent
-              opacity={0.001}
-              depthWrite={false}
-            />
-          </mesh>
-        );
-      })}
-
-      {hovered && hoverId !== selectedId && <HoverHighlight item={hovered} />}
-
-      {selected && candidate && (
-        <GhostPiece kind={selected.kind} pose={candidate} valid={valid} />
+      {selectedKind && candidate && (
+        <GhostPiece
+          room={room}
+          kind={selectedKind}
+          pose={candidate}
+          valid={valid}
+        />
       )}
     </group>
   );
