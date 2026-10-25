@@ -318,9 +318,24 @@ body {
   animation: btf-pulse 2.2s ease-in-out infinite;
 }
 
+/* Inbox row a correction just re-parsed ("Fixed by your correction"). */
+@keyframes btf-flash {
+  0%,
+  35% {
+    background-color: color-mix(in oklab, var(--fits) 16%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.btf-flash {
+  animation: btf-flash 3.2s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btf-pop,
   .btf-shimmer,
+  .btf-flash,
   .btf-pill--status .btf-dot {
     animation: none;
   }

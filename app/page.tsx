@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppNav } from "@/components/AppNav";
 import { PasteEnquiryModal } from "@/components/inbox/PasteEnquiryModal";
+import { FixedTag } from "@/components/inbox/FixedTag";
 import { ReviewTag } from "@/components/inbox/ReviewTag";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { StatusChip } from "@/components/inbox/StatusChip";
@@ -20,9 +21,11 @@ import { evaluateRooms } from "@/lib/evaluate";
 import { firestoreFeasibility } from "@/lib/feasibility-serialize";
 import { getDb } from "@/lib/firebase";
 import { formatGbp, quote } from "@/lib/quote";
+import { showFixedBy } from "@/lib/ripple";
 import type {
   EnquiryListItem,
   FeasibilityStatus,
+  FixedBy,
   Room,
   Spec,
 } from "@/lib/types";
@@ -125,8 +128,12 @@ export default function InboxPage() {
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("inbox");
+  /** `${id}:${fixedBy.at}` that arrived live, not on first load: flash once. */
+  const [freshFixes, setFreshFixes] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    let firstSnapshot = true;
+    const seenFixes = new Set<string>();
     const q = query(
       collection(getDb(), "enquiries"),
       orderBy("receivedAt", "desc"),
@@ -150,8 +157,18 @@ export default function InboxPage() {
             model: data.model as string | undefined,
             feasibility: data.feasibility,
             approvedAt: data.approvedAt as string | null | undefined,
+            fixedBy: data.fixedBy as FixedBy | null | undefined,
           };
         });
+        const arrived = next
+          .filter((r) => r.fixedBy?.at)
+          .map((r) => `${r.id}:${r.fixedBy!.at}`)
+          .filter((key) => !seenFixes.has(key));
+        for (const key of arrived) seenFixes.add(key);
+        if (!firstSnapshot && arrived.length > 0) {
+          setFreshFixes((prev) => new Set([...prev, ...arrived]));
+        }
+        firstSnapshot = false;
         setRows(next);
         setLoading(false);
         setError(null);
@@ -346,8 +363,10 @@ export default function InboxPage() {
             const guessed = missing.includes("guests") && !row.approvedAt;
             const guests = guessed ? null : guestsOf(row);
             const est = guessed ? null : estTotalOf(row, rooms);
+            const fixed = showFixedBy(row) ? row.fixedBy : null;
+            const flash = fixed && freshFixes.has(`${row.id}:${fixed.at}`);
             return (
-              <li key={row.id}>
+              <li key={row.id} className={flash ? "btf-flash" : undefined}>
                 <Link
                   href={`/enquiry/${row.id}`}
                   className="grid grid-cols-1 gap-2 px-3 py-4 transition hover:bg-[color:var(--panel-2)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_4rem_8.5rem_6.5rem_7rem] md:items-center md:gap-4"
@@ -355,8 +374,11 @@ export default function InboxPage() {
                   <span className="truncate font-sans text-sm">
                     {senderName(row.from)}
                   </span>
-                  <span className="truncate text-sm text-[color:var(--muted)]">
-                    {row.subject}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-[color:var(--muted)]">
+                      {row.subject}
+                    </span>
+                    {fixed && <FixedTag fixedBy={fixed} />}
                   </span>
                   <span className="font-mono text-sm tabular-nums text-[color:var(--muted)] md:text-right">
                     {guessed && row.parsed ? "?" : guests == null ? "—" : guests}

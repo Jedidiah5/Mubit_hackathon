@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
+import { FixedByNote } from "@/components/enquiry/FixedByNote";
+import { RippleToast, useRipple } from "@/components/enquiry/RippleToast";
 import { ReviewBanner } from "@/components/enquiry/ReviewBanner";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
@@ -19,6 +21,7 @@ import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
+import { showFixedBy } from "@/lib/ripple";
 import type { Enquiry, Feasibility, Spec } from "@/lib/types";
 import { useVenueRooms } from "@/lib/useVenueRooms";
 
@@ -261,16 +264,22 @@ export function EnquiryClient() {
     setDraftOpen(true);
   }, []);
 
+  const ripple = useRipple(id);
+  const startRipple = ripple.start;
+
   const onApprove = useCallback(async () => {
     setDraftKind("reply");
     setDraftOpen(true);
     const current = specRef.current;
     if (approved || !current || !parsedSpec) return;
+    const changes = diffSpec(parsedSpec, current);
     await updateDoc(doc(getDb(), "enquiries", id), {
       approvedAt: new Date().toISOString(),
-      verdict: diffSpec(parsedSpec, current).length > 0 ? "corrected" : "good",
+      verdict: changes.length > 0 ? "corrected" : "good",
     });
-  }, [approved, parsedSpec, id]);
+    // Teach once, fixes everywhere: similar waiting drafts get re-parsed.
+    if (changes.some((ch) => ch.field !== "guests")) void startRipple();
+  }, [approved, parsedSpec, id, startRipple]);
 
   const liveQuote = useMemo(() => {
     if (!spec || !feasibility?.room) return null;
@@ -379,6 +388,9 @@ export function EnquiryClient() {
         <section className="flex min-h-0 flex-col gap-4 overflow-auto p-4">
           {spec ? (
             <>
+              {showFixedBy(enquiry) && (
+                <FixedByNote fixedBy={enquiry.fixedBy} />
+              )}
               <ReviewBanner
                 approvedAt={enquiry.approvedAt ?? null}
                 verdict={enquiry.verdict ?? null}
@@ -450,6 +462,8 @@ export function EnquiryClient() {
             ? "calling Mubit…"
             : "not parsed yet"}
       </footer>
+
+      <RippleToast state={ripple.state} onDismiss={ripple.dismiss} />
 
       <DraftReplyModal
         open={draftOpen}

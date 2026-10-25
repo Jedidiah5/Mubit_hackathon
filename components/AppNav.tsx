@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/setup", label: "Setup" },
   { href: "/stats", label: "Stats" },
   { href: "/dev/scene", label: "Scene" },
+  { href: "/contact", label: "Contact page" },
 ] as const;
 
 type Props = { current?: string };

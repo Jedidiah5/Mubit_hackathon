@@ -31,39 +31,49 @@ async function loadRooms(): Promise<Room[]> {
   return DEMO_ROOMS;
 }
 
-/**
- * Create enquiry doc, parse via Mubit, write feasibility.
- * A failed parse still keeps the doc (spec: null) — it waits in the inbox for
- * "Process all", and the sender isn't told to retry, which would duplicate it.
- */
-export async function createAndParseEnquiry(input: {
+type EnquiryInput = {
   from: string;
   subject: string;
   body: string;
-}): Promise<
-  | { id: string; spec: Spec; requestId: string | null; error?: undefined }
-  | { id: string; spec: null; requestId: null; error: string }
-> {
-  const db = getDb();
-  const ref = await addDoc(collection(db, "enquiries"), {
+  /** Where it came in: "inbound" (email webhook) or "contact" (public form). */
+  source?: "inbound" | "contact";
+};
+
+type ParseOutcome =
+  | { spec: Spec; requestId: string | null; error?: undefined }
+  | { spec: null; requestId: null; error: string };
+
+/** Store the raw enquiry; it shows in the inbox straight away, unparsed. */
+export async function createEnquiry(input: EnquiryInput): Promise<string> {
+  const ref = await addDoc(collection(getDb(), "enquiries"), {
     from: input.from,
     subject: input.subject,
     body: input.body,
     receivedAt: new Date().toISOString(),
-    source: "inbound",
+    source: input.source ?? "inbound",
   });
+  return ref.id;
+}
 
+/**
+ * Parse via Mubit and write feasibility onto an existing enquiry.
+ * A failed parse leaves the doc unparsed so it waits for "Process all".
+ */
+export async function parseEnquiry(
+  id: string,
+  body: string,
+): Promise<ParseOutcome> {
   let parsed: Awaited<ReturnType<typeof runParse>>;
   try {
-    parsed = await runParse(input.body, { enquiryId: ref.id });
+    parsed = await runParse(body, { enquiryId: id });
   } catch (err) {
     const error = err instanceof Error ? err.message : "Parse failed";
-    return { id: ref.id, spec: null, requestId: null, error };
+    return { spec: null, requestId: null, error };
   }
   const rooms = await loadRooms();
   const feasibility = evaluateRooms(rooms, parsed.spec, null);
 
-  await updateDoc(doc(db, "enquiries", ref.id), {
+  await updateDoc(doc(getDb(), "enquiries", id), {
     parsed: parsed.spec,
     final: parsed.spec,
     requestId: parsed.requestId ?? "",
@@ -75,5 +85,16 @@ export async function createAndParseEnquiry(input: {
     roomOverride: null,
   });
 
-  return { id: ref.id, spec: parsed.spec, requestId: parsed.requestId };
+  return { spec: parsed.spec, requestId: parsed.requestId };
+}
+
+/**
+ * Create + parse in one go (email webhook). A failed parse still keeps the doc
+ * (spec: null), and the sender isn't told to retry, which would duplicate it.
+ */
+export async function createAndParseEnquiry(
+  input: EnquiryInput,
+): Promise<ParseOutcome & { id: string }> {
+  const id = await createEnquiry(input);
+  return { id, ...(await parseEnquiry(id, input.body)) };
 }

@@ -11,7 +11,8 @@
     "seed:inbox": "tsx --env-file=.env.local scripts/seed-inbox.ts",
     "eval": "tsx --env-file=.env.local scripts/eval.ts",
     "ratings": "tsx --env-file=.env.local scripts/ratings.ts",
-    "replay": "tsx --env-file=.env.local scripts/replay.ts"
+    "replay": "tsx --env-file=.env.local scripts/replay.ts",
+    "adapter": "tsx scripts/adapter.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

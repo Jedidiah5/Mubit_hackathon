@@ -97,6 +97,17 @@ export type Enquiry = EnquiryInbound & {
   /** Set when the coordinator approves; any later edit clears it (needs review). */
   approvedAt?: string | null;
   verdict?: Verdict | null;
+  /** Re-parsed after a similar enquiry's correction, and that changed it. */
+  fixedBy?: FixedBy | null;
+};
+
+/** Written by /api/ripple: which approved correction changed this draft. */
+export type FixedBy = {
+  enquiryId: string;
+  subject: string;
+  at: string;
+  /** Old parse → new parse, only the fields the coordinator had corrected. */
+  changes: SpecChange[];
 };
 
 /** good = approved as the model drafted it; corrected = edited first. */

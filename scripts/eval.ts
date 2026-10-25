@@ -73,6 +73,23 @@ const mubit = new OpenAI({
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const RETRY_DELAYS_MS = [2000, 5000, 10000, 20000];
+
+/** Retries gateway errors (429 / 5xx), which say nothing about the model's answer. */
+async function withRetry<T>(fn: () => Promise<T>, i: number, n: number): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = (err as { status?: number }).status ?? 0;
+      const retryable = status === 429 || status >= 500;
+      if (!retryable || attempt >= RETRY_DELAYS_MS.length) throw err;
+      console.warn(`[${i + 1}/${n}] ${status}, retrying in ${RETRY_DELAYS_MS[attempt]! / 1000}s`);
+      await sleep(RETRY_DELAYS_MS[attempt]!);
+    }
+  }
+}
+
 async function loadCorrections(): Promise<Correction[]> {
   const snap = await getDocs(
     query(collection(getDb(), "corrections"), orderBy("at", "desc"), limit(200)),
@@ -154,6 +171,7 @@ async function main() {
   const overalls: number[] = [];
   const latencies: number[] = [];
   let exact = 0;
+  let failed = 0;
   let notesUsed = 0;
   let promptTokens = 0;
   let completionTokens = 0;
@@ -163,7 +181,7 @@ async function main() {
     const row = rows[i]!;
     const t0 = Date.now();
     try {
-      const result = await parseOne(row.text, corrections);
+      const result = await withRetry(() => parseOne(row.text, corrections), i, rows.length);
       const fields = scoreSpec(result.spec, row.label);
       for (const key of Object.keys(fields) as (keyof FieldScores)[]) {
         fieldBuckets[key].push(fields[key]);
@@ -184,6 +202,7 @@ async function main() {
       );
     } catch (err) {
       console.error(`[${i + 1}/${rows.length}] FAIL`, err);
+      failed += 1;
       for (const key of Object.keys(fieldBuckets) as (keyof FieldScores)[]) {
         fieldBuckets[key].push(0);
       }
@@ -194,6 +213,12 @@ async function main() {
     if (i < rows.length - 1 && elapsed < 1000) {
       await sleep(1000 - elapsed);
     }
+  }
+
+  // A gateway outage would score as wrong answers, so never save a partial run.
+  if (failed > 0) {
+    console.error(`\n${failed}/${rows.length} calls failed after retries. Not writing ${outPath}.`);
+    process.exit(1);
   }
 
   const report = {
