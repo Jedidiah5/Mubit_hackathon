@@ -46,23 +46,23 @@
       "notes": {
         "model": "gpt-6-luna",
         "mode": "notes",
-        "ranAt": "2026-10-25T00:16:35.879Z",
+        "ranAt": "2026-10-25T00:51:40.259Z",
         "n": 20,
-        "exact": 0.85,
+        "exact": 0.95,
         "accuracy": {
-          "overall": 0.9805555555555557,
+          "overall": 0.9833333333333332,
           "style": 0.95,
           "stage": 1,
           "bar": 1,
           "accessible": 1,
           "guests": 1,
-          "extras": 0.9333333333333332
+          "extras": 0.95
         },
-        "medianLatencyMs": 3243,
+        "medianLatencyMs": 2763,
         "avgNotes": 6,
-        "promptTokens": 13112,
-        "completionTokens": 4771,
-        "totalTokens": 17883
+        "promptTokens": 12638,
+        "completionTokens": 5318,
+        "totalTokens": 17956
       }
     }
   }
