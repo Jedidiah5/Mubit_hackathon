@@ -186,11 +186,13 @@ export function pipelineOf(
     "status" | "approvedAt" | "confirmedAt" | "acceptedAt" | "changeRequest"
   >,
 ): PipelineStatus {
+  // Legacy docs may still hold status "accepted" (pre-confirmed rename).
+  const legacyStatus = e.status as string | undefined;
   if (
     e.confirmedAt ||
     e.status === "confirmed" ||
     e.acceptedAt ||
-    e.status === "accepted"
+    legacyStatus === "accepted"
   ) {
     return "confirmed";
   }
