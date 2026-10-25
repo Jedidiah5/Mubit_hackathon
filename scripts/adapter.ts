@@ -170,7 +170,9 @@ function score() {
   const existing = existsSync(resultsPath)
     ? (JSON.parse(readFileSync(resultsPath, "utf8")) as AdapterRun[])
     : [];
-  const next = [...existing.filter((r) => r.label !== label), run];
+  // Keep what the score doesn't measure (base model, Mubit's grade).
+  const previous = existing.find((r) => r.label === label);
+  const next = [...existing.filter((r) => r.label !== label), { ...previous, ...run }];
   writeFileSync(resultsPath, JSON.stringify(next, null, 2) + "\n");
 
   console.log(

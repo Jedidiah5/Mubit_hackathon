@@ -195,7 +195,8 @@ export function pipelineOf(
     e.confirmedAt ||
     e.status === "confirmed" ||
     e.acceptedAt ||
-    e.status === "accepted"
+    // Legacy docs written before "accepted" was renamed "confirmed".
+    (e.status as string | undefined) === "accepted"
   ) {
     return "confirmed";
   }
