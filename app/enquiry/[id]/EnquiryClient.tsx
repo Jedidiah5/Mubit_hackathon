@@ -7,6 +7,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChangeRequestBanner } from "@/components/enquiry/ChangeRequestBanner";
 import { DraftReplyModal } from "@/components/enquiry/DraftReplyModal";
+import { FixedByNote } from "@/components/enquiry/FixedByNote";
+import { RippleToast, useRipple } from "@/components/enquiry/RippleToast";
 import { ReviewBanner } from "@/components/enquiry/ReviewBanner";
 import { QuoteCard } from "@/components/enquiry/QuoteCard";
 import { FeasibilityCard } from "@/components/enquiry/FeasibilityCard";
@@ -20,10 +22,14 @@ import { trimEnquiry } from "@/lib/parse";
 import { quote } from "@/lib/quote";
 import { enquiryText, missingDetails, needsInfo } from "@/lib/missing";
 import { draftReply, followUpReply } from "@/lib/reply";
+import { showFixedBy } from "@/lib/ripple";
 import {
+  EXTRAS,
   pipelineOf,
   type Enquiry,
+  type Extra,
   type Feasibility,
+  type LayoutKind,
   type LayoutOverride,
   type Spec,
 } from "@/lib/types";
@@ -178,6 +184,7 @@ export function EnquiryClient() {
     return applyOverrides(
       layout(feasibility.room, spec),
       enquiry?.final?.overrides,
+      feasibility.room,
     );
   }, [spec, feasibility, enquiry?.final?.overrides]);
 
@@ -240,6 +247,23 @@ export function EnquiryClient() {
     [persistSpec],
   );
 
+  /** Deleting a stage, bar or extra in Edit layout is a spec change. */
+  const onRemoveFeature = useCallback(
+    (kind: LayoutKind) => {
+      const current = specRef.current;
+      if (!current) return;
+      if (kind === "stage") onSpecChange("stage", "none");
+      else if (kind === "bar") onSpecChange("bar", "none");
+      else if ((EXTRAS as readonly string[]).includes(kind)) {
+        onSpecChange(
+          "extras",
+          current.extras.filter((e: Extra) => e !== kind),
+        );
+      }
+    },
+    [onSpecChange],
+  );
+
   const onGuestsDraft = useCallback(
     (value: string) => {
       setGuestsDraft(value);
@@ -292,17 +316,23 @@ export function EnquiryClient() {
     setDraftOpen(true);
   }, []);
 
+  const ripple = useRipple(id);
+  const startRipple = ripple.start;
+
   const onApprove = useCallback(async () => {
     setDraftKind("reply");
     setDraftOpen(true);
     const current = specRef.current;
     if (approved || !current || !parsedSpec) return;
+    const changes = diffSpec(parsedSpec, current);
     await updateDoc(doc(getDb(), "enquiries", id), {
       approvedAt: new Date().toISOString(),
       status: "proposed",
-      verdict: diffSpec(parsedSpec, current).length > 0 ? "corrected" : "good",
+      verdict: changes.length > 0 ? "corrected" : "good",
     });
-  }, [approved, parsedSpec, id]);
+    // Teach once, fixes everywhere: similar waiting drafts get re-parsed.
+    if (changes.some((ch) => ch.field !== "guests")) void startRipple();
+  }, [approved, parsedSpec, id, startRipple]);
 
   const onAcceptClientChanges = useCallback(async () => {
     const req = enquiry?.changeRequest;
@@ -431,6 +461,7 @@ export function EnquiryClient() {
               ? {
                   overrides: enquiry.final?.overrides,
                   onOverridesChange: onLayoutOverridesChange,
+                  onRemoveFeature,
                 }
               : undefined
           }
@@ -517,6 +548,9 @@ export function EnquiryClient() {
         <div className="pointer-events-auto col-start-1 row-start-2 self-start lg:col-start-3 lg:row-start-1 lg:justify-self-stretch">
           {spec ? (
             <div className="space-y-2 lg:max-w-none">
+              {showFixedBy(enquiry) && (
+                <FixedByNote fixedBy={enquiry.fixedBy} />
+              )}
               {confirmed && (
                 <div className="nb-banner nb-banner-warn backdrop-blur-md">
                   <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--warning)]">
@@ -616,6 +650,8 @@ export function EnquiryClient() {
           </div>
         )}
       </div>
+
+      <RippleToast state={ripple.state} onDismiss={ripple.dismiss} />
 
       <DraftReplyModal
         open={draftOpen}

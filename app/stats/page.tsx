@@ -35,13 +35,24 @@ type EvalRun = {
   accuracy: { overall: number };
   medianLatencyMs: number;
   avgNotes: number;
+  /** Passes over the set; exact is their average, min/max the spread. */
+  runs?: number;
+  exactMin?: number;
+  exactMax?: number;
 };
 
 type AdapterRun = {
   label: string;
+  base?: string;
+  /** What it was trained on; replaces the default line under the label. */
+  hint?: string;
+  /** Not trained yet: why, in place of a grade. */
+  pending?: string;
   exact: number | null;
   accuracy: number | null;
   medianLatencyMs: number | null;
+  /** Mubit's own grade (how closely it matches GPT), copied from the console. */
+  grade?: { quality: number; target: number; testCases: number; status: string };
 };
 
 /** The held-out set built around the venue's house rules. */
@@ -57,6 +68,48 @@ const evalRuns =
   (evalResults as { sets: Record<string, Partial<Record<EvalRun["mode"], EvalRun>>> })
     .sets[EVAL_SET] ?? {};
 const adapterRuns = adapterResults as AdapterRun[];
+
+function NotTested() {
+  return (
+    <span className="font-mono text-[11px] text-[color:var(--muted)]">not tried yet</span>
+  );
+}
+
+/** Mubit's grade bar, like the console's: quality vs the pass mark. */
+function AdapterGrade({ grade }: { grade: NonNullable<AdapterRun["grade"]> }) {
+  const passed = grade.quality >= grade.target;
+  return (
+    <span className="mt-2 block max-w-md font-normal">
+      <span className="flex items-baseline justify-between gap-3 font-mono text-[11px]">
+        <span>
+          Mubit grade{" "}
+          <span className="font-sans text-base font-bold">{pct(grade.quality)}</span>{" "}
+          matches GPT on {grade.testCases} test cases
+        </span>
+        <span className="text-[color:var(--muted)]">pass {pct(grade.target)}</span>
+      </span>
+      <span className="relative mt-1 block h-2.5 rounded-full border-2 border-[color:var(--ink)] bg-[color:var(--panel-snow)]">
+        <span
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            width: `${grade.quality * 100}%`,
+            background: passed ? "var(--fits)" : "var(--warning)",
+          }}
+        />
+        <span
+          className="absolute -inset-y-1 w-0.5 bg-[color:var(--ink)]"
+          style={{ left: `${grade.target * 100}%` }}
+        />
+      </span>
+      <span
+        className="mt-1 block font-mono text-[11px]"
+        style={{ color: passed ? "var(--fits)" : "var(--warning)" }}
+      >
+        {grade.status}
+      </span>
+    </span>
+  );
+}
 
 function fmtVal(v: unknown): string {
   if (typeof v === "boolean") return v ? "true" : "false";
@@ -143,7 +196,15 @@ export default function StatsPage() {
                           : ""}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 text-right tabular-nums">{pct(run?.exact)}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums">
+                      {pct(run?.exact)}
+                      {run?.runs && run.runs > 1 && (
+                        <span className="block font-mono text-[11px] text-[color:var(--muted)]">
+                          {Math.round((run.exactMin ?? 0) * 100)}–
+                          {Math.round((run.exactMax ?? 0) * 100)}% · {run.runs} runs
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4 text-right tabular-nums">
                       {pct(run?.accuracy.overall)}
                     </td>
@@ -155,13 +216,24 @@ export default function StatsPage() {
                 <tr key={a.label} className="border-b border-[color:var(--ink)]/20">
                   <td className="py-3 pr-4 font-bold">
                     {a.label}
+                    {a.base ? ` · ${a.base}` : ""}
                     <span className="block font-mono text-[11px] font-normal text-[color:var(--muted)]">
-                      trained by Mubit on the kept answers · no notes
+                      {a.hint ?? "trained by Mubit on the kept answers · no notes"}
                     </span>
+                    {a.grade && <AdapterGrade grade={a.grade} />}
+                    {!a.grade && a.pending && (
+                      <span className="nb-chip mt-2 !font-mono !text-[11px] !font-normal">
+                        {a.pending}
+                      </span>
+                    )}
                   </td>
-                  <td className="py-3 pr-4 text-right tabular-nums">{pct(a.exact)}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums">{pct(a.accuracy)}</td>
-                  <td className="py-3 text-right tabular-nums">{ms(a.medianLatencyMs)}</td>
+                  <td className="py-3 pr-4 text-right align-top tabular-nums">
+                    {a.exact == null ? <NotTested /> : pct(a.exact)}
+                  </td>
+                  <td className="py-3 pr-4 text-right align-top tabular-nums">
+                    {a.accuracy == null ? <NotTested /> : pct(a.accuracy)}
+                  </td>
+                  <td className="py-3 text-right align-top tabular-nums">{ms(a.medianLatencyMs)}</td>
                 </tr>
               ))}
             </tbody>

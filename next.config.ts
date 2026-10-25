@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // The "N" badge covered the ripple toast and room picker during demos.
+  devIndicators: false,
   turbopack: {
     rules: {
       "*.css": {

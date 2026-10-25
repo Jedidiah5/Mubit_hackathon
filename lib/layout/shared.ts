@@ -26,6 +26,12 @@ export const BUFFET_WIDTH_M = 4.8;
 export const BUFFET_DEPTH_M = 0.9;
 export const LECTERN_SIZE_M = 0.7;
 export const PROJECTOR_SIZE_M = 2.2;
+/** Round-table centre clearance from blocked rects when packing. */
+export const ROUND_TABLE_CLEARANCE_M = TABLE_RADIUS_M + 0.25;
+/** High-table centre clearance from blocked rects (reception). */
+export const HIGH_TABLE_CLEARANCE_M = 0.5;
+/** Clear pad just inside the south door, kept free of furniture. */
+export const DOOR_CLEAR_M = 1.5;
 
 export type Bounds = {
   minX: number;
@@ -76,6 +82,15 @@ export function wallFacingIn(wall: Wall): number {
     default:
       return 0;
   }
+}
+
+/** Inverse of wallFacingIn: which wall a wall-mounted piece backs onto. */
+export function wallFromRotY(rotY: number): Wall {
+  const r = ((rotY % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  if (Math.abs(r) < 0.1 || Math.abs(r - Math.PI * 2) < 0.1) return "north";
+  if (Math.abs(r - Math.PI) < 0.1) return "south";
+  if (Math.abs(r - Math.PI / 2) < 0.1) return "west";
+  return "east";
 }
 
 /** Yaw so +z local (chair / guest front) faces that wall, e.g. seats facing the stage. */
@@ -164,6 +179,14 @@ export function danceFloorPosition(
 }
 
 /**
+ * Offset along its wall: on the south wall the bar shifts east, clear of the
+ * door pad; elsewhere it is centred.
+ */
+export function barAlong(wall: Wall): number {
+  return wall === "south" ? DOOR_CLEAR_M / 2 + BAR_WIDTH_M / 2 + 0.25 : 0;
+}
+
+/**
  * Buffet runs along a side wall the stage and bar aren't using (west first),
  * offset along the wall so it clears the south door / east photo booth.
  */
@@ -171,13 +194,14 @@ export function buffetPlacement(
   room: Room,
   spec: Spec,
 ): { wall: Wall; along: number } {
-  const { hx, hz } = halfExtents(room);
+  const { hz } = halfExtents(room);
   const used = new Set<Wall>([spec.stage, spec.bar]);
   const order: Wall[] = ["west", "east", "south", "north"];
   const wall = order.find((w) => !used.has(w)) ?? "west";
   let along = 0;
   if (wall === "east" && spec.extras.includes("photo_booth")) along = -hz * 0.3;
-  if (wall === "south") along = -hx * 0.3; // keep the door clear
+  // West of the door pad (clamped to the wall in rooms too narrow for that).
+  if (wall === "south") along = -(DOOR_CLEAR_M / 2 + BUFFET_WIDTH_M / 2 + 0.25);
   return { wall, along };
 }
 
@@ -229,13 +253,25 @@ export function accessibleRouteRects(room: Room, spec: Spec): Bounds[] {
   // Wall-run to the bar (never cuts through the seating floor).
   if (spec.bar === "east" || spec.bar === "west") {
     const barX = spec.bar === "east" ? hx - margin - half : -hx + margin + half;
-    const bar = wallFootprint(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M);
+    const bar = wallFootprint(
+      room,
+      spec.bar,
+      BAR_DEPTH_M,
+      BAR_WIDTH_M,
+      barAlong(spec.bar),
+    );
     const barCz = (bar.minZ + bar.maxZ) / 2;
     // South wall to the bar's wall, then up/down to the bar.
     hStrip(0, barX, southZ);
     vStrip(barX, southZ, barCz);
   } else if (spec.bar === "north" || spec.bar === "south") {
-    const bar = wallFootprint(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M);
+    const bar = wallFootprint(
+      room,
+      spec.bar,
+      BAR_DEPTH_M,
+      BAR_WIDTH_M,
+      barAlong(spec.bar),
+    );
     const barCx = (bar.minX + bar.maxX) / 2;
     const barZ =
       spec.bar === "north" ? -hz + margin + half : hz - margin - half;
@@ -253,9 +289,16 @@ export function accessibleRouteRects(room: Room, spec: Spec): Bounds[] {
   return rects;
 }
 
+/** DOOR_CLEAR_M square just inside the south door. */
+export function southDoorPad(room: Room): Bounds {
+  const { hz } = halfExtents(room);
+  const half = DOOR_CLEAR_M / 2;
+  return { minX: -half, maxX: half, minZ: hz - DOOR_CLEAR_M, maxZ: hz };
+}
+
 /**
- * Blocked rectangles: dance floor, stage, bar, booths, buffet, accessible route.
- * All table/guest placement must stay clear of these.
+ * Blocked rectangles: dance floor, stage, bar, booths, buffet, south door pad,
+ * accessible route. All table/guest placement must stay clear of these.
  */
 export function blockedRects(room: Room, spec: Spec): Bounds[] {
   const rects: Bounds[] = [];
@@ -273,7 +316,15 @@ export function blockedRects(room: Room, spec: Spec): Bounds[] {
   }
 
   if (spec.bar !== "none") {
-    rects.push(wallFootprint(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M));
+    rects.push(
+      wallFootprint(
+        room,
+        spec.bar,
+        BAR_DEPTH_M,
+        BAR_WIDTH_M,
+        barAlong(spec.bar),
+      ),
+    );
   }
 
   if (spec.extras.includes("dance_floor")) {
@@ -307,6 +358,8 @@ export function blockedRects(room: Room, spec: Spec): Bounds[] {
       wallFootprint(room, wall, BUFFET_DEPTH_M + 1.0, BUFFET_WIDTH_M, along),
     );
   }
+
+  rects.push(southDoorPad(room));
 
   // Only the short inward spur needs to block packing — the wall-hugging
   // lane already sits inside the accessible aisle margin.
@@ -420,7 +473,14 @@ export function placeFeatures(
   }
 
   if (spec.bar !== "none") {
-    const bar = placeOnWall(room, spec.bar, BAR_DEPTH_M, BAR_WIDTH_M, "bar");
+    const bar = placeOnWall(
+      room,
+      spec.bar,
+      BAR_DEPTH_M,
+      BAR_WIDTH_M,
+      "bar",
+      barAlong(spec.bar),
+    );
     if (bar) items.push(bar);
   }
 
@@ -647,7 +707,7 @@ export function packRoundTables(
   room: Room,
   spec: Spec,
   tablesNeeded: number,
-  clearance = TABLE_RADIUS_M + 0.25,
+  clearance = ROUND_TABLE_CLEARANCE_M,
 ): Point[] {
   if (tablesNeeded <= 0) return [];
   // Table centres must leave room for the chairs plus the wall aisle.
@@ -777,7 +837,7 @@ export function packBanquetTables(
   room: Room,
   spec: Spec,
   tablesNeeded: number,
-  clearance = TABLE_RADIUS_M + 0.25,
+  clearance = ROUND_TABLE_CLEARANCE_M,
 ): Point[] {
   if (tablesNeeded <= 0) return [];
   const inset = CHAIR_RADIUS_M + 0.2;

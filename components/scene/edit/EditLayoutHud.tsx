@@ -1,5 +1,7 @@
 "use client";
 
+import type { AddableKind } from "@/lib/types";
+
 type Props = {
   editing: boolean;
   onToggle: () => void;
@@ -12,7 +14,17 @@ type Props = {
   onRotate: () => void;
   onConfirm: () => void;
   onCancel: () => void;
+  canRemove: boolean;
+  onRemove: () => void;
+  onAdd: (kind: AddableKind) => void;
+  /** Standing note while editing, e.g. "Seats 110 of 120 guests". */
+  note: string | null;
 };
+
+const ADD_BUTTONS: { kind: AddableKind; label: string }[] = [
+  { kind: "sign", label: "+ Sign" },
+  { kind: "tv", label: "+ TV screen" },
+];
 
 /** DOM overlay: Edit layout toggle, reset, phone-friendly nudge pad, toast. */
 export function EditLayoutHud({
@@ -27,6 +39,10 @@ export function EditLayoutHud({
   onRotate,
   onConfirm,
   onCancel,
+  canRemove,
+  onRemove,
+  onAdd,
+  note,
 }: Props) {
   return (
     <div className="btf-edit-hud">
@@ -38,6 +54,17 @@ export function EditLayoutHud({
         >
           {editing ? "Done editing" : "Edit layout"}
         </button>
+        {editing &&
+          ADD_BUTTONS.map(({ kind, label }) => (
+            <button
+              key={kind}
+              type="button"
+              className="btf-pill btf-pill--btn"
+              onClick={() => onAdd(kind)}
+            >
+              {label}
+            </button>
+          ))}
         {editing && hasOverrides && (
           <button
             type="button"
@@ -113,16 +140,34 @@ export function EditLayoutHud({
                 Esc
               </button>
             </div>
+            {canRemove && (
+              <div className="btf-edit-pad__actions">
+                <button
+                  type="button"
+                  className="btf-pill btf-pill--btn btf-pill--danger"
+                  onClick={onRemove}
+                  title="Delete (Del)"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
           <p className="btf-edit-hint">
-            Click floor to move · arrows nudge · R rotate · Enter place
+            Click floor to move · arrows nudge · R rotate · Enter place · Del
+            delete
           </p>
         </div>
       )}
 
-      {editing && toast && (
+      {editing && (toast || note) && (
         <div className="btf-edit-hud__toast" role="status">
-          <div className="btf-pill btf-pill--status btf-pill--cannot">{toast}</div>
+          {toast && (
+            <div className="btf-pill btf-pill--status btf-pill--cannot">
+              {toast}
+            </div>
+          )}
+          {note && <div className="btf-pill btf-pill--dark">{note}</div>}
         </div>
       )}
     </div>

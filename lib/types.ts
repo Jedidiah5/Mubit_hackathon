@@ -87,6 +87,10 @@ export type LayoutOverride = {
   x: number;
   z: number;
   rotY: number;
+  /** Set on a piece the coordinator added (its key is a fresh id). */
+  kind?: AddableKind;
+  /** The piece (or table group) was deleted. */
+  removed?: boolean;
 };
 
 /** One changed Spec field: from → to. */
@@ -155,6 +159,17 @@ export type Enquiry = EnquiryInbound & {
   acceptedAt?: string | null;
   verdict?: Verdict | null;
   changeRequest?: ChangeRequest | null;
+  /** Re-parsed after a similar enquiry's correction, and that changed it. */
+  fixedBy?: FixedBy | null;
+};
+
+/** Written by /api/ripple: which approved correction changed this draft. */
+export type FixedBy = {
+  enquiryId: string;
+  subject: string;
+  at: string;
+  /** Old parse → new parse, only the fields the coordinator had corrected. */
+  changes: SpecChange[];
 };
 
 /** good = approved as the model drafted it; corrected = edited first. */
@@ -220,12 +235,18 @@ export const LAYOUT_KINDS = [
   "buffet",
   "lectern",
   "projector",
+  "sign",
+  "tv",
   "guest_seated",
   "guest_standing",
   "guest_overflow",
 ] as const;
 
 export type LayoutKind = (typeof LAYOUT_KINDS)[number];
+
+/** Pieces a coordinator can add in Edit layout (never placed by auto-layout). */
+export const ADDABLE_KINDS = ["sign", "tv"] as const satisfies readonly LayoutKind[];
+export type AddableKind = (typeof ADDABLE_KINDS)[number];
 
 /**
  * Approved spec on an enquiry. `overrides` are keyed by LayoutItem.id or

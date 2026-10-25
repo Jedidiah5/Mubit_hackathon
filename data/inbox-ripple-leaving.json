@@ -1,0 +1,104 @@
+[
+  {
+    "id": "rl-retire-head-120",
+    "from": "Helen Marsh <h.marsh@stmarksprimary.org.uk>",
+    "subject": "Head teacher's farewell evening",
+    "body": "Dear events team,\n\nOur head teacher retires this summer. We'd like a farewell evening for about 120 staff, governors and former pupils. Supper, then the chair of governors will say a few words.\n\nKind regards,\nHelen",
+    "receivedAt": "2026-10-25T01:20:00.000Z",
+    "expected": {
+      "style": "reception",
+      "guests": 120,
+      "stage": "none",
+      "bar": "east",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rl-retire-jean-80",
+    "from": "Priya Shah <priya.shah@harlowaccounts.co.uk>",
+    "subject": "Retirement do for Jean",
+    "body": "Hi,\n\nJean is retiring after 32 years in accounts and we want to give her a proper send-off. About 80 colleagues, some food, and her manager wants to say a few words.\n\nThanks,\nPriya",
+    "receivedAt": "2026-10-25T01:21:00.000Z",
+    "expected": {
+      "style": "reception",
+      "guests": 80,
+      "stage": "none",
+      "bar": "east",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rl-leaving-tom-60",
+    "from": "Sam Okafor <sam@brightlinestudio.com>",
+    "subject": "Leaving do for Tom",
+    "body": "Hello,\n\nTom is off to Australia after nine years with us. We'd like a leaving do for around 60 of the team on a Friday after work. Food and drinks, and a couple of short speeches.\n\nSam",
+    "receivedAt": "2026-10-25T01:22:00.000Z",
+    "expected": {
+      "style": "reception",
+      "guests": 60,
+      "stage": "none",
+      "bar": "east",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rl-farewell-partner-45",
+    "from": "Oliver Grant <oliver.grant@grantwhitelaw.co.uk>",
+    "subject": "Farewell party for a senior partner",
+    "body": "Hi,\n\nFarewell party for one of our senior partners, 45 people from the firm. Something to eat, wine, and a speech from the managing partner.\n\nOliver",
+    "receivedAt": "2026-10-25T01:23:00.000Z",
+    "expected": {
+      "style": "reception",
+      "guests": 45,
+      "stage": "none",
+      "bar": "east",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": false
+    }
+  },
+  {
+    "id": "rl-retire-sister-70",
+    "from": "Dr Anita Rao <anita.rao@nhs.net>",
+    "subject": "Sister Margaret's retirement",
+    "body": "Hello,\n\nSister Margaret is retiring after 40 years on the ward. We'd like an evening for around 70 nurses and doctors, a meal of some kind, and the matron will give a short tribute. A couple of retired colleagues use walking sticks.\n\nAnita",
+    "receivedAt": "2026-10-25T01:24:00.000Z",
+    "expected": {
+      "style": "reception",
+      "guests": 70,
+      "stage": "none",
+      "bar": "east",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": true
+    }
+  },
+  {
+    "id": "rl-decoy-anniversary-80",
+    "from": "Grace Lin <grace@northstarlogistics.co.uk>",
+    "subject": "Company 10th anniversary dinner",
+    "body": "Hi,\n\nWe're turning ten! Anniversary dinner for 80 staff, three courses, and our CEO will give a speech.\n\nGrace",
+    "receivedAt": "2026-10-25T01:25:00.000Z",
+    "expected": {
+      "style": "banquet",
+      "guests": 80,
+      "stage": "north",
+      "bar": "none",
+      "extras": [
+        "lectern"
+      ],
+      "accessible": false
+    }
+  }
+]

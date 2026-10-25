@@ -1,3 +1,5 @@
+import { eventCues } from "./cues";
+import { missingDetails, needsInfo } from "./missing";
 import type { Correction, Spec, SpecChange } from "./types";
 
 /** Most notes put above one enquiry. Keeps training examples short. */
@@ -57,7 +59,7 @@ const STOPWORDS = new Set(
   ),
 );
 
-function tokens(text: string): Set<string> {
+export function tokens(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()
@@ -66,7 +68,7 @@ function tokens(text: string): Set<string> {
   );
 }
 
-function similarity(a: Set<string>, b: Set<string>): number {
+export function similarity(a: Set<string>, b: Set<string>): number {
   if (a.size === 0 || b.size === 0) return 0;
   let shared = 0;
   for (const w of a) if (b.has(w)) shared += 1;
@@ -78,8 +80,10 @@ function noteChanges(c: Correction): SpecChange[] {
 }
 
 /**
- * Up to MAX_NOTES corrections for this email: most similar first, then most
- * recent. Skips the enquiry itself and corrections that only changed guests.
+ * Up to MAX_NOTES corrections for this email: same kind of event first (see
+ * lib/cues.ts), then most similar, then most recent. Skips the enquiry itself, corrections that only changed guests, and
+ * vague emails ("i want to host an event soon"): their fixes are guesses, not
+ * the venue's habits.
  */
 export function pickCorrections(
   all: Correction[],
@@ -87,10 +91,18 @@ export function pickCorrections(
   excludeEnquiryId?: string,
 ): Correction[] {
   const target = tokens(email);
+  const targetCues = eventCues(email);
   return all
     .filter((c) => c.enquiryId !== excludeEnquiryId)
     .filter((c) => noteChanges(c).length > 0)
-    .map((c) => ({ c, score: similarity(target, tokens(c.email)) }))
+    .filter((c) => !needsInfo(missingDetails(c.email)))
+    .map((c) => ({
+      c,
+      // Same kind of event outranks shared filler words ("drinks", "bar").
+      score:
+        similarity(target, tokens(c.email)) +
+        ([...eventCues(c.email)].some((cue) => targetCues.has(cue)) ? 1 : 0),
+    }))
     .sort((x, y) => y.score - x.score || y.c.at.localeCompare(x.c.at))
     .slice(0, MAX_NOTES)
     .map((x) => x.c);
@@ -107,19 +119,28 @@ function snippet(email: string): string {
   return `${flat.slice(0, SNIPPET_CHARS).replace(/\s+\S*$/, "")}…`;
 }
 
-/** `- "email…" → style: cabaret; accessible: true` */
+/**
+ * `- "email…" → style: cabaret; stage: north; … (fixed: style)`
+ * The whole approved answer, not just the diff: an awards fix that only added
+ * a lectern still has to show that awards are cabaret. Except access: it
+ * belongs to the guests, not the event kind, so it shows only when it was the
+ * fix (else "accessible: false" got copied onto an email mentioning walkers).
+ */
 export function formatNote(c: Correction): string {
-  const fields = noteChanges(c)
-    .map((ch) => `${ch.field}: ${formatValue(ch.to)}`)
+  const changed = noteChanges(c).map((ch) => ch.field);
+  const answer = SPEC_FIELDS.filter((f) => NOTE_FIELDS.has(f))
+    .filter((f) => f !== "accessible" || changed.includes(f))
+    .map((f) => `${f}: ${formatValue(c.final[f])}`)
     .join("; ");
-  return `- "${snippet(c.email)}" → ${fields}`;
+  const fixed = changed.join(", ");
+  return `- "${snippet(c.email)}" → ${answer} (fixed: ${fixed})`;
 }
 
 /** User message for the parse call. With no notes it is just the email. */
 export function buildUserMessage(email: string, notes: Correction[]): string {
   if (notes.length === 0) return email;
   return [
-    "Corrections this venue's coordinator made to earlier enquiries. Each shows the earlier email and the fields they changed. Apply a correction only if this enquiry has the same cue; otherwise ignore it.",
+    "Earlier enquiries at this venue with the answer its coordinator approved, and which fields they fixed. Follow an earlier answer only where this enquiry has the same cue; otherwise ignore it.",
     ...notes.map(formatNote),
     "",
     "Enquiry:",
